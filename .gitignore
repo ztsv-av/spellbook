@@ -1,4 +1,5 @@
 __pycache__/*
 .vscode/*
 object_detection/downloaded_models/*
-datasets/pascalvoc_dataset/*
+datasets/*
+projects/*
