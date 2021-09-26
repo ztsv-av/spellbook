@@ -1,4 +1,4 @@
-*(To be filled until 09/26/2021)*
+*(To be filled soon)*
 
 # BirdCLEF 2021 - Birdcall Identification
 
