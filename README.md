@@ -1,3 +1,5 @@
+![1](https://user-images.githubusercontent.com/73081144/134788824-6da60687-3615-4b88-9589-a88225f72b40.png)
+
 # Spellbook
 
 This repo aims to optimize usability of DL techniques by implementing a standardized code piece suitable to various DL tasks such as classification, object detection, etc. By directly importing the code piece the learning canvas may be built rather fast and allow engineers to focus on task-specific issues rather than cross-task, reusable actions.
