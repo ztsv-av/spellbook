@@ -1,4 +1,4 @@
-![1](https://user-images.githubusercontent.com/73081144/134788824-6da60687-3615-4b88-9589-a88225f72b40.png)
+![2](https://user-images.githubusercontent.com/73081144/134788873-c1401000-5fe5-45da-8902-96891c218d69.png)
 
 # Spellbook
 
