@@ -1,33 +1,61 @@
-# Deep Learning Boilerplate
+# Spellbook
 
 This repo aims to optimize usability of DL techniques by implementing a standardized code piece suitable to various DL tasks such as classification, object detection, etc. By directly importing the code piece the learning canvas may be built rather fast and allow engineers to focus on task-specific issues rather than cross-task, reusable actions.
 
-`datasets` - directory that contains various datasets for code testing
+## File List
 
-`object_detection` - directory that contains **Tensorflow Object Detection API**, as well as downloaded pre-trained models' checkpoints.
+### `callbacks.py`
 
-`projects` - directory that contains personal projects and competitions from [Kaggle.com](https://www.kaggle.com/).
+Custom callbacks
 
-`callbacks.py` - custom callbacks
+### `generatorInstance.py`
 
-`dataPermutation.py` - data permutation functions
+Initializes batches of features and targets by iterating through filenames (obsolete)
 
-`dataPreprocessing.py` - data preprocessing functions
+### `globalVariables.py`
 
-`globalVariables.py` - space where all used variables are stored
+Space where all used variables are stored
 
-`helpers.py` - 
+### `helpers.py`
 
-`losses.py` -  
+Useful miscellaneous functions
 
-`magic.py` -  
+### `losses.py`
 
-`magicCustomTraining.py` -   
+Custom loss functions
 
-`metrics.py` -   
+### `magic.py`
 
-`models.py` -   
+Working file, used to initialize parameters and start training
+ 
+### `metrics.py`
 
-`optimizers.py` -   
+Custom metrics
 
-`templates.py` -     
+### `models.py`
+
+Custom models as well as downloaded ones, such as *ImageNet* models
+
+### `optimizers.py`
+
+Custom optimizers
+
+### `permutationFunctions.py`
+
+Data permutation functions
+
+### `prepareTrainDataset.py`
+
+Dataset preparation functions (initializes tf.data.Dataset object and does permutations)
+
+### `preprocessData.py`
+
+Prepares data for training (e.x. normalization, rescailing, resizing, etc.)
+
+### `preprocessingFunctions.py`
+
+Data preprocessing functions
+
+### `train.py` 
+
+Takes data as a parameter and trains a given model on it
