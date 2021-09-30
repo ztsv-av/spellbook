@@ -6,7 +6,7 @@ from helpers import getPathsList, getLabelFromFilename
 from permutationFunctions import classification_permutations, detection_permutations
 
 
-def permuteImageGetLabel(image_filename, image_dir, permutations, bboxes, bbox_format, is_val, is_detection):
+def permuteImageGetLabel(image_filename, image_dir, permutations, bboxes, bbox_format, is_detection, is_val):
     
     '''
     permute the given image and get label for that image
@@ -22,7 +22,7 @@ def permuteImageGetLabel(image_filename, image_dir, permutations, bboxes, bbox_f
             image = classification_permutations(image, permutations)
         label = getLabelFromFilename(image_filename)
 
-    return image, bboxes if is_detection else (image, label)
+    return (image, bboxes) if is_detection else (image, label)
 
 
 def prepareClassificationDataset(batch_size, train_files_path, val_files_path, permutations, buffer_size):
@@ -35,12 +35,12 @@ def prepareClassificationDataset(batch_size, train_files_path, val_files_path, p
 
     train_dataset = tf.data.Dataset.from_tensor_slices(train_paths_list)
     train_dataset = train_dataset.map(lambda x: permuteImageGetLabel(
-        x, train_files_path, permutations, bboxes=False, bbox_format=False, is_val=False, is_detection=False))
+        x, train_files_path, permutations, bboxes=False, bbox_format=False, is_detection=False, is_val=False))
     train_dataset = train_dataset.shuffle(buffer_size).batch(batch_size)
 
     val_dataset = tf.data.Dataset.from_tensor_slices(val_paths_list)
     val_dataset = val_dataset.map(lambda x: permuteImageGetLabel(
-        x, val_files_path, None, bboxes=False, bbox_format=False, is_val=True, is_detection=False))
+        x, val_files_path, permutations=None, bboxes=False, bbox_format=False, is_detection=False, is_val=True))
     val_dataset = val_dataset.batch(batch_size)
 
     return train_dataset, val_dataset, train_len, val_len
@@ -56,7 +56,7 @@ def prepareDetectionDataset(filenames, files_path, bbox_format, meta, num_classe
         record = meta[meta['filename'] == filename]
         bboxes = record['bboxes']
 
-        image, bboxes = permuteImageGetLabel(filename, files_path, permutations, bboxes, bbox_format, is_val=False, is_detection=True)
+        image, bboxes = permuteImageGetLabel(filename, files_path, permutations, bboxes, bbox_format, is_detection=True, is_val=False)
 
         images_batch.append(image)
         bboxes_batch.append(bboxes)
