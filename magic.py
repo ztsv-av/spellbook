@@ -3,13 +3,12 @@ import tensorflow.keras.backend as K
 from object_detection.utils import config_util
 from object_detection.builders import model_builder
 
-from globalVariables import (BATCH_SIZE_DETECTION, BBOX_FORMAT, CHECKPOINT_SAVE_DIR, LABEL_ID_OFFSET, 
-                            NUM_CLASSES_DETECTION, INPUT_SHAPE, NUM_CLASSES, NUM_EPOCHS_DETECTION, 
-                            OUTPUT_ACTIVATION, LEARNING_RATE, CONFIG_PATH, MODEL_POOLING, 
-                            PERMUTATIONS_CLASSIFICATION, DUMMY_SHAPE_DETECTION, CHECKPOINT_PATH, 
-                            BATCH_SIZES_256,BINARY_ACCURACY_THRESHOLD, NUM_EPOCHS, PERMUTATIONS_DETECTION, 
-                            SHUFFLE_BUFFER_SIZE, TRAIN_FILES_PATH, TRAIN_FILES_PATH_DETECTION, 
-                            TRAIN_META_DETECTION, VAL_FILES_PATH)
+from globalVariables import (BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILES_PATH, VAL_FILES_PATH, 
+                            PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING, 
+                            LEARNING_RATE, BINARY_ACCURACY_THRESHOLD)
+from globalVariables import (BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION, 
+                            TRAIN_FILES_PATH_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET, PERMUTATIONS_DETECTION, 
+                            CONFIG_PATH, CHECKPOINT_PATH, CHECKPOINT_SAVE_DIR )
 
 from models import MODELS_CLASSIFICATION
 from helpers import buildClassificationImageNetModel
@@ -70,7 +69,7 @@ def сlassificationСustom():
 
     for model_name, model_imagenet in MODELS_CLASSIFICATION.items():
 
-        batch_size_per_replica = BATCH_SIZES_256[model_name]
+        batch_size_per_replica = BATCH_SIZES[model_name]
         batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
 
         with strategy.scope():
@@ -105,8 +104,8 @@ def сlassificationСustom():
                     var, name=name)
         
         classificationCustomTrain(batch_size, NUM_EPOCHS, TRAIN_FILES_PATH, VAL_FILES_PATH, PERMUTATIONS_CLASSIFICATION, 
-        SHUFFLE_BUFFER_SIZE, classification_model, loss_object, compute_total_loss, val_loss, optimizer, train_accuracy, 
-        val_accuracy, strategy)
+            SHUFFLE_BUFFER_SIZE, classification_model, loss_object, compute_total_loss, val_loss, optimizer, train_accuracy, 
+            val_accuracy, strategy)
 
 
         del batch_size_per_replica
