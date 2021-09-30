@@ -50,10 +50,8 @@ def minMaxNormalizeTensor(x):
     """
 
 
-    x = tf.div(
-        tf.subtract(x, tf.reduce_min(x)), 
-        tf.subtract(tf.reduce_max(x), tf.reduce_min(x))
-    )
+    x = tf.subtract(x, tf.reduce_min(x))
+    x = tf.divide(x, tf.reduce_max(x))
 
     return x
 
