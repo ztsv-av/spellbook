@@ -6,6 +6,25 @@ import numpy as np
 
 # classification
 NUM_EPOCHS = 5
+BATCH_SIZES = {
+    'DenseNet121': 32,
+    'DenseNet169': 16,
+    'EfficientNetB0': 32,
+    'EfficientNetB1': 32,
+    'EfficientNetB2': 16,
+    'EfficientNetB3': 16,
+    'EfficientNetB4': 16,
+    'EfficientNetB5': 8,
+    'InceptionResNetV2': 16,
+    'InceptionV3': 32,
+    'MobileNet': 32,
+    'MobileNetV2': 32,
+    'ResNet50': 32,
+    'ResNet50V2': 32,
+    'ResNet101': 16,
+    'ResNet101V2': 16,
+    'Xception': 8
+}
 # for 256x256
 BATCH_SIZES_256 = {
     'DenseNet121': 128,
@@ -25,7 +44,7 @@ BATCH_SIZES_256 = {
     'ResNet101V2': 8,
     'Xception': 4
 }
-# for 512x512 (over memory)
+# for 512x512 (some over memory)
 BATCH_SIZES_512 = {
     'DenseNet121': 4,
     'EfficientNetB0': 4,
