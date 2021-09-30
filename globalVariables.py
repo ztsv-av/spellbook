@@ -5,7 +5,7 @@ import numpy as np
 
 
 # classification
-NUM_EPOCHS = 5
+NUM_EPOCHS = 10
 BATCH_SIZES = {
     'DenseNet121': 32,
     'DenseNet169': 16,
@@ -64,14 +64,14 @@ BATCH_SIZES_512 = {
     'Xception': 4
 }
 NUM_CLASSES = 10
-INPUT_SHAPE = (32, 32, 3)
-OUTPUT_ACTIVATION = 'softmax'  # 'sigmoid', 'softmax', None
-TRAIN_FILES_PATH = ''
-VAL_FILES_PATH = ''
+INPUT_SHAPE = (28, 28, 3)
+OUTPUT_ACTIVATION = 'None'  # 'sigmoid', 'softmax', None
+TRAIN_FILES_PATH = 'projects/testing/datasets/train/'
+VAL_FILES_PATH = 'projects/testing/datasets/test/'
 TRAINED_MODELS_PATH = ''
 TRAINED_MODELS_FILES = None # os.listdir()
-SAVE_MODELS_DIR = ''
-SAVE_TRAINING_CSVS_DIR = ''
+SAVE_MODELS_DIR = 'projects/testing/training/weights/'
+SAVE_TRAINING_CSVS_DIR = 'projects/testing/training/csvs/'
 LABELS = ""
 LABEL_TO_INTEGER = ""
 MODEL_POOLING = 'avg'
