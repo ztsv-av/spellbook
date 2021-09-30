@@ -130,7 +130,7 @@ def classificationCustomTrain(
             "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
         print(template.format(
             epoch + 1, train_loss, train_accuracy.result() * 100, 
-            val_loss.result(), val_accuracy.result() * 100))
+            val_loss.result(), val_accuracy.result() * 100, flush=True))
 
         val_loss.reset_states()
         train_accuracy.reset_states()
