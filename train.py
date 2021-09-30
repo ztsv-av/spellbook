@@ -212,8 +212,9 @@ def detectionTrainStep(
 
 
 def detectionTrain(
-    model, optimizer, to_fine_tune, train_files_path, batch_size, num_epochs, num_classes, 
-    label_id_offset, permutations, bbox_format, meta, checkpoint_save_dir, strategy):
+    batch_size, num_epochs, num_classes, label_id_offset,
+    train_files_path, bbox_format, meta, permutations, 
+    model, optimizer, to_fine_tune, checkpoint_save_dir):
 
     train_filenames = os.listdir(train_files_path)
 

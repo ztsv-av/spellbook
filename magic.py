@@ -85,7 +85,8 @@ def сlassificationСustom():
 
             def compute_total_loss(labels, predictions):
                 per_gpu_loss = loss_object(labels, predictions)
-                return tf.nn.compute_average_loss(per_gpu_loss, global_batch_size=batch_size)
+                return tf.nn.compute_average_loss(
+                    per_gpu_loss, global_batch_size=batch_size)
 
             val_loss = tf.keras.metrics.Mean(name='val_loss')
 
@@ -103,9 +104,10 @@ def сlassificationСustom():
                 classification_model.optimizer.weights[i] = tf.Variable(
                     var, name=name)
         
-        classificationCustomTrain(batch_size, NUM_EPOCHS, TRAIN_FILES_PATH, VAL_FILES_PATH, PERMUTATIONS_CLASSIFICATION, 
-            SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, compute_total_loss, optimizer, train_accuracy, 
-            val_accuracy, strategy)
+        classificationCustomTrain(
+            batch_size, NUM_EPOCHS, TRAIN_FILES_PATH, VAL_FILES_PATH, PERMUTATIONS_CLASSIFICATION, 
+            SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, compute_total_loss, 
+            optimizer, train_accuracy, val_accuracy, strategy)
 
 
         del batch_size_per_replica
@@ -123,54 +125,52 @@ def сlassificationСustom():
 
 def detection():  
 
-    with strategy.scope():
+    # Load the configuration file into a dictionary
+    configs = config_util.get_configs_from_pipeline_file(
+        CONFIG_PATH, config_override=None)
 
-        # Load the configuration file into a dictionary
-        configs = config_util.get_configs_from_pipeline_file(
-            CONFIG_PATH, config_override=None)
+    # Read in the object stored at the key 'model' of the configs dictionary
+    model_config = configs['model']
 
-        # Read in the object stored at the key 'model' of the configs dictionary
-        model_config = configs['model']
+    # Modify the number of classes from its default
+    model_config.ssd.num_classes = NUM_CLASSES_DETECTION
 
-        # Modify the number of classes from its default
-        model_config.ssd.num_classes = NUM_CLASSES_DETECTION
+    # Freeze batch normalization
+    model_config.ssd.freeze_batchnorm = True
 
-        # Freeze batch normalization
-        model_config.ssd.freeze_batchnorm = True
+    detection_model = model_builder.build(
+        model_config=model_config, is_training=True)
 
-        detection_model = model_builder.build(
-            model_config=model_config, is_training=True)
+    tmp_box_predictor_checkpoint = tf.train.Checkpoint(
+        _base_tower_layers_for_heads=detection_model._box_predictor._base_tower_layers_for_heads, 
+        _box_prediction_head=detection_model._box_predictor._box_prediction_head)
 
-        tmp_box_predictor_checkpoint = tf.train.Checkpoint(
-            _base_tower_layers_for_heads=detection_model._box_predictor._base_tower_layers_for_heads, 
-            _box_prediction_head=detection_model._box_predictor._box_prediction_head)
+    tmp_model_checkpoint = tf.train.Checkpoint(
+        _feature_extractor=detection_model._feature_extractor, _box_predictor=tmp_box_predictor_checkpoint)
 
-        tmp_model_checkpoint = tf.train.Checkpoint(
-            _feature_extractor=detection_model._feature_extractor, _box_predictor=tmp_box_predictor_checkpoint)
+    # Define a checkpoint
+    checkpoint = tf.train.Checkpoint(model=tmp_model_checkpoint)
 
-        # Define a checkpoint
-        checkpoint = tf.train.Checkpoint(model=tmp_model_checkpoint)
+    # Restore the checkpoint to the checkpoint path
+    checkpoint.restore(CHECKPOINT_PATH)
 
-        # Restore the checkpoint to the checkpoint path
-        checkpoint.restore(CHECKPOINT_PATH)
+    # Run a dummy image through the model so that variables are created
+    # For the dummy image, you can declare a tensor of zeros that has a shape that the preprocess() method can accept (i.e. [batch, height, width, channels]).
+    # use the detection model's `preprocess()` method and pass a dummy image
+    dummy = tf.zeros(shape=DUMMY_SHAPE_DETECTION)
+    tmp_image, tmp_shapes = detection_model.preprocess(dummy)
 
-        # Run a dummy image through the model so that variables are created
-        # For the dummy image, you can declare a tensor of zeros that has a shape that the preprocess() method can accept (i.e. [batch, height, width, channels]).
-        # use the detection model's `preprocess()` method and pass a dummy image
-        dummy = tf.zeros(shape=DUMMY_SHAPE_DETECTION)
-        tmp_image, tmp_shapes = detection_model.preprocess(dummy)
+    # run a prediction with the preprocessed image and shapes
+    tmp_prediction_dict = detection_model.predict(tmp_image, tmp_shapes)
 
-        # run a prediction with the preprocessed image and shapes
-        tmp_prediction_dict = detection_model.predict(tmp_image, tmp_shapes)
+    # postprocess the predictions into final detections
+    tmp_detections = detection_model.postprocess(
+        tmp_prediction_dict, tmp_shapes)
 
-        # postprocess the predictions into final detections
-        tmp_detections = detection_model.postprocess(
-            tmp_prediction_dict, tmp_shapes)
+    tf.keras.backend.set_learning_phase(True)
 
-        tf.keras.backend.set_learning_phase(True)
-
-        learning_rate = LEARNING_RATE
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    learning_rate = LEARNING_RATE
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # define a list that contains the layers that you wish to fine tune in the detection model
     tmp_list = []
@@ -179,6 +179,7 @@ def detection():
             tmp_list.append(v)
     to_fine_tune = tmp_list
 
-    detectionTrain(detection_model, optimizer, to_fine_tune, TRAIN_FILES_PATH_DETECTION, BATCH_SIZE_DETECTION, 
-    NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, LABEL_ID_OFFSET, PERMUTATIONS_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, 
-    CHECKPOINT_SAVE_DIR, strategy)
+    detectionTrain(
+        BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, LABEL_ID_OFFSET,
+        TRAIN_FILES_PATH_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, PERMUTATIONS_DETECTION, 
+        detection_model, optimizer, to_fine_tune, CHECKPOINT_SAVE_DIR)
