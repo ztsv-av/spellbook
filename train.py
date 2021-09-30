@@ -99,11 +99,11 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
 def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
 
     return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
-
+    
 
 def classificationCustomTrain(
     batch_size, num_epochs, train_files_path, val_files_path, buffer_size, permutations, model, loss_object, 
-    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, strategy):
+    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_weights_dir, model_name, strategy):
 
     for epoch in range(num_epochs):
 
@@ -131,6 +131,9 @@ def classificationCustomTrain(
         print(template.format(
             epoch + 1, train_loss, train_accuracy.result() * 100, 
             val_loss.result(), val_accuracy.result() * 100, flush=True))
+
+        save_weights_epoch_dir = save_weights_dir + '/' + model_name + '/' + str(epoch)
+        model.save_weights(save_weights_epoch_dir)
 
         val_loss.reset_states()
         train_accuracy.reset_states()
