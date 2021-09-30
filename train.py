@@ -109,8 +109,8 @@ def classificationDistributedValStep(inputs, loss_object, val_loss, val_accuracy
 
 
 def classificationCustomTrain(
-    batch_size, num_epochs, train_files_path, val_files_path, permutations, buffer_size, model, loss_object, 
-    compute_total_loss, val_loss, optimizer, train_accuracy, val_accuracy, strategy):
+    batch_size, num_epochs, train_files_path, val_files_path, buffer_size, permutations, model, loss_object, 
+    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, strategy):
 
     for epoch in range(num_epochs):
 

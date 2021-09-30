@@ -104,7 +104,7 @@ def сlassificationСustom():
                     var, name=name)
         
         classificationCustomTrain(batch_size, NUM_EPOCHS, TRAIN_FILES_PATH, VAL_FILES_PATH, PERMUTATIONS_CLASSIFICATION, 
-            SHUFFLE_BUFFER_SIZE, classification_model, loss_object, compute_total_loss, val_loss, optimizer, train_accuracy, 
+            SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, compute_total_loss, optimizer, train_accuracy, 
             val_accuracy, strategy)
 
 
