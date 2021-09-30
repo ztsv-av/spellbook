@@ -2,3 +2,4 @@ __pycache__/*
 .vscode/*
 object_detection/downloaded_models/*
 datasets/*
+projects/testing/*
