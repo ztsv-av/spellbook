@@ -1,7 +1,4 @@
-## Exoplanet Hunting Challenge
----
-
-&nbsp; 
+# Exoplanet Hunting Challenge
 
 ## Description
 
