@@ -6,7 +6,7 @@ from object_detection.builders import model_builder
 from globalVariables import (
     BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILES_PATH, VAL_FILES_PATH, 
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING, 
-    LEARNING_RATE, BINARY_ACCURACY_THRESHOLD)
+    LEARNING_RATE, SAVE_MODELS_DIR)
 from globalVariables import (
     BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION, 
     TRAIN_FILES_PATH_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET, 
@@ -82,7 +82,7 @@ def сlassificationСustom():
             classification_model = buildClassificationImageNetModel(
                 model_imagenet, INPUT_SHAPE, MODEL_POOLING, NUM_CLASSES, OUTPUT_ACTIVATION)
 
-            loss_object = tf.losses.BinaryCrossentropy(
+            loss_object = tf.losses.SparseCategoricalCrossentropy(
                 from_logits=True, reduction=tf.keras.losses.Reduction.NONE)
 
             def compute_total_loss(labels, predictions):
@@ -94,10 +94,10 @@ def сlassificationСustom():
 
             learning_rate = LEARNING_RATE
             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-            train_accuracy = tf.keras.metrics.BinaryAccuracy(
-                threshold=BINARY_ACCURACY_THRESHOLD, name='train_accuracy')
-            val_accuracy = tf.keras.metrics.BinaryAccuracy(
-                threshold=BINARY_ACCURACY_THRESHOLD, name='val_accuracy')
+            train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
+                name='train_accuracy')
+            val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
+                name='val_accuracy')
 
         # rename optimizer weights to train multiple models
         with K.name_scope(classification_model.optimizer.__class__.__name__):
@@ -109,7 +109,7 @@ def сlassificationСustom():
         classificationCustomTrain(
             batch_size, NUM_EPOCHS, TRAIN_FILES_PATH, VAL_FILES_PATH, PERMUTATIONS_CLASSIFICATION, 
             SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, compute_total_loss, 
-            optimizer, train_accuracy, val_accuracy, strategy)
+            optimizer, train_accuracy, val_accuracy, SAVE_MODELS_DIR, model_name, strategy)
 
 
         del batch_size_per_replica
