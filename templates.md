@@ -80,3 +80,15 @@ and `.py` files:
 ## Prediction
 - 
 ```
+
+# Object Detection Metadata
+
+```
+Metadata that you save as a .csv file must have following structure:
+
+    - first column must be named 'filenames' and contains strings as names of the images (does not matter if filenames have file extension at the end);
+
+    - second column is 'bboxes' and has a list of lists of bounding boxes which are stored in this format: ymin, ymax, xmin, xmax. Note: each bounding box should be NORMALIZED;
+
+    - (optional) third column is 'classes' which contains integers as classes for each image.
+```
