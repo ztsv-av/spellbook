@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 import pydicom
 import numpy as np
 import albumentations
@@ -5,7 +7,8 @@ import librosa
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 
 
-def minMaxNormalize(x):
+def minMaxNormalizeNumpy(x):
+
     """
     normalizes image input to [0, 1] interval
 
@@ -30,7 +33,33 @@ def minMaxNormalize(x):
         raise TypeError("Convert input image 'x' to numpy array.")
 
 
+def minMaxNormalizeTensor(x):
+
+    """
+    normalizes tensor image to [0, 1] interval
+
+    parameters
+    ----------
+    x : tensor
+        input image
+
+    returns
+    -------
+    x : =/=
+        normalized tensor image
+    """
+
+
+    x = tf.div(
+        tf.subtract(x, tf.reduce_min(x)), 
+        tf.subtract(tf.reduce_max(x), tf.reduce_min(x))
+    )
+
+    return x
+
+
 def meanStdNormalize(x):
+
     """
     normalizes image input to [0, 1] interval
 
@@ -56,6 +85,7 @@ def meanStdNormalize(x):
 
 
 def addColorChannels(x, num_channels):
+
     """
     adds channel dimension to 2D image
 
@@ -83,6 +113,7 @@ def addColorChannels(x, num_channels):
 
 
 def spectrogramToDecibels(x):
+
     """
     converts a power spectrogram (amplitude squared) to decibel (dB) units
 
@@ -107,6 +138,7 @@ def spectrogramToDecibels(x):
 
 
 def normalizeSpectogram(x):
+
     """
     normalizes spectogram
 
@@ -135,6 +167,7 @@ def normalizeBBox(ymin, xmin, ymax, xmax, image_shape):
 
 
 def dicomToArray(dicom_path, voi_lut=True, fix_monochrome=True):
+
     """
     converts dicom file to numpy array
 
@@ -172,6 +205,7 @@ def dicomToArray(dicom_path, voi_lut=True, fix_monochrome=True):
 
 
 def ratioResize(image, boxes):
+
     """
     cropps image to size where height = width and 
     changes values (location) of pixels in bounding boxes accordingly
@@ -249,6 +283,7 @@ def ratioResize(image, boxes):
 
 
 def resizeImageBbox(image, bboxes, height, width, bbox_format):
+    
     """
     resizes image to shape (height, width) where height = width and 
     changes values (location) of pixels in bounding boxes accordingly
