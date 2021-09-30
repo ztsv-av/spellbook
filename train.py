@@ -226,7 +226,7 @@ def detectionTrain(
                                                       batch_size:(step + 1) * batch_size]
 
             train_images_batched, train_boxes_batched, train_classes_batched = prepareDetectionDataset(
-                train_filenames_batched, train_files_path, num_classes, label_id_offset, permutations, bbox_format, meta)
+                train_filenames_batched, train_files_path, bbox_format, meta, num_classes, label_id_offset, permutations)
 
             total_loss, loc_loss, class_loss = detectionTrainStep(
                 train_images_batched, train_boxes_batched, train_classes_batched,

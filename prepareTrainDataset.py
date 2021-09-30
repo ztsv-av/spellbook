@@ -46,7 +46,7 @@ def prepareClassificationDataset(batch_size, train_files_path, val_files_path, p
     return train_dataset, val_dataset, train_len, val_len
 
 
-def prepareDetectionDataset(filenames, files_path, num_classes, label_id_offset, permutations, bbox_format, meta):
+def prepareDetectionDataset(filenames, files_path, bbox_format, meta, num_classes, label_id_offset, permutations):
 
     images_batch = []
     bboxes_batch = []
