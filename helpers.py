@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import png
 import os
 import shutil
+import gzip
 from PIL import Image
 from matplotlib.patches import Rectangle
 from sklearn.model_selection import train_test_split
@@ -161,6 +162,61 @@ def splitTrainValidation(data_folder, train_data_folder, validation_data_folder,
         shutil.copy(data_folder + file, validation_data_folder)
         counter += 1
         print('FINISHED' + str(counter) + '/' + str(len(files_to_split)))
+
+
+def loadFashionMNIST(dir, reshape_size):
+
+    """
+    Loads the Fashion-MNIST gzip dataset.
+    Modified by Henry Huang in 2020/12/24.
+    We assume that the input_path should in a correct path address format.
+    We also assume that potential users put all the four files in the path.
+
+    parameters
+    -----------
+    dir: string
+        path to directory that contains 4 files:
+            'train_labels.gz', 'train_images.gz',
+            'test_labels.gz', 'test_images.gz'
+
+    returns
+    -------
+    tuple:
+        x_train: ndarray
+            contains 28x28 training images
+        y_train: ndarray
+            contains training class labels as integers
+    tuple:
+        x_test: ndarray
+            contains 28x28 test images
+        y_test: ndarray
+            contains test class labels as integers
+    """
+
+    files = [
+        'train_labels.gz', 'train_images.gz',
+        'test_labels.gz', 'test_images.gz'
+    ]
+
+    paths = []
+    for filename in files:
+        paths.append(os.path.join(dir, filename))
+
+    with gzip.open(paths[0], 'rb') as lbpath:
+        y_train = np.frombuffer(lbpath.read(), np.uint8, offset=8)
+
+    with gzip.open(paths[1], 'rb') as imgpath:
+        x_train = np.frombuffer(
+            imgpath.read(), np.uint8, offset=16).reshape(len(y_train), reshape_size[0], reshape_size[1])
+
+    with gzip.open(paths[2], 'rb') as lbpath:
+        y_test = np.frombuffer(lbpath.read(), np.uint8, offset=8)
+
+    with gzip.open(paths[3], 'rb') as imgpath:
+        x_test = np.frombuffer(
+            imgpath.read(), np.uint8, offset=16).reshape(len(y_test), reshape_size[0], reshape_size[1])
+
+    return (x_train, y_train), (x_test, y_test)
 
 
 def buildClassificationPretrainedModel(model_path, custom_objects, num_classes, activation):
