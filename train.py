@@ -1,15 +1,8 @@
 # IMPORTS
 import tensorflow as tf
-import tensorflow.keras.backend as K
 
 import os
 from sklearn.utils import shuffle
-
-# VARIABLES & FUNCTIONS
-from globalVariables import (NUM_EPOCHS, BATCH_SIZES_256, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR, 
-                            TRAIN_FILES_PATH_DETECTION, CHECKPOINT_SAVE_DIR, REDUCE_LR_PATIENCE, 
-                            REDUCE_LR_FACTOR, EARLY_STOPPING_PATIENCE,NUM_EPOCHS_DETECTION, 
-                            BATCH_SIZE_DETECTION, TRAIN_META_DETECTION, TRAIN_FILES_PATH, VAL_FILES_PATH)
 
 from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
 
