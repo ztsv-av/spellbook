@@ -54,7 +54,7 @@ from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDa
 #     del callbacks
 
 
-def classificationTrainStep(inputs, compute_total_loss, optimizer, train_accuracy, model):
+def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
 
     images, labels = inputs
 
@@ -71,10 +71,10 @@ def classificationTrainStep(inputs, compute_total_loss, optimizer, train_accurac
     return loss
 
 
-def classificationDistributedTrainStep(inputs, compute_total_loss, optimizer, train_accuracy, model, strategy):
+def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
 
     per_replica_losses = strategy.run(classificationTrainStep, args=(
-        inputs, compute_total_loss, optimizer, train_accuracy, model))
+        inputs, model, compute_total_loss, optimizer, train_accuracy))
     
     reduced_loss = strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
     
@@ -85,7 +85,7 @@ def classificationDistributedTrainStep(inputs, compute_total_loss, optimizer, tr
     return reduced_loss
 
 
-def classificationValStep(inputs, loss_object, val_loss, val_accuracy, model):
+def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
 
     images, labels = inputs
 
@@ -96,9 +96,9 @@ def classificationValStep(inputs, loss_object, val_loss, val_accuracy, model):
     val_accuracy.update_state(labels, predictions)
 
 
-def classificationDistributedValStep(inputs, loss_object, val_loss, val_accuracy, model, strategy):
+def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
 
-    return strategy.run(classificationValStep, args=(inputs, loss_object, val_loss, val_accuracy, model))
+    return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
 
 
 def classificationCustomTrain(
@@ -116,7 +116,7 @@ def classificationCustomTrain(
         for batch in train_distributed_dataset:
 
             total_loss += classificationDistributedTrainStep(
-                batch, loss_object, compute_total_loss, optimizer, train_accuracy, model, strategy)
+                batch, model, loss_object, compute_total_loss, optimizer, train_accuracy, strategy)
             num_batches += 1
 
         train_loss = total_loss / num_batches
@@ -124,12 +124,13 @@ def classificationCustomTrain(
         for batch in val_distributed_dataset:
 
             classificationDistributedValStep(
-                batch, loss_object, val_loss, val_accuracy, model, strategy)
+                batch, model, loss_object, val_loss, val_accuracy, strategy)
 
         template = (
             "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
-        print(template.format(epoch+1, train_loss, train_accuracy.result()
-                                * 100, val_loss.result(), val_accuracy.result()*100))
+        print(template.format(
+            epoch + 1, train_loss, train_accuracy.result() * 100, 
+            val_loss.result(), val_accuracy.result() * 100))
 
         val_loss.reset_states()
         train_accuracy.reset_states()
@@ -137,7 +138,8 @@ def classificationCustomTrain(
 
 
 def detectionTrainStep(
-        image_list, groundtruth_boxes_list, groundtruth_classes_list, model, optimizer, vars_to_fine_tune):
+        image_list, groundtruth_boxes_list, groundtruth_classes_list, 
+        model, vars_to_fine_tune, optimizer):
     """
     A single training iteration.
 
@@ -179,8 +181,9 @@ def detectionTrainStep(
         preprocessed_image_tensor = tf.concat(preprocessed_images, axis=0)
         true_shape_tensor = tf.concat(true_shape_list, axis=0)
 
-        prediction_dict = model.predict(preprocessed_inputs=preprocessed_image_tensor,
-                                        true_image_shapes=true_shape_tensor)
+        prediction_dict = model.predict(
+            preprocessed_inputs=preprocessed_image_tensor,
+            true_image_shapes=true_shape_tensor)
 
         # Prodive groundtruth boxes and classes and calculate the total loss (sum of both losses)
         model.provide_groundtruth(
@@ -225,8 +228,9 @@ def detectionTrain(
             train_images_batched, train_boxes_batched, train_classes_batched = prepareDetectionDataset(
                 train_filenames_batched, train_files_path, num_classes, label_id_offset, permutations, bbox_format, meta)
 
-            total_loss, loc_loss, class_loss = detectionTrainStep(train_images_batched, train_boxes_batched, train_classes_batched,
-                                                                  model, optimizer, to_fine_tune)
+            total_loss, loc_loss, class_loss = detectionTrainStep(
+                train_images_batched, train_boxes_batched, train_classes_batched,
+                model, to_fine_tune, optimizer)
 
         print('STEP ' + str(step) + ' OF ' + str(steps_per_epoch_train) + ', loss=' + str(total_loss.numpy()) +
               ' | loc_loss=' + str(loc_loss.numpy()) + ' | class_loss=' + str(class_loss.numpy()), flush=True)
