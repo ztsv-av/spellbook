@@ -179,7 +179,7 @@ def buildClassificationPretrainedModel(model_path, custom_objects, num_classes, 
     return model
 
 
-def buildClassificationImageNetModel(model_imagenet, pooling, input_shape, num_classes, activation):
+def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, num_classes, activation):
 
     loaded_model = model_imagenet(
         include_top=False, weights='imagenet', pooling=pooling, input_shape=input_shape)

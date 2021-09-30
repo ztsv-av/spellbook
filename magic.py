@@ -78,7 +78,7 @@ def сlassificationСustom():
             # reset model, optimizer (AND learning rate), loss and metrics for each iteration
 
             classification_model = buildClassificationImageNetModel(
-                model_imagenet, MODEL_POOLING, INPUT_SHAPE, NUM_CLASSES, OUTPUT_ACTIVATION)
+                model_imagenet, INPUT_SHAPE, MODEL_POOLING, NUM_CLASSES, OUTPUT_ACTIVATION)
 
             loss_object = tf.losses.BinaryCrossentropy(
                 from_logits=True, reduction=tf.keras.losses.Reduction.NONE)
