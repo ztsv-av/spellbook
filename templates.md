@@ -89,7 +89,12 @@ The project's `README.md` complies with the following template:
 The `.csv` metadata complies with the following format:
 
 ```md
-- first column must be named `filenames` and contain strings as names of the images (does not matter if filenames have file extension at the end);
-- second column is `bboxes` and has a list of lists of bounding boxes which are stored in this format: `ymin, ymax, xmin, xmax`. Note: each bounding box must be NORMALIZED;
-- (optional) third column is `classes` which contains integers as classes for each image.
+- Column `A`:
+  - must be named `filenames`, and
+  - contain strings as names of the images (does not matter if filenames have file extension at the end),
+- Column `B`:
+  - must be named `bboxes`,
+  - has a list (`[]`) of lists of **normalized** bounding boxes the format `[ymin, ymax, xmin, xmax]`, and
+- _optional_ column `C`:
+  - is named `classes` and contains integers as classes for each image.
 ```
