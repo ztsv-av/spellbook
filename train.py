@@ -102,13 +102,13 @@ def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_a
     
 
 def classificationCustomTrain(
-    batch_size, num_epochs, train_files_path, val_files_path, buffer_size, permutations, model, loss_object, 
+    batch_size, num_epochs, train_files_path, val_files_path, permutations, normalization, buffer_size, model, loss_object, 
     val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_weights_dir, model_name, strategy):
 
     for epoch in range(num_epochs):
 
         train_distributed_dataset, val_distributed_dataset, _, _ = prepareClassificationDataset(
-            batch_size, train_files_path, val_files_path, permutations, buffer_size)
+            batch_size, train_files_path, val_files_path, permutations, normalization, buffer_size, strategy)
 
         total_loss = 0.0
         num_batches = 0
@@ -212,24 +212,24 @@ def detectionTrainStep(
 
 def detectionTrain(
     batch_size, num_epochs, num_classes, label_id_offset,
-    train_files_path, bbox_format, meta, permutations, 
+    train_filepaths, bbox_format, meta, permutations, 
     model, optimizer, to_fine_tune, checkpoint_save_dir):
 
-    train_filenames = os.listdir(train_files_path)
+    train_filepaths_list = os.listdir(train_filepaths)
 
-    steps_per_epoch_train = int(len(train_filenames) // batch_size)
+    steps_per_epoch_train = int(len(train_filepaths_list) // batch_size)
 
     for epoch in range(num_epochs):
 
-        train_filenames = shuffle(train_filenames)
+        train_filepaths_list_shuffled = shuffle(train_filepaths_list)
 
         for step in range(steps_per_epoch_train):
 
-            train_filenames_batched = train_filenames[step *
-                                                      batch_size:(step + 1) * batch_size]
+            train_filepaths_batched = train_filepaths_list_shuffled[
+                step * batch_size:(step + 1) * batch_size]
 
             train_images_batched, train_boxes_batched, train_classes_batched = prepareDetectionDataset(
-                train_filenames_batched, train_files_path, bbox_format, meta, num_classes, label_id_offset, permutations)
+                train_filepaths_batched, bbox_format, meta, num_classes, label_id_offset, permutations)
 
             total_loss, loc_loss, class_loss = detectionTrainStep(
                 train_images_batched, train_boxes_batched, train_classes_batched,
