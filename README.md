@@ -1,63 +1,33 @@
-![2](https://user-images.githubusercontent.com/73081144/134788873-c1401000-5fe5-45da-8902-96891c218d69.png)
+![spellbook](https://user-images.githubusercontent.com/73081144/134788873-c1401000-5fe5-45da-8902-96891c218d69.png)
 
 # Spellbook
 
-This repo aims to optimize usability of DL techniques by implementing a standardized code piece suitable to various DL tasks such as classification, object detection, etc. By directly importing the code piece the learning canvas may be built rather fast and allow engineers to focus on task-specific issues rather than cross-task, reusable actions.
+This repo aims to optimize usability of DL techniques by implementing a
+standardized code piece suitable to various DL tasks such as classification,
+object detection, etc.
 
-## File List
+By directly importing the code piece the learning canvas may be built rather
+fast and allow engineers to focus on task-specific issues rather than
+cross-task, reusable actions.
 
-### `callbacks.py`
+## Spellbook Contents
 
-Custom callbacks
+The table below contains the descriptions for each of the scripts this repo
+provides:
 
-### `generatorInstance.py`
-
-Initializes batches of features and targets by iterating through filenames (obsolete)
-
-### `globalVariables.py`
-
-Space where all used variables are stored
-
-### `helpers.py`
-
-Useful miscellaneous functions
-
-### `losses.py`
-
-Custom loss functions
-
-### `magic.py`
-
-Working file, used to initialize parameters and start training
- 
-### `metrics.py`
-
-Custom metrics
-
-### `models.py`
-
-Custom models as well as downloaded ones, such as *ImageNet* models
-
-### `optimizers.py`
-
-Custom optimizers
-
-### `permutationFunctions.py`
-
-Data permutation functions
-
-### `prepareTrainDataset.py`
-
-Dataset preparation functions (initializes tf.data.Dataset object and does permutations)
-
-### `preprocessData.py`
-
-Prepares data for training (e.x. normalization, rescailing, resizing, etc.)
-
-### `preprocessingFunctions.py`
-
-Data preprocessing functions
-
-### `train.py` 
-
-Takes data as a parameter and trains a given model on it
+| Script                      | Description                                                                                           |
+| --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `callbacks.py`              | Custom callbacks for `Keras` library                                                                  |
+| `generatorInstance.py`      | (deprecated script / to be deleted)                                                                   |
+| `globalVariables.py`        | Global variables and parameters such as data shapes, learning rate decay, etc.                        |
+| `helpers.py`                | Miscellaneous functions                                                                               |
+| `losses.py`                 | Custom loss functions                                                                                 |
+| `magic.py`                  | Main wrapper used to fit given models with given parameters and data                                  |
+| `metrics.py`                | Custom metrics                                                                                        |
+| `models.py`                 | Custom models as well as pre-trained `Tensorflow` models (such as _ImageNet_)                         |
+| `optimizers.py`             | Custom optimizers                                                                                     |
+| `permutationFunctions.py`   | Functions for data permutations                                                                       |
+| `prepareTrainDataset.py`    | Functions to prepare datasets (initialization of `tf.data.Dataset` object with optional permutations) |
+| `preprocessData.py`         | Wrapper to preprocess data (such as normalization, rescailing, resizing, etc.)                        |
+| `preprocessingFunctions.py` | Functions for data preprocessing                                                                      |
+| `train.py`                  | Collection of train steps and full complete train cycles                                              |

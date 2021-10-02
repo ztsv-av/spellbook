@@ -1,8 +1,19 @@
-# Object Documentation
+# Templates
 
-The general template to describe Python objects is as follows
+This file contains templates and formats on how to structure and document
 
-```
+- [Python objects](#python-object-documentation) such as functions and classes,
+- [repo's directories](#repo-directory-structure) for proper render on GitHub,
+- [project's readme](#project-readme-template) to grasp the idea behind
+  the work done, and
+- [object detection metadata](#object-detection-metadata) for object detection
+  fit.
+
+## Python Object Documentation
+
+The general template to describe Python functions and classes is as follows:
+
+```py
 def function(array, a=5.0,...):
 
     """
@@ -21,74 +32,63 @@ def function(array, a=5.0,...):
     multiplied_array : ndarray
         product of numpy array and constant
     """
-    
+
     multiplied_array = array * a
 
     return multiplied_array
 ```
-# Project Directory File Architecture
 
-```
+## Repo Directory Structure
+
 Each project directory consists of following folders:
 
- - datasets - contains project datasets and metadata files
- - training - contains trained models' weights and training logs
- - best_weights - contains the best models' weights picked from `training` directory
- - predictions - contains predictions for *test* dataset
+| Folder         | Description                                           |
+| -------------- | ----------------------------------------------------- |
+| `datasets`     | Project datasets and metadata files                   |
+| `training`     | Trained models' weights and fit logs                  |
+| `best_weights` | Best models' weights picked from `training` directory |
+| `predictions`  | Predictions for test dataset                          |
 
-and `.py` files:
+and the following `.py` scripts:
 
- - `dataPreprocessing.py` - script to transform data into general representation appropriate for fitting (data is saved to `datasets` directory);
- - `prediction.py` - script to prepare and save predictions into `predictions` directory.
-```
+| Script                 | Description                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| `dataPreprocessing.py` | Preprocesses data for fitting (preprocessed data is saved to `datasets` directory) |
+| `prediction.py`        | Prepares and saves predictions into `predictions` directory                        |
 
-# Project Description
+## Project `README` Template
 
-```
+The project's `README.md` complies with the following template:
+
+```md
 # Project Name
 
 ## Description
-- 
-
-&nbsp;
 
 ## Data Preprocessing
 
-- 
-
-&nbsp; 
-
 ## Data Augmentation
-
-- 
-
-&nbsp; 
 
 ## Training
 
 ### Models
-- 
 
 ### Loss
-- 
 
 ### Optimizer
-- 
-
-&nbsp; 
 
 ## Prediction
-- 
 ```
 
-# Object Detection Metadata
+## Object Detection Metadata
 
-```
-Metadata that you save as a .csv file must have following structure:
+The `.csv` metadata complies with the following format:
 
-    - first column must be named 'filenames' and contains strings as names of the images (does not matter if filenames have file extension at the end);
-
-    - second column is 'bboxes' and has a list of lists of bounding boxes which are stored in this format: ymin, ymax, xmin, xmax. Note: each bounding box should be NORMALIZED;
-
-    - (optional) third column is 'classes' which contains integers as classes for each image.
-```
+- Column `A`:
+  - must be named `filenames`, and
+  - contain strings as names of the images (does not matter if filenames have file extension at the end),
+- Column `B`:
+  - must be named `bboxes`,
+  - has a list (`[]`) of lists of **normalized** bounding boxes the format `[ymin, ymax, xmin, xmax]`, and
+- _optional_ column `C`:
+  - is named `classes` and contains integers as classes for each image.
