@@ -145,6 +145,8 @@ def getLabelFromFilename(filename):
     label = filename.split('_')[-1].replace('.npy', '')
     label = label.split('-')
 
+    label = list(map(int, label))
+
     return label
 
 
