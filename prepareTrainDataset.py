@@ -51,8 +51,8 @@ def prepareClassificationDataset(batch_size, train_files_path, val_files_path, p
     train_dataset_tf = train_dataset_tf.shuffle(buffer_size).batch(batch_size)
     train_dataset_dist = strategy.experimental_distribute_dataset(train_dataset_tf)
 
-    val_images_map = val_images_list.map(lambda image: permuteImageGetLabel(
-        image, None, normalization, bboxes=False, bbox_format=False, is_detection=False, is_val=True))
+    val_images_map = map(lambda image: permuteImageGetLabel(
+        image, None, normalization, bboxes=False, bbox_format=False, is_detection=False, is_val=True), val_images_list)
     val_images_mapped_list = list(val_images_map)
     val_dataset_tf = tf.data.Dataset.from_tensor_slices((val_images_mapped_list, val_labels_list))
     val_dataset_tf = val_dataset_tf.batch(batch_size)
