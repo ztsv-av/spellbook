@@ -1,8 +1,10 @@
 import tensorflow as tf
 import numpy as np
+from globalVariables import PERMUTATIONS_CLASSIFICATION
 
 from helpers import loadFashionMNIST, visualizeImage_Box, save2NP
 from preprocessFunctions import minMaxNormalizeNumpy, addColorChannels
+from permutationFunctions import classification_permutations
 
 LOAD_SIZE = (28, 28)
 RESHAPE_SIZE = [32, 32]
@@ -17,9 +19,7 @@ x_test, y_test = test_data[0], test_data[1]
 
 for idx, (image, label) in enumerate(zip(x_train, y_train)):
 
-    image = np.asarray(image).astype(dtype='float32')
-
-    image = minMaxNormalizeNumpy(image)
+    image = np.asarray(image).astype(dtype='uint8')
 
     image = addColorChannels(image, NUM_CHANNELS)
 
@@ -31,9 +31,7 @@ for idx, (image, label) in enumerate(zip(x_train, y_train)):
 
 for idx, (image, label) in enumerate(zip(x_test, y_test)):
 
-    image = np.asarray(image).astype(dtype='float32')
-
-    image = minMaxNormalizeNumpy(image)
+    image = np.asarray(image).astype(dtype='uint8')
 
     image = addColorChannels(image, NUM_CHANNELS)
 
