@@ -1,10 +1,13 @@
 # IMPORTS
+from numpy.lib.npyio import save
 import tensorflow as tf
 
 import os
+import pandas as pd
 from sklearn.utils import shuffle
 
 from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
+from callbacks import saveTrainInfo, saveTrainWeights
 
 
 # def classificationTrain(
@@ -54,6 +57,25 @@ from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDa
 #     del callbacks
 
 
+def classificationDistributedTrainStepWrapper():
+
+    @tf.function
+    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
+
+        per_replica_losses = strategy.run(classificationTrainStep, args=(
+            inputs, model, compute_total_loss, optimizer, train_accuracy))
+        
+        reduced_loss = strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
+        
+        # test if per replica training works
+        # tf.print(per_replica_losses.values)
+        # tf.print(reduced_loss)
+
+        return reduced_loss
+    
+    return classificationDistributedTrainStep
+
+
 def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
 
     images, labels = inputs
@@ -71,18 +93,15 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
     return loss
 
 
-def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
+def classificationDistributedValStepWrapper():
 
-    per_replica_losses = strategy.run(classificationTrainStep, args=(
-        inputs, model, compute_total_loss, optimizer, train_accuracy))
-    
-    reduced_loss = strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
-    
-    # test if per replica training works
-    tf.print(per_replica_losses.values)
-    tf.print(reduced_loss)
+    @tf.function
+    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
 
-    return reduced_loss
+        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
+    
+    return classificationDistributedValStep
+   
 
 
 def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
@@ -94,16 +113,14 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
 
     val_loss.update_state(val_batch_loss)
     val_accuracy.update_state(labels, predictions)
-
-
-def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
-
-    return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
-    
+ 
 
 def classificationCustomTrain(
     batch_size, num_epochs, train_files_path, val_files_path, permutations, normalization, buffer_size, model, loss_object, 
-    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_weights_dir, model_name, strategy):
+    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_csvs_dir, save_weights_dir, model_name, strategy):
+
+    wrapperTrain = classificationDistributedTrainStepWrapper()
+    wrapperVal = classificationDistributedValStepWrapper()
 
     for epoch in range(num_epochs):
 
@@ -115,15 +132,15 @@ def classificationCustomTrain(
 
         for batch in train_distributed_dataset:
 
-            total_loss += classificationDistributedTrainStep(
-                batch, model, loss_object, compute_total_loss, optimizer, train_accuracy, strategy)
+            total_loss += wrapperTrain(
+                batch, model, compute_total_loss, optimizer, train_accuracy, strategy)
             num_batches += 1
 
         train_loss = total_loss / num_batches
 
         for batch in val_distributed_dataset:
 
-            classificationDistributedValStep(
+            wrapperVal(
                 batch, model, loss_object, val_loss, val_accuracy, strategy)
 
         template = (
@@ -132,8 +149,9 @@ def classificationCustomTrain(
             epoch + 1, train_loss, train_accuracy.result() * 100, 
             val_loss.result(), val_accuracy.result() * 100, flush=True))
 
-        save_weights_epoch_dir = save_weights_dir + '/' + model_name + '/' + str(epoch)
-        model.save_weights(save_weights_epoch_dir)
+        # callbacks
+        saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_accuracy, save_csvs_dir)
+        saveTrainWeights(model, model_name, epoch, save_weights_dir)
 
         val_loss.reset_states()
         train_accuracy.reset_states()
