@@ -6,7 +6,7 @@ from object_detection.builders import model_builder
 from globalVariables import (
     BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILES_PATH, VAL_FILES_PATH, 
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING, 
-    LEARNING_RATE, SAVE_MODELS_DIR)
+    LEARNING_RATE, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR)
 from globalVariables import (
     BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION, 
     TRAIN_FILES_PATH_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET, 
@@ -100,19 +100,20 @@ def сlassificationСustom():
             val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
                 name='val_accuracy')
 
-            # # rename optimizer weights to train multiple models
-            # # does not work if did not compile model
-            # with K.name_scope(classification_model.optimizer.__class__.__name__):
-            #     for i, var in enumerate(classification_model.optimizer.weights):
-            #         name = 'variable{}'.format(i)
-            #         classification_model.optimizer.weights[i] = tf.Variable(
-            #             var, name=name)
+            # rename optimizer weights to train multiple models
+            with K.name_scope(optimizer.__class__.__name__):
+                for i, var in enumerate(optimizer.weights):
+                    name = 'variable{}'.format(i)
+                    optimizer.weights[i] = tf.Variable(
+                        var, name=name)
         
         classificationCustomTrain(
             batch_size, NUM_EPOCHS, TRAIN_FILES_PATH, VAL_FILES_PATH, PERMUTATIONS_CLASSIFICATION, 
             minMaxNormalizeNumpy, SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, 
-            compute_total_loss, optimizer, train_accuracy, val_accuracy, SAVE_MODELS_DIR, model_name, strategy)
+            compute_total_loss, optimizer, train_accuracy, val_accuracy, SAVE_TRAINING_CSVS_DIR, 
+            SAVE_MODELS_DIR, model_name, strategy)
 
+        print('Finished Training ' + model_name + '!')
 
         del batch_size_per_replica
         del batch_size
