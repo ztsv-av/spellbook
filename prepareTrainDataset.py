@@ -24,25 +24,10 @@ def permuteImageGetLabel(image, permutations, normalization, bboxes, bbox_format
     return (image, bboxes) if is_detection else image
 
 
-def prepareClassificationDataset(batch_size, train_files_path, val_files_path, permutations, normalization, buffer_size, strategy):
+def prepareClassificationDataset(batch_size, train_data, val_data, permutations, normalization, buffer_size, strategy):
 
-    train_paths_list = getPathsList(train_files_path)
-    train_len = len(train_paths_list)
-
-    val_paths_list = getPathsList(val_files_path)
-    val_len = len(val_paths_list)
-
-    train_images_list = []
-    train_labels_list = []
-    for path in train_paths_list:
-        train_images_list.append(np.load(path))
-        train_labels_list.append(getLabelFromFilename(path))
-    
-    val_images_list = []
-    val_labels_list = []
-    for path in val_paths_list:
-        val_images_list.append(np.load(path))
-        val_labels_list.append(getLabelFromFilename(path))
+    train_images_list, train_labels_list = train_data[0], train_data[1]
+    val_images_list, val_labels_list = val_data[0], val_data[1]
 
     train_images_map = map(lambda image: permuteImageGetLabel(
         image, permutations, normalization, bboxes=False, bbox_format=False, is_detection=False, is_val=False), train_images_list)
@@ -58,8 +43,7 @@ def prepareClassificationDataset(batch_size, train_files_path, val_files_path, p
     val_dataset_tf = val_dataset_tf.batch(batch_size)
     val_dataset_dist = strategy.experimental_distribute_dataset(val_dataset_tf)
 
-    return train_dataset_dist, val_dataset_dist, train_len, val_len
-
+    return train_dataset_dist, val_dataset_dist
 
 def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_offset, permutations):
 

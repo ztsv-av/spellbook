@@ -116,7 +116,7 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
  
 
 def classificationCustomTrain(
-    batch_size, num_epochs, train_files_path, val_files_path, permutations, normalization, buffer_size, model, loss_object, 
+    batch_size, num_epochs, train_data, val_data, permutations, normalization, buffer_size, model, loss_object, 
     val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_csvs_dir, save_weights_dir, model_name, strategy):
 
     wrapperTrain = classificationDistributedTrainStepWrapper()
@@ -125,7 +125,7 @@ def classificationCustomTrain(
     for epoch in range(num_epochs):
 
         train_distributed_dataset, val_distributed_dataset, _, _ = prepareClassificationDataset(
-            batch_size, train_files_path, val_files_path, permutations, normalization, buffer_size, strategy)
+            batch_size, train_data, val_data, permutations, normalization, buffer_size, strategy)
 
         total_loss = 0.0
         num_batches = 0

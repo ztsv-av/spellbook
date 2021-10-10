@@ -3,6 +3,8 @@ import tensorflow.keras.backend as K
 from object_detection.utils import config_util
 from object_detection.builders import model_builder
 
+import numpy as np
+
 from globalVariables import (
     BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILES_PATH, VAL_FILES_PATH, 
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING, 
@@ -13,7 +15,7 @@ from globalVariables import (
     PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH, CHECKPOINT_SAVE_DIR)
 
 from models import MODELS_CLASSIFICATION
-from helpers import buildClassificationImageNetModel
+from helpers import buildClassificationImageNetModel, getPathsList, getLabelFromFilename
 from train import classificationCustomTrain, detectionTrain
 from preprocessFunctions import minMaxNormalizeNumpy
 
@@ -70,6 +72,25 @@ strategy = tf.distribute.MirroredStrategy(
 
 def сlassificationСustom():
 
+    # load data
+    train_paths_list = getPathsList(TRAIN_FILES_PATH)
+    train_len = len(train_paths_list)
+
+    val_paths_list = getPathsList(VAL_FILES_PATH)
+    val_len = len(val_paths_list)
+
+    train_images_list = []
+    train_labels_list = []
+    for path in train_paths_list:
+        train_images_list.append(np.load(path))
+        train_labels_list.append(getLabelFromFilename(path))
+    
+    val_images_list = []
+    val_labels_list = []
+    for path in val_paths_list:
+        val_images_list.append(np.load(path))
+        val_labels_list.append(getLabelFromFilename(path))
+
     for model_name, model_imagenet in MODELS_CLASSIFICATION.items():
 
         batch_size_per_replica = BATCH_SIZES[model_name]
@@ -108,10 +129,9 @@ def сlassificationСustom():
                         var, name=name)
         
         classificationCustomTrain(
-            batch_size, NUM_EPOCHS, TRAIN_FILES_PATH, VAL_FILES_PATH, PERMUTATIONS_CLASSIFICATION, 
-            minMaxNormalizeNumpy, SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, 
-            compute_total_loss, optimizer, train_accuracy, val_accuracy, SAVE_TRAINING_CSVS_DIR, 
-            SAVE_MODELS_DIR, model_name, strategy)
+            batch_size, NUM_EPOCHS, (train_images_list, train_labels_list, train_len) , (val_images_list, val_labels_list, val_len), 
+            PERMUTATIONS_CLASSIFICATION, minMaxNormalizeNumpy, SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, 
+            compute_total_loss, optimizer, train_accuracy, val_accuracy, SAVE_TRAINING_CSVS_DIR, SAVE_MODELS_DIR, model_name, strategy)
 
         print('Finished Training ' + model_name + '!')
 
