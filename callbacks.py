@@ -48,8 +48,16 @@ def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_a
         'epoch': [epoch + 1], 'train_loss': [train_loss.numpy()], 'train_accuracy': [(train_accuracy.result() * 100).numpy()],
         'val_loss': [val_loss.result().numpy()], 'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
 
-    save_csv_epoch_dir = save_csvs_dir + model_name + '/'
-    info_df.to_csv(path_or_buf=save_csv_epoch_dir + 'info' + str(epoch + 1) + '.csv', index=False)
+    save_csv_dir = save_csvs_dir + model_name + '/'
+    save_csv_path = save_csv_dir + 'training_info.csv'
+
+    if len(os.listdir(save_csv_dir)) == 0:
+        info_df.to_csv(path_or_buf=save_csv_path, index=False)
+    
+    else:
+        old_info_df = pd.read_csv(save_csv_path)
+        new_info_df = old_info_df.append(info_df, ignore_index=True)
+        new_info_df.to_csv(path_or_buf=save_csv_path, index=False)
 
 
 def saveTrainWeights(model, model_name, epoch, save_weights_dir):
