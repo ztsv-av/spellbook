@@ -89,6 +89,6 @@ The `.csv` metadata complies with the following format:
   - contain strings as names of the images (does not matter if filenames have file extension at the end),
 - Column `B`:
   - must be named `bboxes`,
-  - has a list (`[]`) of lists of **normalized** bounding boxes the format `[ymin, ymax, xmin, xmax]`, and
+  - has a list (`[]`) of lists of **normalized** bounding boxes the format `[ymin, xmin, ymax, xmax]`, and
 - _optional_ column `C`:
   - is named `classes` and contains integers as classes for each image.
