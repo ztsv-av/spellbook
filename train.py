@@ -7,8 +7,7 @@ import pandas as pd
 from sklearn.utils import shuffle
 
 from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
-from callbacks import saveTrainInfo, saveTrainWeights
-
+from callbacks import saveTrainInfo, saveTrainWeights, saveTrainInfoDetection, saveCheckpointDetection
 
 # def classificationTrain(
 #     model_name, model, batch_sizes, num_epochs, preprocessing_dict, strategy, lr_patience, lr_factor, 
@@ -117,14 +116,15 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
 
 def classificationCustomTrain(
     batch_size, num_epochs, train_data, val_data, permutations, normalization, buffer_size, model, loss_object, 
-    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_csvs_dir, save_weights_dir, model_name, strategy):
+    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_csvs_dir, save_weights_dir, 
+    model_name, strategy):
 
     wrapperTrain = classificationDistributedTrainStepWrapper()
     wrapperVal = classificationDistributedValStepWrapper()
 
     for epoch in range(num_epochs):
 
-        train_distributed_dataset, val_distributed_dataset, _, _ = prepareClassificationDataset(
+        train_distributed_dataset, val_distributed_dataset = prepareClassificationDataset(
             batch_size, train_data, val_data, permutations, normalization, buffer_size, strategy)
 
         total_loss = 0.0
@@ -150,7 +150,7 @@ def classificationCustomTrain(
             val_loss.result(), val_accuracy.result() * 100, flush=True))
 
         # callbacks
-        saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_accuracy, save_csvs_dir)
+        saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_csvs_dir)
         saveTrainWeights(model, model_name, epoch, save_weights_dir)
 
         val_loss.reset_states()
@@ -231,7 +231,8 @@ def detectionTrainStep(
 def detectionTrain(
     batch_size, num_epochs, num_classes, label_id_offset,
     train_filepaths, bbox_format, meta, permutations, 
-    model, optimizer, to_fine_tune, checkpoint_save_dir):
+    model, model_name, optimizer, to_fine_tune, 
+    checkpoint_save_dir, save_csvs_dir):
 
     train_filepaths_list = os.listdir(train_filepaths)
 
@@ -256,14 +257,8 @@ def detectionTrain(
         print('STEP ' + str(step) + ' OF ' + str(steps_per_epoch_train) + ', loss=' + str(total_loss.numpy()) +
               ' | loc_loss=' + str(loc_loss.numpy()) + ' | class_loss=' + str(class_loss.numpy()), flush=True)
 
-    checkpoint_save_dir_epoch = checkpoint_save_dir + str(epoch) + '_loss-' + str(loc_loss.numpy())
-    if not os.path.exists(checkpoint_save_dir_epoch):
-        os.makedirs(checkpoint_save_dir_epoch)
-
-    ckpt = tf.train.Checkpoint(model=model, optimizer=optimizer)
-    manager = tf.train.CheckpointManager(
-        checkpoint=ckpt, directory=checkpoint_save_dir_epoch, max_to_keep=1)
-    manager.save()
+    saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csvs_dir)
+    saveCheckpointDetection(epoch, model, loc_loss, optimizer, checkpoint_save_dir)
 
     print('EPOCH ' + str(epoch) + ' OF ' + str(num_epochs) +
           ', loss=' + str(total_loss.numpy()), flush=True)
