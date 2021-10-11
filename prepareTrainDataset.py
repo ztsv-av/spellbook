@@ -6,7 +6,7 @@ from helpers import getPathsList, getLabelFromFilename
 from permutationFunctions import classification_permutations, detection_permutations
 
 
-def permuteImageGetLabel(image, permutations, normalization, bboxes, bbox_format, is_detection, is_val):
+def permuteImageGetLabelBoxes(image, permutations, normalization, bboxes, bbox_format, is_detection, is_val):
     
     '''
     permute the given image and get label for that image
@@ -29,14 +29,14 @@ def prepareClassificationDataset(batch_size, train_data, val_data, permutations,
     train_images_list, train_labels_list = train_data[0], train_data[1]
     val_images_list, val_labels_list = val_data[0], val_data[1]
 
-    train_images_map = map(lambda image: permuteImageGetLabel(
+    train_images_map = map(lambda image: permuteImageGetLabelBoxes(
         image, permutations, normalization, bboxes=False, bbox_format=False, is_detection=False, is_val=False), train_images_list)
     train_images_mapped_list = list(train_images_map)
     train_dataset_tf = tf.data.Dataset.from_tensor_slices((train_images_mapped_list, train_labels_list))
     train_dataset_tf = train_dataset_tf.shuffle(buffer_size).batch(batch_size)
     train_dataset_dist = strategy.experimental_distribute_dataset(train_dataset_tf)
 
-    val_images_map = map(lambda image: permuteImageGetLabel(
+    val_images_map = map(lambda image: permuteImageGetLabelBoxes(
         image, None, normalization, bboxes=False, bbox_format=False, is_detection=False, is_val=True), val_images_list)
     val_images_mapped_list = list(val_images_map)
     val_dataset_tf = tf.data.Dataset.from_tensor_slices((val_images_mapped_list, val_labels_list))
@@ -56,7 +56,7 @@ def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_
         record = meta[meta['filename'] == filename]
         bboxes = record['bboxes']
 
-        image, bboxes = permuteImageGetLabel(filepath, permutations, bboxes, bbox_format, is_detection=True, is_val=False)
+        image, bboxes = permuteImageGetLabelBoxes(filepath, permutations, bboxes, bbox_format, is_detection=True, is_val=False)
 
         images_batch.append(image)
         bboxes_batch.append(bboxes)
