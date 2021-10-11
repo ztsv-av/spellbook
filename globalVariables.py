@@ -5,7 +5,7 @@ import numpy as np
 
 
 # classification
-NUM_EPOCHS = 10
+NUM_EPOCHS = 20
 BATCH_SIZES = {
     'DenseNet121': 32,
     'DenseNet169': 16,
@@ -78,7 +78,7 @@ MODEL_POOLING = 'avg'
 SHUFFLE_BUFFER_SIZE = 4096
 
 # object detection
-NUM_EPOCHS_DETECTION = 5
+NUM_EPOCHS_DETECTION = 10
 BATCH_SIZE_DETECTION = 2
 INPUT_SHAPE_DETECTION = (512, 512)
 DUMMY_SHAPE_DETECTION = (1, 512, 512, 3)
@@ -87,12 +87,17 @@ LABEL_ID_OFFSET = 1
 IMAGE_TYPE = np.uint8
 CHECKPOINT_PATH = 'object_detection/models/research/object_detection/test_data/checkpoint_efficientdet_d0/ckpt-0' # change only /checkpoint_.../
 CONFIG_PATH = 'object_detection/models/research/object_detection/configs/tf2/ssd_efficientdet_d0_512x512_coco17_tpu-8.config'
-TRAIN_FILES_PATH_DETECTION = 'datasets/robot_dataset/train/'
-TRAIN_META_DETECTION = pd.read_csv('datasets/robot_dataset/metas/train_annotations.csv')
-CHECKPOINT_SAVE_DIR = 'object_detection/saved_checkpoints/effdet0/'
+TRAIN_FILES_PATH_DETECTION = 'projects/testing_detection/datasets/train/'
+TRAIN_META_DETECTION = pd.read_csv('projects/testing_detection/datasets/metas/train_meta.csv')
+TEST_FILES_PATH_DETECTION = 'projects/testing_detection/datasets/test/'
+TEST_META_DETECTION = pd.read_csv('projects/testing_detection/datasets/metas/test_meta.csv')
+SAVE_CHECKPOINT_DIR = 'object_detection/saved_checkpoints/effdet0/'
+SAVE_TRAINING_CSVS_DIR_DETECTION = 'projects/testing_detection/datasets/train/'
+
 
 # optimizers
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.01
+LR_DECAY_RATE = 0.95
 
 # losses
 LABEL_SMOOTING = 0.01
@@ -127,10 +132,10 @@ WHITE_NOISE_PROBABILITY = 0.8
 BANDPASS_NOISE_PROBABILITY = 0.7
 DOWNSCALE_MIN = 0.1
 DOWNSCALE_MAX = 0.3
-GAUSSIAN_BLUR_LIMIT = (3, 7)
+GAUSSIAN_BLUR_LIMIT = (7, 11)
 GLASS_BLUR_ITERATIONS = 1
 GLASS_BLUR_MAXDELTA = 2
-GAMMA_LIMIT = (128, 256)
+GAMMA_LIMIT = (64, 128)
 EMBOSS_STRENGTH = (0.1, 0.3)
 SHARPEN_ALPHA = (0.1, 0.2)
 SHARPEN_LIGHTNESS = (0.1, 0.2)
@@ -159,10 +164,10 @@ PERMUTATIONS_CLASSIFICATION = [
     # A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION)
     A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION)
 ]
-PERMUTATION_PROBABILITY_DETECTION = 1 / 4
+PERMUTATION_PROBABILITY_DETECTION = 1
 PERMUTATIONS_DETECTION = [
     A.HorizontalFlip(p=PERMUTATION_PROBABILITY_DETECTION),
-    A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION),
+    # A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION),
     A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION),
     A.RandomGamma(gamma_limit=GAMMA_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION)
 ]
