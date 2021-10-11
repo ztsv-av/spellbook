@@ -161,7 +161,7 @@ def normalizeSpectogram(x):
 
 def normalizeBBox(ymin, xmin, ymax, xmax, image_shape):
 
-    return ymin / image_shape[1], xmin / image_shape[0], ymax / image_shape[1], xmax / image_shape[0]
+    return [ymin / image_shape[1], xmin / image_shape[0], ymax / image_shape[1], xmax / image_shape[0]]
 
 
 def dicomToArray(dicom_path, voi_lut=True, fix_monochrome=True):
@@ -294,7 +294,7 @@ def resizeImageBbox(image, bboxes, height, width, bbox_format):
     boxes : 
         boxes:  ndarray
         numpy array that can contain multiple numpy arrays, which represent bounding boxes
-        each box should be in the following format: [xmin, ymin, xmax, ymax, ...]
+        each box should be in the following format: [xmin, ymin, xmax, ymax, label]
 
     height : int
         desired height of an image
@@ -305,7 +305,7 @@ def resizeImageBbox(image, bboxes, height, width, bbox_format):
     returns
     -------
     transformed : =/=
-        dictionary containing {'image': resized image, 'bboxes': boxes of format [xmin, ymin, xmax, ymax, class_id]}
+        dictionary containing {'image': resized image, 'bboxes': boxes of format [xmin, ymin, xmax, ymax, label]}
     """
 
     # create resize transform pipeline
@@ -314,5 +314,7 @@ def resizeImageBbox(image, bboxes, height, width, bbox_format):
         bbox_params=albumentations.BboxParams(format=bbox_format))
 
     transformed = transform(image=image, bboxes=bboxes)
+    image = transformed['image']
+    bboxes = transformed['bboxes']
 
-    return transformed
+    return image, bboxes
