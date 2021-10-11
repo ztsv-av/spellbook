@@ -231,7 +231,7 @@ def detection_permutations(image, bboxes, bbox_format, permutations):
         #TODO: add description
     """
     transformations = A.Compose([permutation for permutation in permutations],
-                                box_params=A.BboxParams(format=bbox_format))
+                                bbox_params=A.BboxParams(format=bbox_format))
 
     transformed = transformations(image=image, bboxes=bboxes)
     image = transformed['image']
