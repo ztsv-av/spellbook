@@ -8,14 +8,14 @@ import numpy as np
 from globalVariables import (
     BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILES_PATH, VAL_FILES_PATH, 
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING, 
-    LEARNING_RATE, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR)
+    LEARNING_RATE, LR_DECAY_RATE, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR)
 from globalVariables import (
     BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION, 
     TRAIN_FILES_PATH_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET, 
-    PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH, CHECKPOINT_SAVE_DIR)
+    PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH, SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
 
-from models import MODELS_CLASSIFICATION
-from helpers import buildClassificationImageNetModel, getPathsList, getLabelFromFilename
+from models import MODELS_CLASSIFICATION, userDefinedModel
+from helpers import buildClassificationImageNetModel, buildDetectionModel, getPathsList, getLabelFromFilename
 from train import classificationCustomTrain, detectionTrain
 from preprocessFunctions import minMaxNormalizeNumpy
 
@@ -57,7 +57,7 @@ strategy = tf.distribute.MirroredStrategy(
 #                 classification_model.optimizer.weights[i] = tf.Variable(
 #                     var, name=name)
         
-#         preprocessing_dict = {'normalization': minMaxNormalize, 'to_color': True, 'resize': True, 'permutations': PERMUTATIONS_CLASSIFICATION}
+#         preprocessing_dict = {'normalization': minMaxNormalizeNumpy, 'to_color': True, 'resize': True, 'permutations': PERMUTATIONS_CLASSIFICATION}
 #         classificationTrain(model_name, classification_model, preprocessing_dict, strategy)
 
 #         del classification_model
@@ -74,10 +74,7 @@ def сlassificationСustom():
 
     # load data
     train_paths_list = getPathsList(TRAIN_FILES_PATH)
-    train_len = len(train_paths_list)
-
     val_paths_list = getPathsList(VAL_FILES_PATH)
-    val_len = len(val_paths_list)
 
     train_images_list = []
     train_labels_list = []
@@ -100,9 +97,11 @@ def сlassificationСustom():
 
             # create model, loss, optimizer and metrics instances here
             # reset model, optimizer (AND learning rate), loss and metrics for each iteration
+            
+            classification_model = userDefinedModel(NUM_CLASSES, OUTPUT_ACTIVATION)
 
-            classification_model = buildClassificationImageNetModel(
-                model_imagenet, INPUT_SHAPE, MODEL_POOLING, NUM_CLASSES, OUTPUT_ACTIVATION)
+            # classification_model = buildClassificationImageNetModel(
+            #     model_imagenet, INPUT_SHAPE, MODEL_POOLING, NUM_CLASSES, OUTPUT_ACTIVATION)
 
             loss_object = tf.losses.SparseCategoricalCrossentropy(
                 from_logits=True, reduction=tf.keras.losses.Reduction.NONE)
@@ -114,8 +113,11 @@ def сlassificationСustom():
 
             val_loss = tf.keras.metrics.Mean(name='val_loss')
 
-            learning_rate = LEARNING_RATE
+
+            lr_decay_steps = 1000
+            learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=LEARNING_RATE, decay_steps=lr_decay_steps, decay_rate=LR_DECAY_RATE)
             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
             train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
                 name='train_accuracy')
             val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
@@ -129,9 +131,10 @@ def сlassificationСustom():
                         var, name=name)
         
         classificationCustomTrain(
-            batch_size, NUM_EPOCHS, (train_images_list, train_labels_list, train_len) , (val_images_list, val_labels_list, val_len), 
-            PERMUTATIONS_CLASSIFICATION, minMaxNormalizeNumpy, SHUFFLE_BUFFER_SIZE, classification_model, loss_object, val_loss, 
-            compute_total_loss, optimizer, train_accuracy, val_accuracy, SAVE_TRAINING_CSVS_DIR, SAVE_MODELS_DIR, model_name, strategy)
+            batch_size, NUM_EPOCHS, (train_images_list, train_labels_list), (val_images_list, val_labels_list), 
+            PERMUTATIONS_CLASSIFICATION, minMaxNormalizeNumpy, SHUFFLE_BUFFER_SIZE, classification_model, loss_object, 
+            val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, SAVE_TRAINING_CSVS_DIR, SAVE_MODELS_DIR, 
+            model_name, strategy)
 
         print('Finished Training ' + model_name + '!')
 
@@ -146,6 +149,8 @@ def сlassificationСustom():
         del val_accuracy
 
         K.clear_session()
+
+        break
 
 
 def detection():  
@@ -193,8 +198,11 @@ def detection():
         tmp_prediction_dict, tmp_shapes)
 
     tf.keras.backend.set_learning_phase(True)
+    
+    model_name = SAVE_CHECKPOINT_DIR.split('/')[-2]
 
-    learning_rate = LEARNING_RATE
+    lr_decay_steps = 1000
+    learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=LEARNING_RATE, decay_steps=lr_decay_steps, decay_rate=LR_DECAY_RATE)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # define a list that contains the layers that you wish to fine tune in the detection model
@@ -207,4 +215,5 @@ def detection():
     detectionTrain(
         BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, LABEL_ID_OFFSET,
         TRAIN_FILES_PATH_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, PERMUTATIONS_DETECTION, 
-        detection_model, optimizer, to_fine_tune, CHECKPOINT_SAVE_DIR)
+        detection_model, model_name, optimizer, to_fine_tune, SAVE_CHECKPOINT_DIR, 
+        SAVE_TRAINING_CSVS_DIR_DETECTION)
