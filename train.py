@@ -231,10 +231,10 @@ def detectionTrainStep(
 def detectionTrain(
     batch_size, num_epochs, num_classes, label_id_offset,
     train_filepaths, bbox_format, meta, permutations, 
-    model, model_name, optimizer, to_fine_tune, 
-    checkpoint_save_dir, save_csvs_dir):
+    normalization, model, model_name, optimizer, 
+    to_fine_tune, checkpoint_save_dir, save_csvs_dir):
 
-    train_filepaths_list = os.listdir(train_filepaths)
+    train_filepaths_list = [train_filepaths + filename for filename in os.listdir(train_filepaths)]
 
     steps_per_epoch_train = int(len(train_filepaths_list) // batch_size)
 
@@ -248,17 +248,18 @@ def detectionTrain(
                 step * batch_size:(step + 1) * batch_size]
 
             train_images_batched, train_boxes_batched, train_classes_batched = prepareDetectionDataset(
-                train_filepaths_batched, bbox_format, meta, num_classes, label_id_offset, permutations)
+                train_filepaths_batched, bbox_format, meta, num_classes, label_id_offset, permutations, 
+                normalization)
 
             total_loss, loc_loss, class_loss = detectionTrainStep(
                 train_images_batched, train_boxes_batched, train_classes_batched,
                 model, to_fine_tune, optimizer)
 
-        print('STEP ' + str(step) + ' OF ' + str(steps_per_epoch_train) + ', loss=' + str(total_loss.numpy()) +
-              ' | loc_loss=' + str(loc_loss.numpy()) + ' | class_loss=' + str(class_loss.numpy()), flush=True)
+            print('STEP ' + str(step) + ' OF ' + str(steps_per_epoch_train) + ', loss=' + str(total_loss.numpy()) +
+                ' | loc_loss=' + str(loc_loss.numpy()) + ' | class_loss=' + str(class_loss.numpy()), flush=True)
 
-    saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csvs_dir)
-    saveCheckpointDetection(epoch, model, loc_loss, optimizer, checkpoint_save_dir)
+        saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csvs_dir)
+        saveCheckpointDetection(model_name, epoch, model, loc_loss, optimizer, checkpoint_save_dir)
 
-    print('EPOCH ' + str(epoch) + ' OF ' + str(num_epochs) +
-          ', loss=' + str(total_loss.numpy()), flush=True)
+        print('EPOCH ' + str(epoch) + ' OF ' + str(num_epochs) +
+            ', loss=' + str(total_loss.numpy()), flush=True)
