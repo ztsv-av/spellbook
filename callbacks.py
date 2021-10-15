@@ -93,9 +93,9 @@ def saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, 
         new_info_df.to_csv(path_or_buf=save_csv_path, index=False)
 
 
-def saveCheckpointDetection(epoch, model, loc_loss, optimizer, checkpoint_save_dir):
+def saveCheckpointDetection(model_name, epoch, model, loc_loss, optimizer, checkpoint_save_dir):
 
-    checkpoint_save_dir_epoch = checkpoint_save_dir + str(epoch) + '_loss-' + str(loc_loss.numpy())
+    checkpoint_save_dir_epoch = checkpoint_save_dir + model_name + '/' + str(epoch) + '_loss-' + str(loc_loss.numpy())
     if not os.path.exists(checkpoint_save_dir_epoch):
         os.makedirs(checkpoint_save_dir_epoch)
 
