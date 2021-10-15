@@ -2,7 +2,7 @@ import tensorflow as tf
 
 import numpy as np
 
-from helpers import getPathsList, getLabelFromFilename
+from helpers import getPathsList, getLabelFromFilename, evaluateString
 from permutationFunctions import classification_permutations, detection_permutations
 
 
@@ -45,7 +45,7 @@ def prepareClassificationDataset(batch_size, train_data, val_data, permutations,
 
     return train_dataset_dist, val_dataset_dist
 
-def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_offset, permutations):
+def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_offset, permutations, normalization):
 
     images_batch = []
     bboxes_batch = []
@@ -54,12 +54,14 @@ def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_
 
         filename = filepath.split('/')[-1]
         record = meta[meta['filename'] == filename]
-        bboxes = record['bboxes']
 
-        image, bboxes = permuteImageGetLabelBoxes(filepath, permutations, bboxes, bbox_format, is_detection=True, is_val=False)
+        image = np.load(filepath)
+        bboxes = evaluateString(record['bboxes'].values[0])
+
+        image, bboxes = permuteImageGetLabelBoxes(image, permutations, normalization, bboxes, bbox_format, is_detection=True, is_val=False)
 
         images_batch.append(image)
-        bboxes_batch.append(bboxes)
+        bboxes_batch.append(np.array(bboxes))
     
     images_tensors = []
     bboxes_tensors = []
