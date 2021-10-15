@@ -81,10 +81,10 @@ def detection():
             bbox = [np.asarray([record['xmin'].values[0], record['ymin'].values[0], record['xmax'].values[0], record['ymax'].values[0], 1]).astype(np.float32)]
 
             image, bbox = resizeImageBbox(image, bbox, 512, 512, 'pascal_voc')
-            bbox = [normalizeBBox(bbox[0][1], bbox[0][0], bbox[0][3], bbox[0][2], image.shape)]
+            bbox = [normalizeBBox(bbox[0][0], bbox[0][1], bbox[0][2], bbox[0][3], image.shape)]
         
         save2NP(image, SAVE_TRAIN_FILES_DIR_DETECTION + filename)
-        annotations = annotations.append({'filename': filename, 'bboxes': bbox}, ignore_index=True)
+        annotations = annotations.append({'filename': filename + '.npy', 'bboxes': bbox}, ignore_index=True)
     
     annotations.to_csv(path_or_buf=SAVE_TRAIN_META_PATH, index=False)
 
@@ -108,10 +108,10 @@ def detection():
             bbox = [np.asarray([record['xmin'].values[0], record['ymin'].values[0], record['xmax'].values[0], record['ymax'].values[0], 1]).astype(np.float32)]
 
             image, bbox = resizeImageBbox(image, bbox, 512, 512, 'pascal_voc')
-            bbox = [normalizeBBox(bbox[0][1], bbox[0][0], bbox[0][3], bbox[0][2], image.shape)]
+            bbox = [normalizeBBox(bbox[0][0], bbox[0][1], bbox[0][2], bbox[0][3], image.shape)]
         
         save2NP(image, SAVE_TEST_FILES_DIR_DETECTION + filename)
-        annotations = annotations.append({'filename': filename, 'bboxes': bbox}, ignore_index=True)
+        annotations = annotations.append({'filename': filename + '.npy', 'bboxes': bbox}, ignore_index=True)
     
     annotations.to_csv(path_or_buf=SAVE_TEST_META_PATH, index=False)
 
