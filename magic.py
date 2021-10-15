@@ -6,12 +6,12 @@ from object_detection.builders import model_builder
 import numpy as np
 
 from globalVariables import (
-    BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILES_PATH, VAL_FILES_PATH, 
+    BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILEPATHS, VAL_FILEPATHS, 
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING, 
     LEARNING_RATE, LR_DECAY_RATE, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR)
 from globalVariables import (
     BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION, 
-    TRAIN_FILES_PATH_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET, 
+    TRAIN_FILEPATHS_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET, MODEL_NAME_DETECTION, 
     PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH, SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
 
 from models import MODELS_CLASSIFICATION, userDefinedModel
@@ -73,8 +73,8 @@ strategy = tf.distribute.MirroredStrategy(
 def сlassificationСustom():
 
     # load data
-    train_paths_list = getPathsList(TRAIN_FILES_PATH)
-    val_paths_list = getPathsList(VAL_FILES_PATH)
+    train_paths_list = getPathsList(TRAIN_FILEPATHS)
+    val_paths_list = getPathsList(VAL_FILEPATHS)
 
     train_images_list = []
     train_labels_list = []
@@ -198,10 +198,8 @@ def detection():
         tmp_prediction_dict, tmp_shapes)
 
     tf.keras.backend.set_learning_phase(True)
-    
-    model_name = SAVE_CHECKPOINT_DIR.split('/')[-2]
 
-    lr_decay_steps = 1000
+    lr_decay_steps = 500
     learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=LEARNING_RATE, decay_steps=lr_decay_steps, decay_rate=LR_DECAY_RATE)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -214,6 +212,6 @@ def detection():
 
     detectionTrain(
         BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, LABEL_ID_OFFSET,
-        TRAIN_FILES_PATH_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, PERMUTATIONS_DETECTION, 
-        detection_model, model_name, optimizer, to_fine_tune, SAVE_CHECKPOINT_DIR, 
-        SAVE_TRAINING_CSVS_DIR_DETECTION)
+        TRAIN_FILEPATHS_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, PERMUTATIONS_DETECTION, 
+        minMaxNormalizeNumpy, detection_model, MODEL_NAME_DETECTION, optimizer, to_fine_tune, 
+        SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
