@@ -66,8 +66,8 @@ BATCH_SIZES_512 = {
 NUM_CLASSES = 10
 INPUT_SHAPE = (32, 32, 3)
 OUTPUT_ACTIVATION = None  # 'sigmoid', 'softmax', None
-TRAIN_FILES_PATH = 'projects/testing/datasets/train/'
-VAL_FILES_PATH = 'projects/testing/datasets/test/'
+TRAIN_FILEPATHS = 'projects/testing/datasets/train/'
+VAL_FILEPATHS = 'projects/testing/datasets/test/'
 TRAINED_MODELS_PATH = ''
 TRAINED_MODELS_FILES = None # os.listdir()
 SAVE_MODELS_DIR = 'projects/testing/training/weights/'
@@ -78,6 +78,7 @@ MODEL_POOLING = 'avg'
 SHUFFLE_BUFFER_SIZE = 4096
 
 # object detection
+MODEL_NAME_DETECTION = 'effdet0'
 NUM_EPOCHS_DETECTION = 10
 BATCH_SIZE_DETECTION = 2
 INPUT_SHAPE_DETECTION = (512, 512)
@@ -85,14 +86,15 @@ DUMMY_SHAPE_DETECTION = (1, 512, 512, 3)
 NUM_CLASSES_DETECTION = 1
 LABEL_ID_OFFSET = 1
 IMAGE_TYPE = np.uint8
+BBOX_FORMAT = 'albumentations'
 CHECKPOINT_PATH = 'object_detection/models/research/object_detection/test_data/checkpoint_efficientdet_d0/ckpt-0' # change only /checkpoint_.../
 CONFIG_PATH = 'object_detection/models/research/object_detection/configs/tf2/ssd_efficientdet_d0_512x512_coco17_tpu-8.config'
-TRAIN_FILES_PATH_DETECTION = 'projects/testing_detection/datasets/train/'
+TRAIN_FILEPATHS_DETECTION = 'projects/testing_detection/datasets/train/'
 TRAIN_META_DETECTION = pd.read_csv('projects/testing_detection/datasets/metas/train_meta.csv')
-TEST_FILES_PATH_DETECTION = 'projects/testing_detection/datasets/test/'
+TEST_FILEPATHS_DETECTION = 'projects/testing_detection/datasets/test/'
 TEST_META_DETECTION = pd.read_csv('projects/testing_detection/datasets/metas/test_meta.csv')
-SAVE_CHECKPOINT_DIR = 'object_detection/saved_checkpoints/effdet0/'
-SAVE_TRAINING_CSVS_DIR_DETECTION = 'projects/testing_detection/datasets/train/'
+SAVE_CHECKPOINT_DIR = 'projects/testing_detection/training/weights/'
+SAVE_TRAINING_CSVS_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
 
 
 # optimizers
@@ -143,7 +145,6 @@ OPTICAL_DISTORT_LIMIT = 0.4
 OPTICAL_SHIFT_LIMIT = 0.5  # doesn't really do much
 ROTATE_LIMIT = 30
 INVERT_PROBABILITY = 0.5
-BBOX_FORMAT = ''
 PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 3
 PERMUTATIONS_CLASSIFICATION = [
     # A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT,
@@ -164,7 +165,7 @@ PERMUTATIONS_CLASSIFICATION = [
     # A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION)
     A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION)
 ]
-PERMUTATION_PROBABILITY_DETECTION = 1
+PERMUTATION_PROBABILITY_DETECTION = 1 / 4
 PERMUTATIONS_DETECTION = [
     A.HorizontalFlip(p=PERMUTATION_PROBABILITY_DETECTION),
     # A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION),
