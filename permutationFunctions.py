@@ -230,6 +230,11 @@ def detection_permutations(image, bboxes, bbox_format, permutations):
     bboxes : 
         #TODO: add description
     """
+
+    # add class label
+    for box in bboxes:
+        box.append(1)
+
     transformations = A.Compose([permutation for permutation in permutations],
                                 bbox_params=A.BboxParams(format=bbox_format))
 
@@ -237,4 +242,10 @@ def detection_permutations(image, bboxes, bbox_format, permutations):
     image = transformed['image']
     bboxes = transformed['bboxes']
 
-    return image, bboxes
+    # transform bboxes format to Tensorflow API format and remove class label
+    bboxes_tf = []
+    for box in bboxes:
+        box_tf = [box[1], box[0], box[3], box[2]]
+        bboxes_tf.append(box_tf)
+
+    return image, bboxes_tf
