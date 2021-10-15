@@ -10,6 +10,7 @@ import png
 import os
 import shutil
 import gzip
+import ast
 from PIL import Image
 from matplotlib.patches import Rectangle
 from sklearn.model_selection import train_test_split
@@ -91,6 +92,28 @@ def save2PNG(x, output_path):
         raise TypeError("Convert input image 'x' to numpy array.")
 
 
+def evaluateString(x):
+
+    """
+    evaluates an expression node or a string containing a Python literal or container display. 
+    The string or node provided may only consist of the following Python literal structures: 
+    strings, bytes, numbers, tuples, lists, dicts, booleans, and None.
+
+    parameters
+    ----------
+    x : string
+        string which needs to be evaluated ('unstringified')
+    
+    returns
+    -------
+    x : input structure
+        evaluated input string
+    """
+
+    x = ast.literal_eval(x)
+
+    return x
+
 def visualizeImage_Box(image, boxes):
     """
     plots an image and (optional) bounding box
@@ -117,8 +140,8 @@ def visualizeImage_Box(image, boxes):
 
     print(image.shape)
     # matplotlib inline in notebook
+    # to save figure: plt.savefig("mygraph.png")
     plt.show()
-    # plt.savefig("mygraph.png")
 
 
 def getPathsList(dir):
