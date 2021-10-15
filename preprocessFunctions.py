@@ -23,6 +23,10 @@ def minMaxNormalizeNumpy(x):
         normalized image
     """
 
+    # convert x's type to float32 (from uint8, etc.)
+    if x.dtype != 'float32':
+        x = np.float32(x)
+
     try:
         x -= x.min()
         x /= x.max()
@@ -159,9 +163,9 @@ def normalizeSpectogram(x):
     except AttributeError:
         raise TypeError("Convert input image 'x' to numpy array.")
 
-def normalizeBBox(ymin, xmin, ymax, xmax, image_shape):
+def normalizeBBox(xmin, ymin, xmax, ymax, image_shape):
 
-    return [ymin / image_shape[1], xmin / image_shape[0], ymax / image_shape[1], xmax / image_shape[0]]
+    return [xmin / image_shape[1], ymin / image_shape[0], xmax / image_shape[1], ymax / image_shape[0]]
 
 
 def dicomToArray(dicom_path, voi_lut=True, fix_monochrome=True):
