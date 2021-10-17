@@ -1,8 +1,7 @@
 import tensorflow as tf
-# import module for reading and updating configuration files.
 from object_detection.utils import config_util
-# import module for building the detection model
 from object_detection.builders import model_builder
+from object_detection.utils import visualization_utils as viz_utils
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,10 +15,31 @@ from matplotlib.patches import Rectangle
 from sklearn.model_selection import train_test_split
 
 
+def loadNumpy(path):
+
+    """
+    load numpy file
+
+    parameters
+    ----------
+    path : string
+        full path to a file
+    
+    returns
+    -------
+    numpy_file : ndarray
+        numpy array
+    """
+
+    numpy_file = np.load(path)
+
+    return numpy_file
+
+
 def loadJPGToNumpy(filename, dir, image_type):
 
     """
-    Load an image from file into a numpy array.
+    load an image from file into a numpy array.
 
     parameters
     ----------
@@ -28,7 +48,7 @@ def loadJPGToNumpy(filename, dir, image_type):
 
     returns
     -------
-    image =/=
+    image :
         uint8 numpy array with shape (img_height, img_width, 3)
     """
     
@@ -132,8 +152,8 @@ def visualizeImage_Box(image, boxes):
     ax.imshow(image, cmap='gray')
 
     if boxes is not None:
-        for box in boxes:
-            xmin, ymin, xmax, ymax = box[0], box[1], box[2], box[3]
+        for box in boxes[:3]:
+            xmin, ymin, xmax, ymax = box[1], box[0], box[3], box[2]
             ax.add_patch(Rectangle((xmin, ymin), xmax - xmin,
                                    ymax - ymin, fill=False, edgecolor='red'))
         print(boxes)
@@ -142,6 +162,42 @@ def visualizeImage_Box(image, boxes):
     # matplotlib inline in notebook
     # to save figure: plt.savefig("mygraph.png")
     plt.show()
+
+
+def visualizeDetections(image_np, boxes, classes, scores, category_index, score_thresh):
+
+    """
+    Wrapper function to visualize detections.
+
+    parameters
+    ----------
+    image_np: ndarray uint8 
+        numpy array with shape (img_height, img_width, 3)
+
+    boxes: ndarray
+        a numpy array of shape [N, 4]
+
+    classes: ndarray
+        a numpy array of shape [N]. Note that class indices are 1-based,
+        and match the keys in the label map.
+
+    scores: ndarray
+        a numpy array of shape [N] or None.
+        If scores=None, then this function assumes that the boxes to be plotted are groundtruth
+        boxes and plot all boxes as black with no classes or scores.
+
+    category_index: dict
+        a dict containing category dictionaries 
+        (each holding category index `id` and category name `name`) keyed by category indices.
+    """
+    
+    image_annotations = image_np.copy()
+    
+    viz_utils.visualize_boxes_and_labels_on_image_array(
+        image_annotations, boxes, classes, scores, category_index, 
+        use_normalized_coordinates=True, min_score_thresh=score_thresh)
+    
+    plt.imshow(image_annotations)
 
 
 def getPathsList(dir):
