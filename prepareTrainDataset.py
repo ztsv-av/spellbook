@@ -19,7 +19,7 @@ def permuteImageGetLabelBoxes(image, permutations, normalization, bboxes, bbox_f
         if not is_val:
             image = classification_permutations(image, permutations)
     
-    image = normalization(image)
+        image = normalization(image)
 
     return (image, bboxes) if is_detection else image
 
