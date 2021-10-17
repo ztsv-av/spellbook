@@ -15,7 +15,7 @@ from globalVariables import (
     PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH, SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
 
 from models import MODELS_CLASSIFICATION, userDefinedModel
-from helpers import buildClassificationImageNetModel, buildDetectionModel, getPathsList, getLabelFromFilename
+from helpers import buildClassificationImageNetModel, getPathsList, getLabelFromFilename
 from train import classificationCustomTrain, detectionTrain
 from preprocessFunctions import minMaxNormalizeNumpy
 
@@ -150,8 +150,6 @@ def сlassificationСustom():
 
         K.clear_session()
 
-        break
-
 
 def detection():  
 
@@ -199,7 +197,7 @@ def detection():
 
     tf.keras.backend.set_learning_phase(True)
 
-    lr_decay_steps = 500
+    lr_decay_steps = 100
     learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=LEARNING_RATE, decay_steps=lr_decay_steps, decay_rate=LR_DECAY_RATE)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -213,5 +211,5 @@ def detection():
     detectionTrain(
         BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, LABEL_ID_OFFSET,
         TRAIN_FILEPATHS_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, PERMUTATIONS_DETECTION, 
-        minMaxNormalizeNumpy, detection_model, MODEL_NAME_DETECTION, optimizer, to_fine_tune, 
+        None, detection_model, MODEL_NAME_DETECTION, optimizer, to_fine_tune, 
         SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
