@@ -47,8 +47,8 @@ def saveImage2Numpy(filename, dir, image_type):
     dir : string
         full path to input image (up to folder)
 
-    image_type : #TODO
-        #TODO
+    image_type : XXX
+        XXX
 
     returns
     -------
