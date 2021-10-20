@@ -1,6 +1,5 @@
 import os
 import datetime
-
 import pandas as pd
 import tensorflow as tf
 
