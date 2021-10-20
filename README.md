@@ -18,7 +18,6 @@ provides:
 | Script                      | Description                                                                                           |
 | --------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `callbacks.py`              | Custom callbacks for `Keras` library                                                                  |
-| `generatorInstance.py`      | (deprecated script / to be deleted)                                                                   |
 | `globalVariables.py`        | Global variables and parameters such as data shapes, learning rate decay, etc.                        |
 | `helpers.py`                | Miscellaneous functions                                                                               |
 | `losses.py`                 | Custom loss functions                                                                                 |
