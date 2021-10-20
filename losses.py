@@ -61,7 +61,7 @@ def categorical_focal_loss(alpha=0.25, gamma=2.0):
         # calculate focal Loss
         loss = alpha * K.pow(1 - y_pred, gamma) * cross_entropy
 
-        # compute mean loss in mini_batch
+        # compute mean loss in mini batch
         mean_loss = K.mean(K.sum(loss, axis=-1))
 
         return mean_loss
@@ -133,7 +133,7 @@ def binary_focal_loss(alpha=0.25, gamma=2.0):
         # calculate focal loss
         loss = weight * cross_entropy
 
-        # sum the losses in mini_batch
+        # sum the losses in mini batch
         mean_loss = K.mean(K.sum(loss, axis=1))
 
         return mean_loss
