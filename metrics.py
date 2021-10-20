@@ -3,12 +3,21 @@ from tensorflow.keras.activations import sigmoid
 
 
 def precision(y_true, y_pred):
-    """Precision metric.
+    """
+    computes batch-wise average of precision, metric for multi-label classification of how many selected items are relevant
 
-    Only computes a batch-wise average of precision.
+    parameters
+    ----------
+        y_true : XXX
+            XXX
 
-    Computes the precision, a metric for multi-label classification of
-    how many selected items are relevant.
+        y_pred : XXX
+            XXX
+
+    returns
+    -------
+        precision : XXX
+            value of precision between true and predicted labels
     """
 
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -19,12 +28,21 @@ def precision(y_true, y_pred):
 
 
 def recall(y_true, y_pred):
-    """Recall metric.
+    """
+    computes batch-wise average of recall, metric for multi-label classification of how many relevant items are selected
 
-    Only computes a batch-wise average of recall.
+    parameters
+    ----------
+        y_true : XXX
+            XXX
 
-    Computes the recall, a metric for multi-label classification of
-    how many relevant items are selected.
+        y_pred : XXX
+            XXX
+
+    returns
+    -------
+        recall : XXX
+            value of recall between true and predicted labels
     """
 
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -34,11 +52,35 @@ def recall(y_true, y_pred):
     return recall
 
 
-def f1(y_true, y_pred):
+def f1(y_true, y_pred, apply_sigmoid_on_predicted_labels=False):
+    """
+    computes batch-wise average of f1, metric which is a combination of precision and recall
 
-    y_pred = sigmoid(y_pred)  # use if dense has no activation function
+    parameters
+    ----------
+        y_true : XXX
+            XXX
+
+        y_pred : XXX
+            XXX
+
+        apply_sigmoid_on_predicted_labels : boolean, default is False
+            applies sigmoid function on predicted labels
+            switch to True if dense layer is without activation function
+
+    returns
+    -------
+        f1 : XXX
+            value of f1 between true and predicted labels
+    """
+
+    if apply_sigmoid_on_predicted_labels:
+        y_pred = sigmoid(y_pred)
 
     precisionScore = precision(y_true, y_pred)
     recallScore = recall(y_true, y_pred)
 
-    return 2 * ((precisionScore * recallScore) / (precisionScore + recallScore + K.epsilon()))
+    f1 = 2 * ((precisionScore * recallScore) /
+              (precisionScore + recallScore + K.epsilon()))
+
+    return f1Score
