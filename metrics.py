@@ -83,4 +83,4 @@ def f1(y_true, y_pred, apply_sigmoid_on_predicted_labels=False):
     f1 = 2 * ((precisionScore * recallScore) /
               (precisionScore + recallScore + K.epsilon()))
 
-    return f1Score
+    return f1
