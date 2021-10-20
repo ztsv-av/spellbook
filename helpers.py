@@ -1,6 +1,6 @@
 import os
-import png
 import gzip
+import png
 import ast
 import shutil
 import numpy as np
