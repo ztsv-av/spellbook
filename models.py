@@ -1,40 +1,52 @@
-import tensorflow as tf
+from tensorflow.keras.applications import *
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import *
+
+MODELS_CLASSIFICATION = {
+    'EfficientNetB0': EfficientNetB0,
+    'EfficientNetB1': EfficientNetB1,
+    'EfficientNetB2': EfficientNetB2,
+    'EfficientNetB3': EfficientNetB3,
+    'DenseNet121': DenseNet121,
+    'DenseNet169': DenseNet169,
+    'InceptionResNetV2': InceptionResNetV2,
+    'InceptionV3': InceptionV3,
+    'MobileNet': MobileNet,
+    'MobileNetV2': MobileNetV2,
+    'ResNet50': ResNet50,
+    'ResNet50V2': ResNet50V2,
+    'ResNet101': ResNet101,
+    'ResNet101V2': ResNet101V2,
+    'Xception': Xception,
+    'EfficientNetB4': EfficientNetB4,
+    'EfficientNetB5': EfficientNetB5}
 
 
 def userDefinedModel(num_classes, activation):
+    """
+    XXX
 
+    parameters
+    ----------
+    num_classes : XXX
+        XXX
+
+    activation : XXX
+        XXX
+
+    returns
+    -------
+        model : XXX
+            XXX
     """
-    """
-    
-    model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(32, 3, activation='relu'),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(64, 3, activation='relu'),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(num_classes, activation=activation)
-    ])
+
+    model = Sequential([
+        Conv2D(32, 3, activation='relu'),
+        MaxPooling2D(),
+        Conv2D(64, 3, activation='relu'),
+        MaxPooling2D(),
+        Flatten(),
+        Dense(64, activation='relu'),
+        Dense(num_classes, activation=activation)])
 
     return model
-
-
-MODELS_CLASSIFICATION = {
-    'EfficientNetB0': tf.keras.applications.EfficientNetB0,
-    'EfficientNetB1': tf.keras.applications.EfficientNetB1,
-    'EfficientNetB2': tf.keras.applications.EfficientNetB2,
-    'EfficientNetB3': tf.keras.applications.EfficientNetB3,
-    'DenseNet121': tf.keras.applications.DenseNet121,
-    'DenseNet169': tf.keras.applications.DenseNet169,
-    'InceptionResNetV2': tf.keras.applications.InceptionResNetV2,
-    'InceptionV3': tf.keras.applications.InceptionV3,
-    'MobileNet': tf.keras.applications.MobileNet,
-    'MobileNetV2': tf.keras.applications.MobileNetV2,
-    'ResNet50': tf.keras.applications.ResNet50,
-    'ResNet50V2': tf.keras.applications.ResNet50V2,
-    'ResNet101': tf.keras.applications.ResNet101,
-    'ResNet101V2': tf.keras.applications.ResNet101V2,
-    'Xception': tf.keras.applications.Xception,
-    'EfficientNetB4': tf.keras.applications.EfficientNetB4,
-    'EfficientNetB5': tf.keras.applications.EfficientNetB5
-}
