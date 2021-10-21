@@ -208,7 +208,7 @@ def dicomToArray(dicom_path, voi_lut=True, fix_monochrome=True):
 
     returns
     -------
-        image_numpy : numpy array
+        image_numpy : ndarray
             converted dicom image to numpy array
     """
 
