@@ -5,6 +5,8 @@ import os
 import tensorflow as tf
 from sklearn.utils import shuffle
 
+# CLASSIFICATION
+
 
 def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
     """
@@ -291,6 +293,8 @@ def classificationCustomTrain(
         val_loss.reset_states()
         train_accuracy.reset_states()
         val_accuracy.reset_states()
+
+# DETECTION
 
 
 def detectionTrainStep(
