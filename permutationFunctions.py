@@ -28,7 +28,7 @@ def whiteNoise(x, input_shape, noise_level, p):
 
     returns
     -------
-        x : =/=
+        x : ndarray
             white-noised image
     """
 
@@ -64,7 +64,7 @@ def bandpassNoise(x, input_shape, noise_level, p):
 
     returns
     -------
-        x : =/=
+        x : list or ndarray
             bandpass-noised image
     """
 
