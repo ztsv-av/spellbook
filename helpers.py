@@ -21,13 +21,13 @@ def loadNumpy(path):
 
     parameters
     ----------
-    path : string
-        full path to file
+        path : string
+            full path to file
 
     returns
     -------
-    numpy_file : ndarray
-        numpy array
+        numpy_file : ndarray
+            numpy array
     """
 
     numpy_file = np.load(path)
@@ -41,16 +41,16 @@ def loadImage(path, image_type):
 
     parameters
     ----------
-    path: string
-        full path to input image
+        path: string
+            full path to input image
 
-    image_type : XXX
-        XXX
+        image_type : XXX
+            XXX
 
     returns
     -------
-    image_converted : ndarray
-        numpy array representing image of shape (height, width, 3)
+        image_converted : ndarray
+            numpy array representing image of shape (height, width, 3)
     """
 
     image = Image.open(path)
@@ -65,11 +65,11 @@ def saveNumpyArray(x, dir):
 
     parameters
     ----------
-    x : ndarray
-        numpy array
+        x : ndarray
+            numpy array
 
-    dir : str
-        full path where to save x
+        dir : str
+            full path where to save x
     """
 
     try:
@@ -85,11 +85,11 @@ def convertNumpy2png(x, dir):
 
     parameters
     ----------
-    x : ndarray
-        numpy array representing image (such as spectogram or dicom)
+        x : ndarray
+            numpy array representing image (such as spectogram or dicom)
 
-    dir : str
-        full path where to save x as .png image
+        dir : str
+            full path where to save x as .png image
     """
 
     try:
@@ -120,13 +120,13 @@ def evaluateString(x):
 
     parameters
     ----------
-    x : string
-        string which needs to be evaluated ('unstringified')
+        x : string
+            string which needs to be evaluated ('unstringified')
 
     returns
     -------
-    x : string
-        evaluated input string
+        x : string
+            evaluated input string
     """
 
     x = ast.literal_eval(x)
@@ -140,12 +140,12 @@ def visualizeImageBox(image, boxes):
 
     parameters
     ----------
-    image : ndarray
-        numpy array representing image
+        image : ndarray
+            numpy array representing image
 
-    boxes : list (list of lists)
-        list of coordinates of bounding box (or list of multiple bounding boxes)
-        each box must follow format [ymin, xmin, ymax, xmax, ...]
+        boxes : list (list of lists)
+            list of coordinates of bounding box (or list of multiple bounding boxes)
+            each box must follow format [ymin, xmin, ymax, xmax, ...]
     """
 
     fig, ax = plt.subplots()
@@ -166,26 +166,26 @@ def visualizeDetections(image, boxes, classes, scores, category_index, score_thr
 
     parameters
     ----------
-    image_np: ndarray
-        numpy array of shape (height, width, 3)
+        image_np: ndarray
+            numpy array of shape (height, width, 3)
 
-    boxes: list
-        list of shape [N, 4] where N is number of boxes
+        boxes: list
+            list of shape [N, 4] where N is number of boxes
 
-    classes: ndarray
-        numpy array of shape [M] where M is number of classes
-        note that class indices are 1-based and match keys in label map
+        classes: ndarray
+            numpy array of shape [M] where M is number of classes
+            note that class indices are 1-based and match keys in label map
 
-    scores: ndarray
-        numpy array of shape [K] where K is number of scores
-        if scores = None then boxes are assumed groundtruth and plotted with black color without class and score labels
+        scores: ndarray
+            numpy array of shape [K] where K is number of scores
+            if scores = None then boxes are assumed groundtruth and plotted with black color without class and score labels
 
-    category_index: dict
-        dictionary containing category dictionaries
-        (each holding category index `id` and category name `name`) keyed with category indices XXX
+        category_index: dict
+            dictionary containing category dictionaries
+            (each holding category index `id` and category name `name`) keyed with category indices XXX
 
-    score_threshold : float
-        #TODO
+        score_threshold : float
+            #TODO
     """
 
     image_annotations = image.copy()
@@ -203,13 +203,13 @@ def getFullPaths(dir):
 
     parameters
     ----------
-    dir: string
-        directory with files
+        dir: string
+            directory with files
 
     returns
     -------
-    paths : list
-        list of paths for each image in dir
+        paths : list
+            list of paths for each image in dir
     '''
 
     filenames = os.listdir(dir)
@@ -224,13 +224,13 @@ def getLabelFromFilename(filename):
 
     parameters
     ----------
-    filename : XXX
-        XXX
+        filename : XXX
+            XXX
 
     returns
     -------
-    label : XXX
-        XXX
+        label : XXX
+            XXX
     """
 
     label = filename.split('_')[-1].replace('.npy', '')
@@ -246,17 +246,17 @@ def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=
 
     parameters
     ----------
-    dir : XXX
-        XXX
+        dir : XXX
+            XXX
 
-    train_data_folder : XXX
-        XXX
+        train_data_folder : XXX
+            XXX
 
-    val_data_folder : XXX
-        XXX
+        val_data_folder : XXX
+            XXX
 
-    val_data_size : float, default is 0.2
-        how much percent of data to allocate for validation
+        val_data_size : float, default is 0.2
+            how much percent of data to allocate for validation
     """
 
     files_to_split = os.listdir(dir)
@@ -283,23 +283,23 @@ def loadFashionMNIST(dir, reshape_size):
 
     parameters
     -----------
-    dir: string
-        path to directory that contains 4 files:
-            train_labels.gz, train_images.gz,
-            test_labels.gz, test_images.gz
+        dir: string
+            path to directory that contains 4 files:
+                train_labels.gz, train_images.gz,
+                test_labels.gz, test_images.gz
 
     returns
     -------
-    (x_train, y_train) : tuple
-        x_train: ndarray
-            contains 28x28 training images
-        y_train: ndarray
-            contains training class labels as integers
-    (x_test, y_test) : tuple
-        x_test: ndarray
-            contains 28x28 test images
-        y_test: ndarray
-            contains test class labels as integers
+        (x_train, y_train) : tuple
+            x_train: ndarray
+                contains 28x28 training images
+            y_train: ndarray
+                contains training class labels as integers
+        (x_test, y_test) : tuple
+            x_test: ndarray
+                contains 28x28 test images
+            y_test: ndarray
+                contains test class labels as integers
     """
 
     files = [
@@ -334,27 +334,27 @@ def buildClassificationPretrainedModel(model_path, custom_objects, num_classes, 
 
     parameters
     ----------
-    model_path : XXX
-        XXX
+        model_path : XXX
+            XXX
 
-    custom_objects : XXX
-        XXX
+        custom_objects : XXX
+            XXX
 
-        example:
-        custom_objects = {
-            'f1': f1,
-            'categorical_focal_loss_fixed': categorical_focal_loss(alpha=[[.25, .25]], gamma=2)}
+            example:
+            custom_objects = {
+                'f1': f1,
+                'categorical_focal_loss_fixed': categorical_focal_loss(alpha=[[.25, .25]], gamma=2)}
 
-    num_classes : XXX
-        XXX
+        num_classes : XXX
+            XXX
 
-    activation : XXX
-        XXX
+        activation : XXX
+            XXX
 
     returns
     -------
-    model : XXX
-        XXX
+        model : XXX
+            XXX
     """
 
     loaded_model = tf.keras.models.load_model(model_path, custom_objects)
@@ -376,25 +376,25 @@ def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, num_c
 
     parameters
     ----------
-    model_imagenet : XXX
-        XXX
+        model_imagenet : XXX
+            XXX
 
-    input_shape : XXX
-        XXX
+        input_shape : XXX
+            XXX
 
-    pooling : XXX
-        XXX
+        pooling : XXX
+            XXX
 
-    num_classes : int
-        number of classes in dataset
+        num_classes : int
+            number of classes in dataset
 
-    activation : XXX
-        XXX
+        activation : XXX
+            XXX
 
     returns
     -------
-    model : XXX
-        XXX
+        model : XXX
+            XXX
     """
 
     loaded_model = model_imagenet(
@@ -410,7 +410,7 @@ def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, num_c
 
 def buildDetectionModel(num_classes, checkpoint_path, config_path, dummy_shape):
     """
-    # TODO : napiwi tyt description, pomesti kommenti v description kakie nado -- ostal'nie ydali
+    #TODO : napiwi tyt description, pomesti kommenti v description kakie nado -- ostal'nie ydali
     """
 
     # Download the checkpoint and put it into models/research/object_detection/test_data/

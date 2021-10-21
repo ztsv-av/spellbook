@@ -8,19 +8,18 @@ from pydicom.pixel_data_handlers.util import apply_voi_lut
 
 
 def minMaxNormalizeNumpy(x):
-
     """
     normalizes image input to [0, 1] interval
 
     parameters
     ----------
-    x : ndarray
-        input image
+        x : ndarray
+            input image
 
     returns
     -------
-    x : =/=
-        normalized image
+        x : =/=
+            normalized image
     """
 
     # convert x's type to float32 (from uint8, etc.)
@@ -38,21 +37,19 @@ def minMaxNormalizeNumpy(x):
 
 
 def minMaxNormalizeTensor(x):
-
     """
     normalizes tensor image to [0, 1] interval
 
     parameters
     ----------
-    x : tensor
-        input image
+        x : tensor
+            input image
 
     returns
     -------
-    x : =/=
-        normalized tensor image
+        x : =/=
+            normalized tensor image
     """
-
 
     x = tf.subtract(x, tf.reduce_min(x))
     x = tf.divide(x, tf.reduce_max(x))
@@ -61,19 +58,18 @@ def minMaxNormalizeTensor(x):
 
 
 def meanStdNormalize(x):
-
     """
     normalizes image input to [0, 1] interval
 
     parameters
     ----------
-    x : ndarray
-        input image
+        x : ndarray
+            input image
 
     returns
     -------
-    x : =/=
-        normalized image
+        x : =/=
+            normalized image
     """
 
     try:
@@ -87,22 +83,21 @@ def meanStdNormalize(x):
 
 
 def addColorChannels(x, num_channels):
-
     """
     adds channel dimension to 2D image
 
     parameters
     ----------
-    x : ndarray
-        input image
+        x : ndarray
+            input image
 
-    numChannels : int
-        number of channels to add (to copy) into channel dimension
+        numChannels : int
+            number of channels to add (to copy) into channel dimension
 
     returns
     -------
-    x : =/=
-        image with channel dimension
+        x : =/=
+            image with channel dimension
     """
 
     try:
@@ -115,19 +110,18 @@ def addColorChannels(x, num_channels):
 
 
 def spectrogramToDecibels(x):
-
     """
     converts a power spectrogram (amplitude squared) to decibel (dB) units
 
     parameters
     ----------
-    x : ndarray
-        input power spectogram
+        x : ndarray
+            input power spectogram
 
     returns
     -------
-    x : =/=
-        decibel spectogram
+        x : =/=
+            decibel spectogram
     """
 
     try:
@@ -140,19 +134,18 @@ def spectrogramToDecibels(x):
 
 
 def normalizeSpectogram(x):
-
     """
     normalizes spectogram
 
     parameters
     ----------
-    x : ndarray
-        input spectogram
+        x : ndarray
+            input spectogram
 
     returns
     -------
-    x : =/=
-        normalized spectogram
+        x : =/=
+            normalized spectogram
     """
 
     try:
@@ -163,32 +156,32 @@ def normalizeSpectogram(x):
     except AttributeError:
         raise TypeError("Convert input image 'x' to numpy array.")
 
+
 def normalizeBBox(xmin, ymin, xmax, ymax, image_shape):
 
     return [xmin / image_shape[1], ymin / image_shape[0], xmax / image_shape[1], ymax / image_shape[0]]
 
 
 def dicomToArray(dicom_path, voi_lut=True, fix_monochrome=True):
-
     """
     converts dicom file to numpy array
 
     parameters
     ----------
-    dicom_path : str
-        path to dicom file
-        format: 'dicom_dir/filename.dcm'
+        dicom_path : str
+            path to dicom file
+            format: 'dicom_dir/filename.dcm'
 
-    voi_lut: bool
-        used to transform DICOM data to more simpler data
+        voi_lut: bool
+            used to transform DICOM data to more simpler data
 
-    fix_monochrome: bool
-        used to fix X-ray that looks inverted
+        fix_monochrome: bool
+            used to fix X-ray that looks inverted
 
     returns
     -------
-    image_numpy : =/=
-        dicom numpy array
+        image_numpy : =/=
+            dicom numpy array
     """
 
     dcm_file = pydicom.read_file(dicom_path)
@@ -207,27 +200,26 @@ def dicomToArray(dicom_path, voi_lut=True, fix_monochrome=True):
 
 
 def ratioResize(image, boxes):
-
     """
-    cropps image to size where height = width and 
+    cropps image to size where height = width and
     changes values (location) of pixels in bounding boxes accordingly
 
     parameters
     ----------
-    image : ndarray
-        numpy array that represents an image
+        image : ndarray
+            numpy array that represents an image
 
-    boxes : 
-        boxes:  ndarray
-        numpy array that can contain multiple numpy arrays, which represent bounding boxes
-        each box should be in the following format: [xmin, ymin, xmax, ymax, 'class_id']
+        boxes :
+            boxes:  ndarray
+            numpy array that can contain multiple numpy arrays, which represent bounding boxes
+            each box should be in the following format: [xmin, ymin, xmax, ymax, 'class_id']
 
     returns
     -------
-    image : =/=
-        cropped image
-    boxes : =/=
-        bounding boxes with changed pixel locations
+        image : =/=
+            cropped image
+        boxes : =/=
+            bounding boxes with changed pixel locations
     """
 
     height = image.shape[0]
@@ -285,31 +277,30 @@ def ratioResize(image, boxes):
 
 
 def resizeImageBbox(image, bboxes, height, width, bbox_format):
-    
     """
-    resizes image to shape (height, width) where height = width and 
+    resizes image to shape (height, width) where height = width and
     changes values (location) of pixels in bounding boxes accordingly
 
     parameters
     ----------
-    image : ndarray
-        numpy array that represents an image
+        image : ndarray
+            numpy array that represents an image
 
-    boxes : 
-        boxes:  ndarray
-        numpy array that can contain multiple numpy arrays, which represent bounding boxes
-        each box should be in the following format: [xmin, ymin, xmax, ymax, label]
+        boxes :
+            boxes:  ndarray
+            numpy array that can contain multiple numpy arrays, which represent bounding boxes
+            each box should be in the following format: [xmin, ymin, xmax, ymax, label]
 
-    height : int
-        desired height of an image
+        height : int
+            desired height of an image
 
-    width : int
-        desired width of an image
+        width : int
+            desired width of an image
 
     returns
     -------
-    transformed : =/=
-        dictionary containing {'image': resized image, 'bboxes': boxes of format [xmin, ymin, xmax, ymax, label]}
+        transformed : =/=
+            dictionary containing {'image': resized image, 'bboxes': boxes of format [xmin, ymin, xmax, ymax, label]}
     """
 
     # create resize transform pipeline

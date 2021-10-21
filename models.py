@@ -28,11 +28,11 @@ def userDefinedModel(num_classes, activation):
 
     parameters
     ----------
-    num_classes : XXX
-        XXX
+        num_classes : XXX
+            XXX
 
-    activation : XXX
-        XXX
+        activation : XXX
+            XXX
 
     returns
     -------
