@@ -27,6 +27,5 @@ provides:
 | `optimizers.py`             | Custom optimizers                                                                                     |
 | `permutationFunctions.py`   | Functions for data permutations                                                                       |
 | `prepareTrainDataset.py`    | Functions to prepare datasets (initialization of `tf.data.Dataset` object with optional permutations) |
-| `preprocessData.py`         | Wrapper to preprocess data (such as normalization, rescailing, resizing, etc.)                        |
 | `preprocessingFunctions.py` | Functions for data preprocessing                                                                      |
 | `train.py`                  | Collection of train steps and full complete train cycles                                              |
