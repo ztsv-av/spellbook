@@ -1,4 +1,5 @@
 import random
+
 import numpy as np
 import albumentations as A
 
@@ -9,26 +10,26 @@ def whiteNoise(x, input_shape, noise_level, p):
 
     parameters
     ----------
-    x : ndarray of shape input_shape
-        input melspectogram
-        taken from globalVariables.py
+        x : ndarray of shape input_shape
+            input melspectogram
+            taken from globalVariables.py
 
-    inputShape : tuple
-        shape of melspectogram
-        taken from globalVariables.py
+        inputShape : tuple
+            shape of melspectogram
+            taken from globalVariables.py
 
-    noiseLevel : float
-        noise multiplier. Lower values correspond to lower frequencies, and vice versa
-        taken from globalVariabels.py
+        noiseLevel : float
+            noise multiplier. Lower values correspond to lower frequencies, and vice versa
+            taken from globalVariabels.py
 
-    p : float
-        probability to apply white noise to input melspectogram
-        taken from globalVariables.py
+        p : float
+            probability to apply white noise to input melspectogram
+            taken from globalVariables.py
 
     returns
     -------
-    x : =/=
-        white-noised image
+        x : =/=
+            white-noised image
     """
 
     if random.random() < p:
@@ -45,27 +46,28 @@ def bandpassNoise(x, input_shape, noise_level, p):
 
     parameters
     ----------
-    x : list or ndarray of shape input_shape
-        input melspectogram
-        taken from globalVariables.py
+        x : list or ndarray of shape input_shape
+            input melspectogram
+            taken from globalVariables.py
 
-    input_shape : tuple
-        shape of melspectogram
-        taken from globalVariables.py
+        input_shape : tuple
+            shape of melspectogram
+            taken from globalVariables.py
 
-    noise_level : float
-        noise multiplier. Lower values correspond to lower frequencies, and vice versa
-        taken from globalVariabels.py
+        noise_level : float
+            noise multiplier. Lower values correspond to lower frequencies, and vice versa
+            taken from globalVariabels.py
 
-    p : float
-        probability to apply white noise to input melspectogram
-        taken from globalVariables.py
+        p : float
+            probability to apply white noise to input melspectogram
+            taken from globalVariables.py
 
     returns
     -------
-    x : =/=
-        bandpass-noised image
+        x : =/=
+            bandpass-noised image
     """
+
     if random.random() < p:
         a = random.randint(0, input_shape[0]//2)
         b = random.randint(a + 20, input_shape[0])
@@ -79,6 +81,7 @@ def applyGaussianBlur(image, gauss_blur_limit, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.GaussianBlur
     """
+
     GaussianBlur = A.GaussianBlur(blur_limit=gauss_blur_limit, p=p)
     image = GaussianBlur(image=image)['image']
 
@@ -89,6 +92,7 @@ def applyGlassBlur(image, glass_blur_maxdelta, glass_blur_iterations, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.GlassBlur
     """
+
     GlassBlur = A.GlassBlur(max_delta=glass_blur_maxdelta,
                             iterations=glass_blur_iterations, p=p)
     image = GlassBlur(image=image)['image']
@@ -100,6 +104,7 @@ def applyRandomGamma(image, gamma_limit, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.RandomGamma
     """
+
     RandomGamma = A.RandomGamma(gamma_limit=gamma_limit, p=p)
     image = RandomGamma(image=image)['image']
 
@@ -110,6 +115,7 @@ def applySharpen(image, sharpen_alpha, sharpen_lightness, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.Sharpen
     """
+
     Sharpen = A.Sharpen(alpha=sharpen_alpha, lightness=sharpen_lightness, p=p)
     image = Sharpen(image=image)['image']
 
@@ -120,6 +126,7 @@ def applyDownscaling(image, downscale_min, downscale_max, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.Downscale
     """
+
     Downscale = A.Downscale(scale_min=downscale_min,
                             scale_max=downscale_max, p=p)
     image = Downscale(image=image)['image']
@@ -131,28 +138,33 @@ def applyEmboss(image, emboss_strength, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.Emboss
     """
+
     Emboss = A.Emboss(strength=emboss_strength, p=p)
     image = Emboss(image=image)['image']
 
     return image
 
-# GridDistortion is recommended to use with another permutation technique
-
 
 def applyGridDistortion(image, p):
+    """
+    read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.GridDistortion
+
+    grid distortion is recommended to be used with another permutation technique
+    """
 
     GridDistortion = A.GridDistortion(p=p)
     image = GridDistortion(image=image)['image']
 
     return image
 
-# OpticalDistortion is recommended to use with another permutation technique
-
 
 def applyOpticalDistortion(image, distort_limit, shift_limit, p):
     """
-    read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.GridDistortion
+    read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.OpticalDistortion
+
+    optical distortion is recommended to be used with another permutation technique
     """
+
     OpticalDistortion = A.OpticalDistortion(
         distort_limit=distort_limit, shift_limit=shift_limit, p=p)
     image = OpticalDistortion(image=image)['image']
@@ -164,6 +176,7 @@ def applyInvertImage(image, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/transforms/#albumentations.augmentations.transforms.InvertImg
     """
+
     InvertImage = A.InvertImg(p=p)
     image = InvertImage(image=image)['image']
 
@@ -174,6 +187,7 @@ def applyRotateImage(image, limit, p):
     """
     read from source https://albumentations.ai/docs/api_reference/augmentations/geometric/rotate/#albumentations.augmentations.geometric.rotate.Rotate
     """
+
     Rotate = A.Rotate(limit=limit, p=p)
     image = Rotate(image=image)['image']
 
@@ -186,17 +200,18 @@ def classification_permutations(image, permutations):
 
     parameters
     ----------
-    image : np.array
-        input image
+        image : np.array
+            input image
 
-    permutations : list
-        list of function permutations
+        permutations : list
+            list of function permutations
 
     returns
     -------
-    image : np.array
-        permutated image
+        image : np.array
+            permutated image
     """
+
     transformations = A.Compose([permutation for permutation in permutations])
     transformed = transformations(image=image)
     image = transformed['image']
@@ -210,25 +225,25 @@ def detection_permutations(image, bboxes, bbox_format, permutations):
 
     parameters
     ----------
-    image : np.array
-        input image
+        image : np.array
+            input image
 
-    bboxes :
-        #TODO: add description
+        bboxes : XXX
+            XXX
 
-    bbox_format : 
-        #TODO: add description
+        bbox_format : XXX
+            XXX
 
-    permutations : list
-        list of function permutations
+        permutations : list
+            list of function permutations
 
     returns
     -------
-    image : np.array
-        permutated image
+        image : np.array
+            permutated image
 
-    bboxes : 
-        #TODO: add description
+        bboxes : XXX
+            XXX
     """
 
     # add class label
