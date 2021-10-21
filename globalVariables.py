@@ -102,6 +102,7 @@ SAVE_TRAINING_CSVS_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
 
 # optimizers
 LEARNING_RATE = 0.01
+LR_DECAY_STEPS = 100
 LR_DECAY_RATE = 0.95
 
 # losses

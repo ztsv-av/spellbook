@@ -1,6 +1,8 @@
 from train import detectionTrain
-from globalVariables import (BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION, TRAIN_FILEPATHS_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT,
-                             LABEL_ID_OFFSET, LEARNING_RATE, LR_DECAY_RATE, MODEL_NAME_DETECTION, PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH, SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
+from globalVariables import (BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION,
+                            TRAIN_FILEPATHS_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET,
+                            PERMUTATIONS_DETECTION, LEARNING_RATE, LR_DECAY_STEPS, LR_DECAY_RATE, MODEL_NAME_DETECTION,
+                            CONFIG_PATH, CHECKPOINT_PATH, SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
 
 import tensorflow as tf
 from object_detection.utils import config_util
@@ -56,9 +58,8 @@ to_fine_tune = tmp_list
 
 def detection():
 
-    lr_decay_steps = 100
     learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=LEARNING_RATE, decay_steps=lr_decay_steps, decay_rate=LR_DECAY_RATE)
+        initial_learning_rate=LEARNING_RATE, decay_steps=LR_DECAY_STEPS, decay_rate=LR_DECAY_RATE)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     detectionTrain(

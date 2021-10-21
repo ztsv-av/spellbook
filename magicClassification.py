@@ -1,10 +1,10 @@
 from globalVariables import (
     BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILEPATHS, VAL_FILEPATHS,
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING,
-    LEARNING_RATE, LR_DECAY_RATE, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR)
+    LEARNING_RATE, LR_DECAY_STEPS, LR_DECAY_RATE, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR)
 
 from models import MODELS_CLASSIFICATION
-from helpers import buildClassificationImageNetModel, getPathsList, getLabelFromFilename
+from helpers import buildClassificationImageNetModel, getFullPaths, getLabelFromFilename
 from train import classificationCustomTrain
 from preprocessFunctions import minMaxNormalizeNumpy
 
@@ -26,8 +26,8 @@ def сlassificationСustom():
     """
 
     # load data
-    train_paths_list = getPathsList(TRAIN_FILEPATHS)
-    val_paths_list = getPathsList(VAL_FILEPATHS)
+    train_paths_list = getFullPaths(TRAIN_FILEPATHS)
+    val_paths_list = getFullPaths(VAL_FILEPATHS)
 
     train_images_list = []
     train_labels_list = []
@@ -64,9 +64,8 @@ def сlassificationСustom():
 
             val_loss = tf.keras.metrics.Mean(name='val_loss')
 
-            lr_decay_steps = 1000
             learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=LEARNING_RATE, decay_steps=lr_decay_steps, decay_rate=LR_DECAY_RATE)
+                initial_learning_rate=LEARNING_RATE, decay_steps=LR_DECAY_STEPS, decay_rate=LR_DECAY_RATE)
             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
             train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
