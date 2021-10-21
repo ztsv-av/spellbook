@@ -51,7 +51,7 @@ def permuteImageGetLabelBoxes(image, permutations, normalization, bboxes, bbox_f
     return (image, bboxes) if is_detection else image
 
 
-def prepareClassificationDataset(train_data, val_data, batch_size, buffer_size, strategy, permutations, normalization):
+def prepareClassificationDataset(batch_size, train_data, val_data, permutations, normalization, buffer_size, strategy):
     """
     XXX
 
