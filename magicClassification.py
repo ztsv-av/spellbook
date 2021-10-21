@@ -1,8 +1,3 @@
-import tensorflow as tf
-import tensorflow.keras.backend as K
-
-import numpy as np
-
 from globalVariables import (
     BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILEPATHS, VAL_FILEPATHS,
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING,
@@ -13,6 +8,9 @@ from helpers import buildClassificationImageNetModel, getPathsList, getLabelFrom
 from train import classificationCustomTrain
 from preprocessFunctions import minMaxNormalizeNumpy
 
+import numpy as np
+import tensorflow as tf
+import tensorflow.keras.backend as K
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
@@ -22,52 +20,12 @@ strategy = tf.distribute.MirroredStrategy(
     devices=["GPU:0", "GPU:1"], cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())
 
 
-# def classification():
-
-#     for model_name, model_imagenet in MODELS_CLASSIFICATION.items():
-
-#         with strategy.scope():
-
-#             # create model, loss, optimizer and metrics instances here
-#             # reset model, optimizer (AND learning rate), loss and metrics for each iteration
-
-#             classification_model = buildClassificationImageNetModel(
-#                 model_imagenet, MODEL_POOLING, INPUT_SHAPE, NUM_CLASSES, OUTPUT_ACTIVATION)
-
-#             loss = tf.keras.losses.SparseCategoricalCrossentropy()
-#             learning_rate = LEARNING_RATE
-#             optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-#             accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
-#             metrics = [accuracy]
-
-#         classification_model.compile(optimizer=optimizer,
-#                                         loss=loss,
-#                                         metrics=metrics)
-
-#         # rename optimizer weights to train multiple models
-#         with K.name_scope(classification_model.optimizer.__class__.__name__):
-#             for i, var in enumerate(classification_model.optimizer.weights):
-#                 name = 'variable{}'.format(i)
-#                 classification_model.optimizer.weights[i] = tf.Variable(
-#                     var, name=name)
-
-#         preprocessing_dict = {'normalization': minMaxNormalizeNumpy, 'to_color': True, 'resize': True, 'permutations': PERMUTATIONS_CLASSIFICATION}
-#         classificationTrain(model_name, classification_model, preprocessing_dict, strategy)
-
-#         del classification_model
-#         del loss
-#         del learning_rate
-#         del optimizer
-#         del accuracy
-#         del metrics
-
-#         K.clear_session()
-
-
 def сlassificationСustom():
+    """
+    XXX
+    """
 
     # load data
-
     train_paths_list = getPathsList(TRAIN_FILEPATHS)
     val_paths_list = getPathsList(VAL_FILEPATHS)
 
@@ -91,7 +49,7 @@ def сlassificationСustom():
         with strategy.scope():
 
             # create model, loss, optimizer and metrics instances here
-            # reset model, optimizer (AND learning rate), loss and metrics for each iteration
+            # reset model, optimizer (AND learning rate), loss and metrics after each iteration
 
             classification_model = buildClassificationImageNetModel(
                 model_imagenet, INPUT_SHAPE, MODEL_POOLING, NUM_CLASSES, OUTPUT_ACTIVATION)
@@ -124,13 +82,21 @@ def сlassificationСustom():
                         var, name=name)
 
         classificationCustomTrain(
-            batch_size, NUM_EPOCHS, (train_images_list,
-                                     train_labels_list), (val_images_list, val_labels_list),
-            PERMUTATIONS_CLASSIFICATION, minMaxNormalizeNumpy, SHUFFLE_BUFFER_SIZE, classification_model, loss_object,
-            val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, SAVE_TRAINING_CSVS_DIR, SAVE_MODELS_DIR,
+            batch_size, NUM_EPOCHS,
+            (train_images_list, train_labels_list), (val_images_list, val_labels_list),
+            PERMUTATIONS_CLASSIFICATION, minMaxNormalizeNumpy,
+            SHUFFLE_BUFFER_SIZE, classification_model,
+            loss_object, val_loss, compute_total_loss,
+            optimizer,
+            train_accuracy, val_accuracy,
+            SAVE_TRAINING_CSVS_DIR, SAVE_MODELS_DIR,
             model_name, strategy)
 
-        print('Finished Training ' + model_name + '!')
+        print('________________________________________')
+        print('\n')
+        print('TRAINING FINISHED FOR ' + model_name + '!')
+        print('\n')
+        print('________________________________________')
 
         del batch_size_per_replica
         del batch_size

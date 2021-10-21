@@ -1,34 +1,33 @@
+import os
+import gzip
+import png
+import ast
+import shutil
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+from PIL import Image
+from sklearn.model_selection import train_test_split
+
 import tensorflow as tf
 from object_detection.utils import config_util
 from object_detection.builders import model_builder
 from object_detection.utils import visualization_utils as viz_utils
 
-import numpy as np
-import matplotlib.pyplot as plt
-import png
-import os
-import shutil
-import gzip
-import ast
-from PIL import Image
-from matplotlib.patches import Rectangle
-from sklearn.model_selection import train_test_split
-
 
 def loadNumpy(path):
-
     """
-    load numpy file
+    loads numpy file from specified directory
 
     parameters
     ----------
-    path : string
-        full path to a file
-    
+        path : string
+            full path to file
+
     returns
     -------
-    numpy_file : ndarray
-        numpy array
+        numpy_file : ndarray
+            numpy array
     """
 
     numpy_file = np.load(path)
@@ -36,116 +35,117 @@ def loadNumpy(path):
     return numpy_file
 
 
-def loadJPGToNumpy(filename, dir, image_type):
-
+def loadImage(path, image_type):
     """
-    load an image from file into a numpy array.
+    loads input image as numpy array
 
     parameters
     ----------
-    path: string
-        a file path
+        path: string
+            full path to input image
+
+        image_type : XXX
+            XXX
 
     returns
     -------
-    image :
-        uint8 numpy array with shape (img_height, img_width, 3)
+        image_converted : ndarray
+            numpy array representing image of shape (height, width, 3)
     """
-    
-    image = Image.open(dir + filename)
-    image = np.asarray(image).astype(image_type)
-    
-    return image
+
+    image = Image.open(path)
+    image_converted = np.asarray(image).astype(image_type)
+
+    return image_converted
 
 
-def save2NP(x, output_path):
+def saveNumpyArray(x, dir):
     """
-    saves numpy array to specified path
+    saves numpy array to specified directory
 
     parameters
     ----------
-    x : ndarray
-        any numpy array
+        x : ndarray
+            numpy array
 
-    output_path : str
-        path where to save numpy array
+        dir : str
+            full path where to save x
     """
 
     try:
-        np.save(output_path, x)
+        np.save(dir, x)
 
     except AttributeError:
-        raise TypeError("Convert input image 'x' to numpy array.")
+        raise TypeError("input image is not numpy array")
 
 
-def save2PNG(x, output_path):
+def convertNumpy2png(x, dir):
     """
-    saves numpy array as PNG image to specified path
+    saves numpy array as .png image to specified directory
 
     parameters
     ----------
-    x : ndarray
-        numpy array that represents an image, such as spectogram or dicom
+        x : ndarray
+            numpy array representing image (such as spectogram or dicom)
 
-    output_path : str
-        path where to save PNG image
+        dir : str
+            full path where to save x as .png image
     """
 
     try:
         shape = x.shape
 
-        # Convert to float to avoid overflow or underflow losses.
+        # convert to float to avoid overflow or underflow losses
         image_2d = x.astype(float)
 
-        # Rescaling grey scale between 0-255
+        # rescale grey scale between 0-255
         image_2d_scaled = (np.maximum(image_2d, 0) / image_2d.max()) * 255.0
 
-        # Convert to uint
+        # convert to uint
         image_2d_scaled = np.uint8(image_2d_scaled)
 
-        # Write the PNG file
-        with open(output_path, 'wb') as png_file:
+        # write the .png file
+        with open(dir, 'wb') as png_file:
             w = png.Writer(shape[1], shape[0], greyscale=True)
             w.write(png_file, image_2d_scaled)
 
     except AttributeError:
-        raise TypeError("Convert input image 'x' to numpy array.")
+        raise TypeError("input image is not numpy array")
 
 
 def evaluateString(x):
-
     """
-    evaluates an expression node or a string containing a Python literal or container display. 
-    The string or node provided may only consist of the following Python literal structures: 
-    strings, bytes, numbers, tuples, lists, dicts, booleans, and None.
+    evaluates expression node or string containing Python literal or container display
+    provided string or node must consist of strings, bytes, numbers, tuples, lists, dictionaries, booleans and None
 
     parameters
     ----------
-    x : string
-        string which needs to be evaluated ('unstringified')
-    
+        x : string
+            string which needs to be evaluated ('unstringified')
+
     returns
     -------
-    x : input structure
-        evaluated input string
+        x : string
+            evaluated input string
     """
 
     x = ast.literal_eval(x)
 
     return x
 
-def visualizeImage_Box(image, boxes):
+
+def visualizeImageBox(image, boxes):
     """
-    plots an image and (optional) bounding box
+    plots input image and bounding box (optional)
 
     parameters
     ----------
-    image : ndarray
-        numpy array that represents an image
+        image : ndarray
+            numpy array representing image
 
-    boxes:  ndarray
-        numpy array that can contain multiple numpy arrays, which represent bounding boxes
-        each box should be in the following format: [xmin, ymin, xmax, ymax, ...]
+        boxes : list (list of lists)
+            list of coordinates of bounding box (or list of multiple bounding boxes)
+            each box must follow format [ymin, xmin, ymax, xmax, ...]
     """
 
     fig, ax = plt.subplots()
@@ -153,133 +153,161 @@ def visualizeImage_Box(image, boxes):
 
     if boxes is not None:
         for box in boxes[:3]:
-            xmin, ymin, xmax, ymax = box[1], box[0], box[3], box[2]
+            ymin, xmin, ymax, xmax = box[0], box[1], box[2], box[3]
             ax.add_patch(Rectangle((xmin, ymin), xmax - xmin,
                                    ymax - ymin, fill=False, edgecolor='red'))
-        print(boxes)
 
-    print(image.shape)
-    # matplotlib inline in notebook
-    # to save figure: plt.savefig("mygraph.png")
     plt.show()
 
 
-def visualizeDetections(image_np, boxes, classes, scores, category_index, score_thresh):
-
+def visualizeDetections(image, boxes, classes, scores, category_index, score_threshold):
     """
-    Wrapper function to visualize detections.
+    wrapper to visualize detections
 
     parameters
     ----------
-    image_np: ndarray uint8 
-        numpy array with shape (img_height, img_width, 3)
+        image_np: ndarray
+            numpy array of shape (height, width, 3)
 
-    boxes: ndarray
-        a numpy array of shape [N, 4]
+        boxes: list
+            list of shape [N, 4] where N is number of boxes
 
-    classes: ndarray
-        a numpy array of shape [N]. Note that class indices are 1-based,
-        and match the keys in the label map.
+        classes: ndarray
+            numpy array of shape [M] where M is number of classes
+            note that class indices are 1-based and match keys in label map
 
-    scores: ndarray
-        a numpy array of shape [N] or None.
-        If scores=None, then this function assumes that the boxes to be plotted are groundtruth
-        boxes and plot all boxes as black with no classes or scores.
+        scores: ndarray
+            numpy array of shape [K] where K is number of scores
+            if scores = None then boxes are assumed groundtruth and plotted with black color without class and score labels
 
-    category_index: dict
-        a dict containing category dictionaries 
-        (each holding category index `id` and category name `name`) keyed by category indices.
+        category_index: dict
+            dictionary containing category dictionaries
+            (each holding category index `id` and category name `name`) keyed with category indices XXX
+
+        score_threshold : float
+            #TODO
     """
-    
-    image_annotations = image_np.copy()
-    
+
+    image_annotations = image.copy()
+
     viz_utils.visualize_boxes_and_labels_on_image_array(
-        image_annotations, boxes, classes, scores, category_index, 
-        use_normalized_coordinates=True, min_score_thresh=score_thresh)
-    
+        image_annotations, boxes, classes, scores, category_index,
+        use_normalized_coordinates=True, min_score_thresh=score_threshold)
+
     plt.imshow(image_annotations)
 
 
-def getPathsList(dir):
+def getFullPaths(dir):
     '''
-    returns a list of paths to the image files
+    returns list of full paths to files in given directory
 
     parameters
     ----------
-    filename: string
-        name of the image
+        dir: string
+            directory with files
 
-    returns: images_paths =/=
-        list of paths to each image in directory
+    returns
+    -------
+        paths : list
+            list of paths for each image in dir
     '''
 
-    images_files_list = os.listdir(dir)
-    images_paths = [os.path.join(dir, fname) for fname in images_files_list]
+    filenames = os.listdir(dir)
+    paths = [os.path.join(dir, fname) for fname in filenames]
 
-    return images_paths
+    return paths
 
 
 def getLabelFromFilename(filename):
+    """
+    XXX
+
+    parameters
+    ----------
+        filename : XXX
+            XXX
+
+    returns
+    -------
+        label : XXX
+            XXX
+    """
 
     label = filename.split('_')[-1].replace('.npy', '')
     label = label.split('-')
-
     label = list(map(int, label))
 
     return label
 
 
-def splitTrainValidation(data_folder, train_data_folder, validation_data_folder, counter):
+def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=0.2):
+    """
+    XXX
 
-    files_to_split = os.listdir(data_folder)
+    parameters
+    ----------
+        dir : XXX
+            XXX
 
-    files_train, files_val = train_test_split(files_to_split, test_size=0.2)
+        train_data_folder : XXX
+            XXX
+
+        val_data_folder : XXX
+            XXX
+
+        val_data_size : float, default is 0.2
+            how much percent of data to allocate for validation
+    """
+
+    files_to_split = os.listdir(dir)
+    files_train, files_val = train_test_split(
+        files_to_split, test_size=val_data_size)
+
+    train_counter = 0
+    val_counter = 0
 
     for file in files_train:
-        shutil.copy(data_folder + file, train_data_folder)
-        counter += 1
-        print('FINISHED' + str(counter) + '/' + str(len(files_to_split)))
+        shutil.copy(dir + file, train_data_folder)
+        train_counter += 1
+        print('FINISHED' + str(train_counter) + '/' + str(len(files_to_split)))
+
     for file in files_val:
-        shutil.copy(data_folder + file, validation_data_folder)
-        counter += 1
-        print('FINISHED' + str(counter) + '/' + str(len(files_to_split)))
+        shutil.copy(dir + file, val_data_folder)
+        val_counter += 1
+        print('FINISHED' + str(val_counter) + '/' + str(len(files_to_split)))
 
 
 def loadFashionMNIST(dir, reshape_size):
-
     """
-    Loads the Fashion-MNIST gzip dataset.
-    Modified by Henry Huang in 2020/12/24.
-    We assume that the input_path should in a correct path address format.
-    We also assume that potential users put all the four files in the path.
+    loads the Fashion-MNIST gzip dataset
 
     parameters
     -----------
-    dir: string
-        path to directory that contains 4 files:
-            'train_labels.gz', 'train_images.gz',
-            'test_labels.gz', 'test_images.gz'
+        dir: string
+            path to directory that contains 4 files:
+                train_labels.gz, train_images.gz,
+                test_labels.gz, test_images.gz
 
     returns
     -------
-    tuple:
-        x_train: ndarray
-            contains 28x28 training images
-        y_train: ndarray
-            contains training class labels as integers
-    tuple:
-        x_test: ndarray
-            contains 28x28 test images
-        y_test: ndarray
-            contains test class labels as integers
+        (x_train, y_train) : tuple
+            x_train: ndarray
+                contains 28x28 training images
+            y_train: ndarray
+                contains training class labels as integers
+        (x_test, y_test) : tuple
+            x_test: ndarray
+                contains 28x28 test images
+            y_test: ndarray
+                contains test class labels as integers
     """
 
     files = [
         'train_labels.gz', 'train_images.gz',
-        'test_labels.gz', 'test_images.gz'
-    ]
+        'test_labels.gz', 'test_images.gz']
 
     paths = []
+
     for filename in files:
         paths.append(os.path.join(dir, filename))
 
@@ -301,35 +329,89 @@ def loadFashionMNIST(dir, reshape_size):
 
 
 def buildClassificationPretrainedModel(model_path, custom_objects, num_classes, activation):
+    """
+    XXX
 
-    # custom_objects example: custom_objects={'f1': f1, categorical_focal_loss_fixed': categorical_focal_loss(alpha=[[.25, .25]], gamma=2)}
+    parameters
+    ----------
+        model_path : XXX
+            XXX
+
+        custom_objects : XXX
+            XXX
+
+            example:
+            custom_objects = {
+                'f1': f1,
+                'categorical_focal_loss_fixed': categorical_focal_loss(alpha=[[.25, .25]], gamma=2)}
+
+        num_classes : XXX
+            XXX
+
+        activation : XXX
+            XXX
+
+    returns
+    -------
+        model : XXX
+            XXX
+    """
+
     loaded_model = tf.keras.models.load_model(model_path, custom_objects)
 
     model = tf.keras.layers.Sequential()
-    # go through all layers until last layer
+    # add all layers except last layer
     for layer in loaded_model.layers[:-1]:
         model.add(layer)
 
-    # classifier
+    # add last classification layer
     model.add(tf.keras.layers.Dense(num_classes, activation=activation))
 
     return model
 
 
 def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, num_classes, activation):
+    """
+    builds classification ImageNet model given image input shape, number of classes, pooling and activation layers
+
+    parameters
+    ----------
+        model_imagenet : XXX
+            XXX
+
+        input_shape : XXX
+            XXX
+
+        pooling : XXX
+            XXX
+
+        num_classes : int
+            number of classes in dataset
+
+        activation : XXX
+            XXX
+
+    returns
+    -------
+        model : XXX
+            XXX
+    """
 
     loaded_model = model_imagenet(
         include_top=False, weights='imagenet', pooling=pooling, input_shape=input_shape)
     model = tf.keras.models.Sequential()
     model.add(loaded_model)
 
-    # classifier
+    # add last classification layer
     model.add(tf.keras.layers.Dense(num_classes, activation=activation))
 
     return model
 
 
 def buildDetectionModel(num_classes, checkpoint_path, config_path, dummy_shape):
+    """
+    #TODO : napiwi tyt description, pomesti kommenti v description kakie nado -- ostal'nie ydali
+    """
 
     # Download the checkpoint and put it into models/research/object_detection/test_data/
     # wget http://download.tensorflow.org/models/object_detection/tf2/20200711/efficientdet_d4_coco17_tpu-32.tar.gz -O ./efficientdet_d4_1024x1024.tar.gz

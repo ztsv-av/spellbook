@@ -21,16 +21,16 @@ def function(array, a=5.0,...):
 
     parameters
     ----------
-    a : float, default is 5.0
-        input constant
+        a : float, default is 5.0
+            input constant
 
-    array : ndarray
-        input numpy array
+        array : ndarray
+            input numpy array
 
     returns
     -------
-    multiplied_array : ndarray
-        product of numpy array and constant
+        multiplied_array : ndarray
+            product of numpy array and constant
     """
 
     multiplied_array = array * a

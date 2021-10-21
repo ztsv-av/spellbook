@@ -1,81 +1,41 @@
-# IMPORTS
-from numpy.lib.npyio import save
-import tensorflow as tf
-
-import os
-import pandas as pd
-from sklearn.utils import shuffle
-
 from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
 from callbacks import saveTrainInfo, saveTrainWeights, saveTrainInfoDetection, saveCheckpointDetection
 
-# def classificationTrain(
-#     model_name, model, batch_sizes, num_epochs, preprocessing_dict, strategy, lr_patience, lr_factor, 
-#     early_stopping_patience, save_models_dir, save_csvs_dir):
-#     """
-#     Trains models in sequence stored in 'MODELS_CLASSIFICATION'.
-#     For correct training, create optimizer, loss and metrics variables each iteration (in a for loop). 
-#     Train and validation data files are shuffled before each model starts training. 
-#     For each batch 'GeneratorInstance' is used. Callbacks save the best-fit weights in loss terms (see callbacks.py for more functionality).
-#     Deletes all variables and clears session each time one model fully trained.
-#     """
+import os
+import tensorflow as tf
+from sklearn.utils import shuffle
 
-#     batch_size_per_replica = batch_sizes[model_name]
-#     batch_size = batch_size_per_replica * strategy.num_replicas_in_sync
-
-#     train_dataset, val_dataset, train_len, val_len = prepareClassificationDataset(
-#         batch_size, preprocessing_dict)
-
-#     steps_per_epoch_train = int(train_len // batch_size)
-#     steps_per_epoch_val = int(val_len // batch_size)
-
-#     # reset callbacks for each model
-#     callbacks = [tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', patience=lr_patience, verbose=1, factor=lr_factor),
-#                     tf.keras.callbacks.EarlyStopping(
-#                         monitor='val_loss', verbose=1, patience=early_stopping_patience),
-#                     tf.keras.callbacks.ModelCheckpoint(filepath=save_models_dir + model_name + '/' + model_name +
-#                                                     '_epoch-{epoch:02d}.h5', monitor='val_loss', save_best_only=False, verbose=1),
-#                     tf.keras.callbacks.CSVLogger(save_csvs_dir + model_name + '_history.csv')]
-
-#     model.fit(x=train_dataset,
-#         steps_per_epoch=steps_per_epoch_train,
-#         validation_data=val_dataset,
-#         validation_steps=steps_per_epoch_val,
-#         callbacks=callbacks,
-#         epochs=num_epochs,
-#         verbose=1)
-
-#     del batch_size_per_replica
-#     del batch_size
-#     del steps_per_epoch_train
-#     del steps_per_epoch_val
-#     del train_dataset
-#     del val_dataset
-#     del train_len
-#     del val_len
-#     del callbacks
-
-
-def classificationDistributedTrainStepWrapper():
-
-    @tf.function
-    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
-
-        per_replica_losses = strategy.run(classificationTrainStep, args=(
-            inputs, model, compute_total_loss, optimizer, train_accuracy))
-        
-        reduced_loss = strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
-        
-        # test if per replica training works
-        # tf.print(per_replica_losses.values)
-        # tf.print(reduced_loss)
-
-        return reduced_loss
-    
-    return classificationDistributedTrainStep
+# CLASSIFICATION
 
 
 def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
+    """
+    computes total loss after one train step
+
+    parameters
+    ----------
+
+        inputs : XXX
+            XXX
+
+        model : XXX
+            XXX
+
+        compute_total_loss : XXX
+            XXX
+
+        optimizer : XXX
+            XXX
+
+        train_accuracy : XXX
+            XXX
+
+    returns
+    -------
+
+        loss : XXX
+            total loss after train step
+    """
 
     images, labels = inputs
 
@@ -92,18 +52,27 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
     return loss
 
 
-def classificationDistributedValStepWrapper():
-
-    @tf.function
-    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
-
-        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
-    
-    return classificationDistributedValStep
-   
-
-
 def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
+    """
+    updates loss and accuracy after validation step for classification
+
+    parameters
+    ----------
+        inputs : XXX
+            XXX
+
+        model : XXX
+            XXX
+
+        loss_object : XXX
+            XXX
+
+        val_loss : XXX
+            XXX
+
+        val_accuracy : XXX
+            XXX
+    """
 
     images, labels = inputs
 
@@ -112,13 +81,180 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
 
     val_loss.update_state(val_batch_loss)
     val_accuracy.update_state(labels, predictions)
- 
+
+
+def classificationDistributedTrainStepWrapper():
+    """
+    wrapper for distributed train step for classification
+
+    returns
+    -------
+
+        classificationDistributedTrainStep : function
+            function that computes reduced loss after distributed train step
+    """
+
+    @tf.function
+    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
+        """
+        computes reduced loss after one distributed train step
+
+        parameters
+        ----------
+
+            inputs : XXX
+                XXX
+
+            model : XXX
+                XXX
+
+            compute_total_loss : XXX
+                XXX
+
+            optimizer : XXX
+                XXX
+
+            train_accuracy : XXX
+                XXX
+
+            strategy : XXX
+                XXX
+
+        returns
+        -------
+
+            reduced_loss : XXX
+                XXX
+        """
+
+        per_replica_losses = strategy.run(classificationTrainStep, args=(
+            inputs, model, compute_total_loss, optimizer, train_accuracy))
+
+        reduced_loss = strategy.reduce(
+            tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
+
+        # test if per replica training works
+        # tf.print(per_replica_losses.values)
+        # tf.print(reduced_loss)
+
+        return reduced_loss
+
+    return classificationDistributedTrainStep
+
+
+def classificationDistributedValStepWrapper():
+    """
+    XXX
+
+    returns
+    -------
+
+        classificationDistributedValStep : XXX
+            XXX
+    """
+
+    @tf.function
+    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
+        """
+        XXX
+
+        parameters
+        ----------
+
+            inputs : XXX
+                XXX
+
+            model : XXX
+                XXX
+
+            loss_object : XXX
+                XXX
+
+            val_loss : XXX
+                XXX
+
+            val_accuracy : XXX
+                XXX
+
+            strategy : XXX
+                XXX
+
+        returns
+        -------
+
+            XXX : XXX
+                XXX
+        """
+
+        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
+
+    return classificationDistributedValStep
+
 
 def classificationCustomTrain(
-    batch_size, num_epochs, train_data, val_data, permutations, normalization, buffer_size, model, loss_object, 
-    val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_csvs_dir, save_weights_dir, 
-    model_name, strategy):
+        batch_size, num_epochs, train_data, val_data, permutations, normalization, buffer_size, model, loss_object,
+        val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_csvs_dir, save_weights_dir,
+        model_name, strategy):
+    """
+    XXX
 
+    parameters
+    ----------
+
+        batch_size : XXX
+            XXX
+
+        num_epochs : XXX
+            XXX
+
+        train_data : XXX
+            XXX
+
+        val_data : XXX
+            XXX
+
+        permutations : XXX
+            XXX
+
+        normalization : XXX
+            XXX
+
+        buffer_size : XXX
+            XXX
+
+        model : XXX
+            XXX
+
+        loss_object : XXX
+            XXX
+
+        val_loss : XXX
+            XXX
+
+        compute_total_loss : XXX
+            XXX
+
+        optimizer : XXX
+            XXX
+
+        train_accuracy : XXX
+            XXX
+
+        val_accuracy : XXX
+            XXX
+
+        save_csvs_dir : XXX
+            XXX
+
+        save_weights_dir : XXX
+            XXX
+
+        model_name : XXX
+            XXX
+
+        strategy : XXX
+            XXX
+    """
     wrapperTrain = classificationDistributedTrainStepWrapper()
     wrapperVal = classificationDistributedValStepWrapper()
 
@@ -146,45 +282,49 @@ def classificationCustomTrain(
         template = (
             "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
         print(template.format(
-            epoch + 1, train_loss, train_accuracy.result() * 100, 
+            epoch + 1, train_loss, train_accuracy.result() * 100,
             val_loss.result(), val_accuracy.result() * 100, flush=True))
 
         # callbacks
-        saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_csvs_dir)
+        saveTrainInfo(model_name, epoch, train_loss, train_accuracy,
+                      val_loss, val_accuracy, optimizer, save_csvs_dir)
         saveTrainWeights(model, model_name, epoch, save_weights_dir)
 
         val_loss.reset_states()
         train_accuracy.reset_states()
         val_accuracy.reset_states()
 
+# DETECTION
+
 
 def detectionTrainStep(
-        image_list, groundtruth_boxes_list, groundtruth_classes_list, 
+        image_list, groundtruth_boxes_list, groundtruth_classes_list,
         model, vars_to_fine_tune, optimizer):
     """
-    A single training iteration.
+    single training iteration
 
     parameters
     ----------
-    image_list: array
-        array of [1, height, width, 3] Tensor of type tf.float32.
-        images reshaped to model's preprocess function
-    groundtruth_boxes_list: array 
-        array of Tensors of shape [num_boxes, 4] with type
-        tf.float32 representing groundtruth boxes for each image in the batch.
-    groundtruth_classes_list: array 
-        list of Tensors of shape [num_boxes, num_classes]
-        with type tf.float32 representing groundtruth boxes for each image in
-        the batch.
+        image_list: array
+            array of [1, height, width, 3] Tensor of type tf.float32
+            images reshaped to model's preprocess function
+
+        groundtruth_boxes_list: array
+            array of Tensors of shape [num_boxes, 4] with type tf.float32 representing groundtruth boxes for each image in batch
+
+        groundtruth_classes_list: array
+            list of Tensors of shape [num_boxes, num_classes] with type tf.float32 representing groundtruth boxes for each image in batch
 
     returns
     -------
-    total_loss: scalar tensor
-        represents the total loss for the input batch.
-    loc_loss: scalar tensor
-        represents the localization loss for the input batch.
-    class_loss: scalar tensor
-        represents the classification loss for the input batch
+        total_loss: scalar tensor
+            represents total loss for input batch
+
+        loc_loss: scalar tensor
+            represents localization loss for input batch
+
+        class_loss: scalar tensor
+            represents classification loss for input batch
     """
 
     with tf.GradientTape() as tape:
@@ -198,7 +338,7 @@ def detectionTrainStep(
             preprocessed_images.append(preprocessed_img)
             true_shape_list.append(true_shape)
 
-        # Make a prediction
+        # make prediction
         preprocessed_image_tensor = tf.concat(preprocessed_images, axis=0)
         true_shape_tensor = tf.concat(true_shape_list, axis=0)
 
@@ -206,7 +346,7 @@ def detectionTrainStep(
             preprocessed_inputs=preprocessed_image_tensor,
             true_image_shapes=true_shape_tensor)
 
-        # Prodive groundtruth boxes and classes and calculate the total loss (sum of both losses)
+        # provide groundtruth boxes and classes and calculate the total loss (sum of both losses)
         model.provide_groundtruth(
             groundtruth_boxes_list=groundtruth_boxes_list,
             groundtruth_classes_list=groundtruth_classes_list)
@@ -216,10 +356,10 @@ def detectionTrainStep(
         total_loss = loss_dict['Loss/localization_loss'] + \
             loss_dict['Loss/classification_loss']
 
-        # Calculate the gradients
+        # calculate gradients
         gradients = tape.gradient([total_loss], vars_to_fine_tune)
 
-        # Optimize the model's selected variables
+        # optimize model's selected variables
         optimizer.apply_gradients(zip(gradients, vars_to_fine_tune))
 
     loc_loss = loss_dict['Loss/localization_loss']
@@ -229,12 +369,64 @@ def detectionTrainStep(
 
 
 def detectionTrain(
-    batch_size, num_epochs, num_classes, label_id_offset,
-    train_filepaths, bbox_format, meta, permutations, 
-    normalization, model, model_name, optimizer, 
-    to_fine_tune, checkpoint_save_dir, save_csvs_dir):
+        batch_size, num_epochs, num_classes, label_id_offset,
+        train_filepaths, bbox_format, meta, permutations,
+        normalization, model, model_name, optimizer,
+        to_fine_tune, checkpoint_save_dir, save_csvs_dir):
+    """
+    XXX
 
-    train_filepaths_list = [train_filepaths + filename for filename in os.listdir(train_filepaths)]
+    parameters
+    ----------
+
+    batch_size : XXX
+        XXX
+
+    num_epochs : XXX
+        XXX
+
+    num_classes : XXX
+        XXX
+
+    label_id_offset : XXX
+        XXX
+
+    train_filepaths : XXX
+        XXX
+
+    bbox_format : XXX
+        XXX
+
+    meta : XXX
+        XXX
+
+    permutations : XXX
+        XXX
+
+    normalization : XXX
+        XXX
+
+    model : XXX
+        XXX
+
+    model_name : XXX
+        XXX
+
+    optimizer : XXX
+        XXX
+
+    to_fine_tune : XXX
+        XXX
+
+    checkpoint_save_dir : XXX
+        XXX
+
+    save_csvs_dir : XXX
+        XXX
+    """
+
+    train_filepaths_list = [train_filepaths +
+                            filename for filename in os.listdir(train_filepaths)]
 
     steps_per_epoch_train = int(len(train_filepaths_list) // batch_size)
 
@@ -248,7 +440,7 @@ def detectionTrain(
                 step * batch_size:(step + 1) * batch_size]
 
             train_images_batched, train_boxes_batched, train_classes_batched = prepareDetectionDataset(
-                train_filepaths_batched, bbox_format, meta, num_classes, label_id_offset, permutations, 
+                train_filepaths_batched, bbox_format, meta, num_classes, label_id_offset, permutations,
                 normalization)
 
             total_loss, loc_loss, class_loss = detectionTrainStep(
@@ -256,10 +448,12 @@ def detectionTrain(
                 model, to_fine_tune, optimizer)
 
             print('STEP ' + str(step) + ' OF ' + str(steps_per_epoch_train) + ', loss=' + str(total_loss.numpy()) +
-                ' | loc_loss=' + str(loc_loss.numpy()) + ' | class_loss=' + str(class_loss.numpy()), flush=True)
+                  ' | loc_loss=' + str(loc_loss.numpy()) + ' | class_loss=' + str(class_loss.numpy()), flush=True)
 
-        saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csvs_dir)
-        saveCheckpointDetection(model_name, epoch, model, loc_loss, optimizer, checkpoint_save_dir)
+        saveTrainInfoDetection(model_name, epoch, loc_loss,
+                               class_loss, total_loss, optimizer, save_csvs_dir)
+        saveCheckpointDetection(model_name, epoch, model,
+                                loc_loss, optimizer, checkpoint_save_dir)
 
         print('EPOCH ' + str(epoch) + ' OF ' + str(num_epochs) +
-            ', loss=' + str(total_loss.numpy()), flush=True)
+              ', loss=' + str(total_loss.numpy()), flush=True)

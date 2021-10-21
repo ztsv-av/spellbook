@@ -1,26 +1,23 @@
+from train import detectionTrain
+from globalVariables import (BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION, TRAIN_FILEPATHS_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT,
+                             LABEL_ID_OFFSET, LEARNING_RATE, LR_DECAY_RATE, MODEL_NAME_DETECTION, PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH, SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
+
 import tensorflow as tf
 from object_detection.utils import config_util
 from object_detection.builders import model_builder
 
-from globalVariables import (
-    BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, DUMMY_SHAPE_DETECTION,
-    TRAIN_FILEPATHS_DETECTION, TRAIN_META_DETECTION, BBOX_FORMAT, LABEL_ID_OFFSET, LEARNING_RATE,
-    LR_DECAY_RATE, MODEL_NAME_DETECTION, PERMUTATIONS_DETECTION, CONFIG_PATH, CHECKPOINT_PATH,
-    SAVE_CHECKPOINT_DIR, SAVE_TRAINING_CSVS_DIR_DETECTION)
 
-from train import detectionTrain
-
-# Load the configuration file into a dictionary
+# Load config into dictionary
 configs = config_util.get_configs_from_pipeline_file(
     CONFIG_PATH, config_override=None)
 
-# Read in the object stored at the key 'model' of the configs dictionary
+# read object stored at key 'model' of config dictionary
 model_config = configs['model']
 
-# Modify the number of classes from its default
+# modify default number of classes
 model_config.ssd.num_classes = NUM_CLASSES_DETECTION
 
-# Freeze batch normalization
+# freeze batch normalization
 model_config.ssd.freeze_batchnorm = True
 
 detection_model = model_builder.build(
@@ -33,24 +30,23 @@ tmp_box_predictor_checkpoint = tf.train.Checkpoint(
 tmp_model_checkpoint = tf.train.Checkpoint(
     _feature_extractor=detection_model._feature_extractor, _box_predictor=tmp_box_predictor_checkpoint)
 
-# Define a checkpoint
+# define checkpoint and restore checkpoint to checkpoint path
 checkpoint = tf.train.Checkpoint(model=tmp_model_checkpoint)
-# Restore the checkpoint to the checkpoint path
 checkpoint.restore(CHECKPOINT_PATH)
 
 dummy = tf.zeros(shape=DUMMY_SHAPE_DETECTION)
 tmp_image, tmp_shapes = detection_model.preprocess(dummy)
 
-# run a prediction with the preprocessed image and shapes
+# run prediction with preprocessed image and shapes
 tmp_prediction_dict = detection_model.predict(tmp_image, tmp_shapes)
 
-# postprocess the predictions into final detections
+# postprocess predictions into final detections
 tmp_detections = detection_model.postprocess(
     tmp_prediction_dict, tmp_shapes)
 
 tf.keras.backend.set_learning_phase(True)
 
-# define a list that contains the layers that you wish to fine tune in the detection model
+# define list that contains layers that to be fine-tuned in detection model
 tmp_list = []
 for v in detection_model.trainable_variables:
     if v.name.startswith('WeightSharedConvolutionalBoxPredictor'):

@@ -1,11 +1,25 @@
-import os
+import numpy as np
 import pandas as pd
 import albumentations as A
-import numpy as np
 
 
 # classification
 NUM_EPOCHS = 20
+NUM_CLASSES = 10
+INPUT_SHAPE = (32, 32, 3)
+OUTPUT_ACTIVATION = None  # 'sigmoid', 'softmax', None
+LABELS = ""
+LABEL_TO_INTEGER = ""
+MODEL_POOLING = 'avg'
+SHUFFLE_BUFFER_SIZE = 4096
+
+TRAIN_FILEPATHS = 'projects/testing/datasets/train/'
+VAL_FILEPATHS = 'projects/testing/datasets/test/'
+TRAINED_MODELS_PATH = ''
+TRAINED_MODELS_FILES = None  # os.listdir()
+SAVE_MODELS_DIR = 'projects/testing/training/weights/'
+SAVE_TRAINING_CSVS_DIR = 'projects/testing/training/csvs/'
+
 BATCH_SIZES = {
     'DenseNet121': 32,
     'DenseNet169': 16,
@@ -23,8 +37,8 @@ BATCH_SIZES = {
     'ResNet50V2': 32,
     'ResNet101': 16,
     'ResNet101V2': 16,
-    'Xception': 8
-}
+    'Xception': 8}
+
 # for 256x256
 BATCH_SIZES_256 = {
     'DenseNet121': 128,
@@ -42,8 +56,8 @@ BATCH_SIZES_256 = {
     'ResNet50V2': 16,
     'ResNet101': 8,
     'ResNet101V2': 8,
-    'Xception': 4
-}
+    'Xception': 4}
+
 # for 512x512 (some over memory)
 BATCH_SIZES_512 = {
     'DenseNet121': 4,
@@ -61,21 +75,7 @@ BATCH_SIZES_512 = {
     'ResNet50V2': 8,
     'ResNet101': 4,
     'ResNet101V2': 4,
-    'Xception': 4
-}
-NUM_CLASSES = 10
-INPUT_SHAPE = (32, 32, 3)
-OUTPUT_ACTIVATION = None  # 'sigmoid', 'softmax', None
-TRAIN_FILEPATHS = 'projects/testing/datasets/train/'
-VAL_FILEPATHS = 'projects/testing/datasets/test/'
-TRAINED_MODELS_PATH = ''
-TRAINED_MODELS_FILES = None  # os.listdir()
-SAVE_MODELS_DIR = 'projects/testing/training/weights/'
-SAVE_TRAINING_CSVS_DIR = 'projects/testing/training/csvs/'
-LABELS = ""
-LABEL_TO_INTEGER = ""
-MODEL_POOLING = 'avg'
-SHUFFLE_BUFFER_SIZE = 4096
+    'Xception': 4}
 
 # object detection
 MODEL_NAME_DETECTION = 'effdet0'
@@ -87,6 +87,7 @@ NUM_CLASSES_DETECTION = 1
 LABEL_ID_OFFSET = 1
 IMAGE_TYPE = np.uint8
 BBOX_FORMAT = 'albumentations'
+
 # change only /checkpoint_.../
 CHECKPOINT_PATH = 'object_detection/models/research/object_detection/test_data/checkpoint_efficientdet_d0/ckpt-0'
 CONFIG_PATH = 'object_detection/models/research/object_detection/configs/tf2/ssd_efficientdet_d0_512x512_coco17_tpu-8.config'
@@ -98,7 +99,6 @@ TEST_META_DETECTION = pd.read_csv(
     'projects/testing_detection/datasets/metas/test_meta.csv')
 SAVE_CHECKPOINT_DIR = 'projects/testing_detection/training/weights/'
 SAVE_TRAINING_CSVS_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
-
 
 # optimizers
 LEARNING_RATE = 0.01
@@ -131,7 +131,7 @@ N_FFT = 1536
 FMIN = 500
 FMAX = 12500
 
-# dataPermutation
+# permutationFunctions
 NOISE_LEVEL = 0.05
 WHITE_NOISE_PROBABILITY = 0.8
 BANDPASS_NOISE_PROBABILITY = 0.7
@@ -148,35 +148,35 @@ OPTICAL_DISTORT_LIMIT = 0.4
 OPTICAL_SHIFT_LIMIT = 0.5  # doesn't really do much
 ROTATE_LIMIT = 30
 INVERT_PROBABILITY = 0.5
+
 PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 3
 PERMUTATIONS_CLASSIFICATION = [
-    # A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT,
-    #                p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.GlassBlur(max_delta=GLASS_BLUR_MAXDELTA, iterations=GLASS_BLUR_ITERATIONS,
-    #             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     A.RandomGamma(gamma_limit=GAMMA_LIMIT,
                   p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.Sharpen(alpha=SHARPEN_ALPHA, lightness=SHARPEN_LIGHTNESS,
-    #           p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.Downscale(scale_min=DOWNSCALE_MIN, scale_max=DOWNSCALE_MIN,
-    #             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.Emboss(strength=EMBOSS_STRENGTH,
-    #          p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.GridDistortion(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.OpticalDistortion(distort_limit=OPTICAL_DISTORT_LIMIT,
-    #                     shift_limit=OPTICAL_SHIFT_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION)
-    A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION)
-]
+    A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION)]
+# A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT,
+#                p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+# A.GlassBlur(max_delta=GLASS_BLUR_MAXDELTA, iterations=GLASS_BLUR_ITERATIONS,
+#             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+# A.Sharpen(alpha=SHARPEN_ALPHA, lightness=SHARPEN_LIGHTNESS,
+#           p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+# A.Downscale(scale_min=DOWNSCALE_MIN, scale_max=DOWNSCALE_MIN,
+#             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+# A.Emboss(strength=EMBOSS_STRENGTH,
+#          p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+# A.GridDistortion(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+# A.OpticalDistortion(distort_limit=OPTICAL_DISTORT_LIMIT,
+#                     shift_limit=OPTICAL_SHIFT_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+# A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION)
+
 PERMUTATION_PROBABILITY_DETECTION = 1 / 4
 PERMUTATIONS_DETECTION = [
     A.HorizontalFlip(p=PERMUTATION_PROBABILITY_DETECTION),
-    # A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION),
     A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT,
                    p=PERMUTATION_PROBABILITY_DETECTION),
-    A.RandomGamma(gamma_limit=GAMMA_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION)
-]
+    A.RandomGamma(gamma_limit=GAMMA_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION)]
+# A.Rotate(limit=ROTATE_LIMIT, p=PERMUTATION_PROBABILITY_DETECTION),
 
-# dataPreprocessing
+# preprocessData
 RESIZE_HEIGHT = 256
 RESIZE_WIDTH = 256

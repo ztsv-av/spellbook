@@ -18,7 +18,6 @@ provides:
 | Script                      | Description                                                                                           |
 | --------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `callbacks.py`              | Custom callbacks for `Keras` library                                                                  |
-| `generatorInstance.py`      | (deprecated script / to be deleted)                                                                   |
 | `globalVariables.py`        | Global variables and parameters such as data shapes, learning rate decay, etc.                        |
 | `helpers.py`                | Miscellaneous functions                                                                               |
 | `losses.py`                 | Custom loss functions                                                                                 |
@@ -28,6 +27,5 @@ provides:
 | `optimizers.py`             | Custom optimizers                                                                                     |
 | `permutationFunctions.py`   | Functions for data permutations                                                                       |
 | `prepareTrainDataset.py`    | Functions to prepare datasets (initialization of `tf.data.Dataset` object with optional permutations) |
-| `preprocessData.py`         | Wrapper to preprocess data (such as normalization, rescailing, resizing, etc.)                        |
 | `preprocessingFunctions.py` | Functions for data preprocessing                                                                      |
 | `train.py`                  | Collection of train steps and full complete train cycles                                              |
