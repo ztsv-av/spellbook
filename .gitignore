@@ -4,3 +4,4 @@ object_detection/downloaded_models/*
 datasets/*
 projects/testing/*
 projects/testing_detection/*
+deprecated/*
