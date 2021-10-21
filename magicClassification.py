@@ -1,7 +1,7 @@
 from globalVariables import (
     BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILEPATHS, VAL_FILEPATHS,
     PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING,
-    LEARNING_RATE, LR_DECAY_STEPS, LR_DECAY_RATE, SAVE_MODELS_DIR, SAVE_TRAINING_CSVS_DIR)
+    LEARNING_RATE, LR_DECAY_STEPS, LR_DECAY_RATE, SAVE_TRAIN_WEIGHTS_DIR, SAVE_TRAIN_INFO_DIR)
 
 from models import MODELS_CLASSIFICATION
 from helpers import buildClassificationImageNetModel, getFullPaths, getLabelFromFilename
@@ -88,7 +88,7 @@ def сlassificationСustom():
             loss_object, val_loss, compute_total_loss,
             optimizer,
             train_accuracy, val_accuracy,
-            SAVE_TRAINING_CSVS_DIR, SAVE_MODELS_DIR,
+            SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
             model_name, strategy)
 
         print('________________________________________')

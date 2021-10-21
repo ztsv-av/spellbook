@@ -17,8 +17,8 @@ TRAIN_FILEPATHS = 'projects/testing/datasets/train/'
 VAL_FILEPATHS = 'projects/testing/datasets/test/'
 TRAINED_MODELS_PATH = ''
 TRAINED_MODELS_FILES = None  # os.listdir()
-SAVE_MODELS_DIR = 'projects/testing/training/weights/'
-SAVE_TRAINING_CSVS_DIR = 'projects/testing/training/csvs/'
+SAVE_TRAIN_WEIGHTS_DIR = 'projects/testing/training/weights/'
+SAVE_TRAIN_INFO_DIR = 'projects/testing/training/csvs/'
 
 BATCH_SIZES = {
     'DenseNet121': 32,
@@ -98,7 +98,7 @@ TEST_FILEPATHS_DETECTION = 'projects/testing_detection/datasets/test/'
 TEST_META_DETECTION = pd.read_csv(
     'projects/testing_detection/datasets/metas/test_meta.csv')
 SAVE_CHECKPOINT_DIR = 'projects/testing_detection/training/weights/'
-SAVE_TRAINING_CSVS_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
+SAVE_TRAIN_INFO_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
 
 # optimizers
 LEARNING_RATE = 0.01

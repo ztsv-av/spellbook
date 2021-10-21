@@ -41,7 +41,7 @@ class DetectOverfittingCallback(tf.keras.callbacks.Callback):
             self.model.stop_training = True
 
 
-def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_csvs_dir):
+def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_train_info_dir):
 
     info_df = pd.DataFrame({
         'epoch': [epoch + 1],
@@ -51,7 +51,7 @@ def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_a
         'val_loss': [val_loss.result().numpy()],
         'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
 
-    save_csv_dir = save_csvs_dir + model_name + '/'
+    save_csv_dir = save_train_info_dir + model_name + '/'
     save_csv_path = save_csv_dir + 'training_info.csv'
 
     if not os.path.exists(save_csv_dir):
@@ -66,9 +66,9 @@ def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_a
         new_info_df.to_csv(path_or_buf=save_csv_path, index=False)
 
 
-def saveTrainWeights(model, model_name, epoch, save_weights_dir):
+def saveTrainWeights(model, model_name, epoch, save_train_weights_dir):
 
-    save_weights_epoch_dir = save_weights_dir + \
+    save_weights_epoch_dir = save_train_weights_dir + \
         model_name + '/' + str(epoch + 1) + '/'
 
     if not os.path.exists(save_weights_epoch_dir):

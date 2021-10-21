@@ -193,7 +193,7 @@ def classificationDistributedValStepWrapper():
 
 def classificationCustomTrain(
         batch_size, num_epochs, train_data, val_data, permutations, normalization, buffer_size, model, loss_object,
-        val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_csvs_dir, save_weights_dir,
+        val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_train_info_dir, save_train_weights_dir,
         model_name, strategy):
     """
     XXX
@@ -243,10 +243,10 @@ def classificationCustomTrain(
         val_accuracy : XXX
             XXX
 
-        save_csvs_dir : XXX
+        save_train_info_dir : XXX
             XXX
 
-        save_weights_dir : XXX
+        save_train_weights_dir : XXX
             XXX
 
         model_name : XXX
@@ -287,8 +287,8 @@ def classificationCustomTrain(
 
         # callbacks
         saveTrainInfo(model_name, epoch, train_loss, train_accuracy,
-                      val_loss, val_accuracy, optimizer, save_csvs_dir)
-        saveTrainWeights(model, model_name, epoch, save_weights_dir)
+                      val_loss, val_accuracy, optimizer, save_train_info_dir)
+        saveTrainWeights(model, model_name, epoch, save_train_weights_dir)
 
         val_loss.reset_states()
         train_accuracy.reset_states()
@@ -372,7 +372,7 @@ def detectionTrain(
         batch_size, num_epochs, num_classes, label_id_offset,
         train_filepaths, bbox_format, meta, permutations,
         normalization, model, model_name, optimizer,
-        to_fine_tune, checkpoint_save_dir, save_csvs_dir):
+        to_fine_tune, checkpoint_save_dir, save_train_info_dir):
     """
     XXX
 
@@ -421,7 +421,7 @@ def detectionTrain(
     checkpoint_save_dir : XXX
         XXX
 
-    save_csvs_dir : XXX
+    save_train_info_dir : XXX
         XXX
     """
 
@@ -451,7 +451,7 @@ def detectionTrain(
                   ' | loc_loss=' + str(loc_loss.numpy()) + ' | class_loss=' + str(class_loss.numpy()), flush=True)
 
         saveTrainInfoDetection(model_name, epoch, loc_loss,
-                               class_loss, total_loss, optimizer, save_csvs_dir)
+                               class_loss, total_loss, optimizer, save_train_info_dir)
         saveCheckpointDetection(model_name, epoch, model,
                                 loc_loss, optimizer, checkpoint_save_dir)
 
