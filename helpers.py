@@ -35,28 +35,25 @@ def loadNumpy(path):
     return numpy_file
 
 
-def saveImage2Numpy(filename, dir, image_type):
+def loadImage(path, image_type):
     """
-    saves input image as numpy array to specified directory
+    loads input image as numpy array
 
     parameters
     ----------
-    filename: string
-        name of input image
-
-    dir : string
-        full path to input image (up to folder)
+    path: string
+        full path to input image
 
     image_type : XXX
         XXX
 
     returns
     -------
-    image : ndarray
-        array representing image of shape (height, width, 3)
+    image_converted : ndarray
+        numpy array representing image of shape (height, width, 3)
     """
 
-    image = Image.open(dir + filename)
+    image = Image.open(path)
     image_converted = np.asarray(image).astype(image_type)
 
     return image_converted
@@ -137,7 +134,7 @@ def evaluateString(x):
     return x
 
 
-def visualizeImage_Box(image, boxes):
+def visualizeImageBox(image, boxes):
     """
     plots input image and bounding box (optional)
 
@@ -148,7 +145,7 @@ def visualizeImage_Box(image, boxes):
 
     boxes : list (list of lists)
         list of coordinates of bounding box (or list of multiple bounding boxes)
-        each box must follow format [xmin, ymin, xmax, ymax, ...]
+        each box must follow format [ymin, xmin, ymax, xmax, ...]
     """
 
     fig, ax = plt.subplots()
@@ -156,7 +153,7 @@ def visualizeImage_Box(image, boxes):
 
     if boxes is not None:
         for box in boxes[:3]:
-            xmin, ymin, xmax, ymax = box[1], box[0], box[3], box[2]
+            ymin, xmin, ymax, xmax = box[0], box[1], box[2], box[3]
             ax.add_patch(Rectangle((xmin, ymin), xmax - xmin,
                                    ymax - ymin, fill=False, edgecolor='red'))
 
