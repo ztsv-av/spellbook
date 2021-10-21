@@ -346,7 +346,7 @@ def detectionTrainStep(
             preprocessed_inputs=preprocessed_image_tensor,
             true_image_shapes=true_shape_tensor)
 
-        # prodive groundtruth boxes and classes and calculate the total loss (sum of both losses)
+        # provide groundtruth boxes and classes and calculate the total loss (sum of both losses)
         model.provide_groundtruth(
             groundtruth_boxes_list=groundtruth_boxes_list,
             groundtruth_classes_list=groundtruth_classes_list)
