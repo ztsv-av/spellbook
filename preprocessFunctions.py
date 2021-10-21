@@ -18,7 +18,7 @@ def minMaxNormalizeNumpy(x):
 
     returns
     -------
-        x : =/=
+        x : ndarray
             normalized image
     """
 
@@ -47,7 +47,7 @@ def minMaxNormalizeTensor(x):
 
     returns
     -------
-        x : =/=
+        x : ndarray
             normalized tensor image
     """
 
@@ -68,7 +68,7 @@ def meanStdNormalize(x):
 
     returns
     -------
-        x : =/=
+        x : ndarray
             normalized image
     """
 
@@ -96,7 +96,7 @@ def addColorChannels(x, num_channels):
 
     returns
     -------
-        x : =/=
+        x : ndarray
             image with channel dimension
     """
 
@@ -120,7 +120,7 @@ def spectrogramToDecibels(x):
 
     returns
     -------
-        x : =/=
+        x : ndarray
             decibel spectogram
     """
 
@@ -144,7 +144,7 @@ def normalizeSpectogram(x):
 
     returns
     -------
-        x : =/=
+        x : ndarray
             normalized spectogram
     """
 
