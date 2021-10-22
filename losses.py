@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 
 
-def categorical_focal_loss(alpha=0.25, gamma=2.0):
+def categoricalFocalLossWrapper(alpha=0.25, gamma=2.0):
     """
     softmax version of focal loss
     if there is skew between different categories/labels in dataset you can try to apply this function as a loss
@@ -33,7 +33,7 @@ def categorical_focal_loss(alpha=0.25, gamma=2.0):
 
     alpha = np.array(alpha, dtype=np.float32)
 
-    def categorical_focal_loss_fixed(y_true, y_pred):
+    def categoricalFocalLoss(y_true, y_pred):
         """
         calculates mean of focal loss between true and predicted labels
 
@@ -66,10 +66,10 @@ def categorical_focal_loss(alpha=0.25, gamma=2.0):
 
         return mean_loss
 
-    return categorical_focal_loss_fixed
+    return categoricalFocalLoss
 
 
-def binary_focal_loss(alpha=0.25, gamma=2.0):
+def binaryFocalLossWrapper(alpha=0.25, gamma=2.0):
     """
     binary form of focal loss
 
@@ -93,7 +93,7 @@ def binary_focal_loss(alpha=0.25, gamma=2.0):
             function that returns mean of binary loss for given batch
     """
 
-    def binary_focal_loss_fixed(y_true, y_pred):
+    def binaryFocalLoss(y_true, y_pred):
         """
         calculates mean of binary focal loss between true and predicted labels
 
@@ -138,4 +138,27 @@ def binary_focal_loss(alpha=0.25, gamma=2.0):
 
         return mean_loss
 
-    return binary_focal_loss_fixed
+    return binaryFocalLoss
+
+
+def rootMeanSquaredErrorLoss(y_true, y_pred):
+    """
+    calculates RMSE loss between true and predicted labels
+
+    parameters
+    ----------
+        y_true : XXX
+            true labels
+
+        y_pred : XXX
+            predicted labels
+
+    returns
+    -------
+        rmse_loss : output tensor
+            RMSE loss
+    """
+
+    rmse_loss =  K.sqrt(K.mean(K.square(y_pred - y_true)))
+
+    return rmse_loss
