@@ -1,86 +1,13 @@
 from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
 from callbacks import saveTrainInfo, saveTrainWeights, saveTrainInfoDetection, saveCheckpointDetection
+from helpers import getFullPaths
 
 import os
+import time
 import tensorflow as tf
 from sklearn.utils import shuffle
 
 # CLASSIFICATION
-
-
-def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
-    """
-    computes total loss after one train step
-
-    parameters
-    ----------
-
-        inputs : XXX
-            XXX
-
-        model : XXX
-            XXX
-
-        compute_total_loss : XXX
-            XXX
-
-        optimizer : XXX
-            XXX
-
-        train_accuracy : XXX
-            XXX
-
-    returns
-    -------
-
-        loss : XXX
-            total loss after train step
-    """
-
-    images, labels = inputs
-
-    with tf.GradientTape() as tape:
-
-        predictions = model(images, training=True)
-        loss = compute_total_loss(labels, predictions)
-
-    gradients = tape.gradient(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-
-    train_accuracy.update_state(labels, predictions)
-
-    return loss
-
-
-def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
-    """
-    updates loss and accuracy after validation step for classification
-
-    parameters
-    ----------
-        inputs : XXX
-            XXX
-
-        model : XXX
-            XXX
-
-        loss_object : XXX
-            XXX
-
-        val_loss : XXX
-            XXX
-
-        val_accuracy : XXX
-            XXX
-    """
-
-    images, labels = inputs
-
-    predictions = model(images, training=False)
-    val_batch_loss = loss_object(labels, predictions)
-
-    val_loss.update_state(val_batch_loss)
-    val_accuracy.update_state(labels, predictions)
 
 
 def classificationDistributedTrainStepWrapper():
@@ -142,6 +69,50 @@ def classificationDistributedTrainStepWrapper():
     return classificationDistributedTrainStep
 
 
+def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
+    """
+    computes total loss after one train step
+
+    parameters
+    ----------
+
+        inputs : XXX
+            XXX
+
+        model : XXX
+            XXX
+
+        compute_total_loss : XXX
+            XXX
+
+        optimizer : XXX
+            XXX
+
+        train_accuracy : XXX
+            XXX
+
+    returns
+    -------
+
+        loss : XXX
+            total loss after train step
+    """
+
+    images, labels = inputs
+
+    with tf.GradientTape() as tape:
+
+        predictions = model(images, training=True)
+        loss = compute_total_loss(labels, predictions)
+
+    gradients = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+
+    train_accuracy.update_state(labels, predictions)
+
+    return loss
+
+
 def classificationDistributedValStepWrapper():
     """
     XXX
@@ -191,10 +162,41 @@ def classificationDistributedValStepWrapper():
     return classificationDistributedValStep
 
 
+def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
+    """
+    updates loss and accuracy after validation step for classification
+
+    parameters
+    ----------
+        inputs : XXX
+            XXX
+
+        model : XXX
+            XXX
+
+        loss_object : XXX
+            XXX
+
+        val_loss : XXX
+            XXX
+
+        val_accuracy : XXX
+            XXX
+    """
+
+    images, labels = inputs
+
+    predictions = model(images, training=False)
+    val_batch_loss = loss_object(labels, predictions)
+
+    val_loss.update_state(val_batch_loss)
+    val_accuracy.update_state(labels, predictions)
+
+
 def classificationCustomTrain(
-        batch_size, num_epochs, train_data, val_data, permutations, normalization, buffer_size, model, loss_object,
-        val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy, save_train_info_dir, save_train_weights_dir,
-        model_name, strategy):
+        batch_size, num_epochs, train_paths, val_paths, max_fileparts_train, max_fileparts_val, permutations, do_permutations, normalization,
+        model, loss_object, val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy,
+        save_train_info_dir, save_train_weights_dir, model_name, strategy):
     """
     XXX
 
@@ -213,13 +215,13 @@ def classificationCustomTrain(
         val_data : XXX
             XXX
 
+        max_file_parts : XXX
+            XXX
+
         permutations : XXX
             XXX
 
         normalization : XXX
-            XXX
-
-        buffer_size : XXX
             XXX
 
         model : XXX
@@ -258,26 +260,75 @@ def classificationCustomTrain(
     wrapperTrain = classificationDistributedTrainStepWrapper()
     wrapperVal = classificationDistributedValStepWrapper()
 
+    train_paths_list = getFullPaths(train_paths)
+    val_paths_list = getFullPaths(val_paths)
+
     for epoch in range(num_epochs):
 
-        train_distributed_dataset, val_distributed_dataset = prepareClassificationDataset(
-            batch_size, train_data, val_data, permutations, normalization, buffer_size, strategy)
+        train_paths_list_shuffled = shuffle(train_paths_list)
+        val_paths_list_shuffled = shuffle(val_paths_list)
 
         total_loss = 0.0
         num_batches = 0
 
-        for batch in train_distributed_dataset:
+        for part in range(max_fileparts_train):
 
-            total_loss += wrapperTrain(
-                batch, model, compute_total_loss, optimizer, train_accuracy, strategy)
-            num_batches += 1
+            start_part_time = time.time()
+
+            train_filepaths_part = train_paths_list_shuffled[
+                int(part * len(train_paths_list_shuffled) / max_fileparts_train) :
+                int(((part + 1) / max_fileparts_train) * len(train_paths_list_shuffled))]
+
+            start_load_data_time = time.time()
+            print('Loading data...', flush=True)
+
+            train_distributed_part = prepareClassificationDataset(
+                batch_size, train_filepaths_part, permutations, do_permutations, normalization, strategy, is_val=False)
+
+            end_load_data_time = time.time()
+
+            print('Finished loading data. Time passed: ' + str(end_load_data_time - start_load_data_time), flush=True)
+
+            for batch in train_distributed_part:
+
+                total_loss += wrapperTrain(
+                    batch, model, compute_total_loss, optimizer, train_accuracy, strategy)
+
+                num_batches += 1
+
+            end_part_time = time.time()
+
+            print('Training: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
+                ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
         train_loss = total_loss / num_batches
 
-        for batch in val_distributed_dataset:
+        for part in range(max_fileparts_val):
 
-            wrapperVal(
-                batch, model, loss_object, val_loss, val_accuracy, strategy)
+            start_part_time = time.time()
+
+            val_filepaths_part = val_paths_list_shuffled[
+                int(part * len(val_paths_list_shuffled) / max_fileparts_val) :
+                int(((part + 1) / max_fileparts_val) * len(val_paths_list_shuffled))]
+
+            start_load_data_time = time.time()
+            print('Loading data...', flush=True)
+
+            val_distributed_batch = prepareClassificationDataset(
+                batch_size, val_filepaths_part, None, do_permutations, normalization, strategy, is_val=True)
+
+            end_load_data_time = time.time()
+            print('Finished loading data. Time passed: ' + str(end_load_data_time - start_load_data_time), flush=True)
+
+            for batch in val_distributed_batch:
+
+                wrapperVal(
+                    batch, model, loss_object, val_loss, val_accuracy, strategy)
+
+            end_part_time = time.time()
+
+            print('Validation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
+                ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
         template = (
             "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
@@ -425,8 +476,7 @@ def detectionTrain(
         XXX
     """
 
-    train_filepaths_list = [train_filepaths +
-                            filename for filename in os.listdir(train_filepaths)]
+    train_filepaths_list = getFullPaths(train_filepaths)
 
     steps_per_epoch_train = int(len(train_filepaths_list) // batch_size)
 
@@ -441,7 +491,7 @@ def detectionTrain(
 
             train_images_batched, train_boxes_batched, train_classes_batched = prepareDetectionDataset(
                 train_filepaths_batched, bbox_format, meta, num_classes, label_id_offset, permutations,
-                normalization)
+                normalization, is_val=False)
 
             total_loss, loc_loss, class_loss = detectionTrainStep(
                 train_images_batched, train_boxes_batched, train_classes_batched,

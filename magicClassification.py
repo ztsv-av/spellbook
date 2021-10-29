@@ -1,12 +1,13 @@
 from globalVariables import (
-    BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, TRAIN_FILEPATHS, VAL_FILEPATHS,
-    PERMUTATIONS_CLASSIFICATION, SHUFFLE_BUFFER_SIZE, OUTPUT_ACTIVATION, MODEL_POOLING,
+    BATCH_SIZES, NUM_EPOCHS, NUM_CLASSES, INPUT_SHAPE, FC_LAYERS, DROPOUT_RATES, TRAIN_FILEPATHS, VAL_FILEPATHS,
+    MAX_FILEPARTS_TRAIN, MAX_FILEPARTS_VAL, PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, OUTPUT_ACTIVATION, MODEL_POOLING,
     LEARNING_RATE, LR_DECAY_STEPS, LR_DECAY_RATE, SAVE_TRAIN_WEIGHTS_DIR, SAVE_TRAIN_INFO_DIR)
 
-from models import MODELS_CLASSIFICATION
-from helpers import buildClassificationImageNetModel, getFullPaths, getLabelFromFilename
+from models import MODELS_CLASSIFICATION, userDefinedModel
+from helpers import buildClassificationImageNetModel
 from train import classificationCustomTrain
 from preprocessFunctions import minMaxNormalizeNumpy
+from losses import rootMeanSquaredErrorLoss
 
 import numpy as np
 import tensorflow as tf
@@ -25,22 +26,6 @@ def сlassificationСustom():
     XXX
     """
 
-    # load data
-    train_paths_list = getFullPaths(TRAIN_FILEPATHS)
-    val_paths_list = getFullPaths(VAL_FILEPATHS)
-
-    train_images_list = []
-    train_labels_list = []
-    for path in train_paths_list:
-        train_images_list.append(np.load(path))
-        train_labels_list.append(getLabelFromFilename(path))
-
-    val_images_list = []
-    val_labels_list = []
-    for path in val_paths_list:
-        val_images_list.append(np.load(path))
-        val_labels_list.append(getLabelFromFilename(path))
-
     for model_name, model_imagenet in MODELS_CLASSIFICATION.items():
 
         batch_size_per_replica = BATCH_SIZES[model_name]
@@ -51,11 +36,15 @@ def сlassificationСustom():
             # create model, loss, optimizer and metrics instances here
             # reset model, optimizer (AND learning rate), loss and metrics after each iteration
 
+            # classification_model = userDefinedModel(NUM_CLASSES, OUTPUT_ACTIVATION)
+
             classification_model = buildClassificationImageNetModel(
-                model_imagenet, INPUT_SHAPE, MODEL_POOLING, NUM_CLASSES, OUTPUT_ACTIVATION)
+                model_imagenet, INPUT_SHAPE, MODEL_POOLING, FC_LAYERS, DROPOUT_RATES, NUM_CLASSES, OUTPUT_ACTIVATION, trainable=True)
 
             loss_object = tf.losses.SparseCategoricalCrossentropy(
                 from_logits=True, reduction=tf.keras.losses.Reduction.NONE)
+
+            # loss_object = rootMeanSquaredErrorLoss
 
             def compute_total_loss(labels, predictions):
                 per_gpu_loss = loss_object(labels, predictions)
@@ -73,6 +62,11 @@ def сlassificationСustom():
             val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
                 name='val_accuracy')
 
+            # train_accuracy = tf.keras.metrics.RootMeanSquaredError(
+            #     name='train_RMSE')
+            # val_accuracy = tf.keras.metrics.RootMeanSquaredError(
+            #     name='val_RMSE')
+
             # rename optimizer weights to train multiple models
             with K.name_scope(optimizer.__class__.__name__):
                 for i, var in enumerate(optimizer.weights):
@@ -82,9 +76,9 @@ def сlassificationСustom():
 
         classificationCustomTrain(
             batch_size, NUM_EPOCHS,
-            (train_images_list, train_labels_list), (val_images_list, val_labels_list),
-            PERMUTATIONS_CLASSIFICATION, minMaxNormalizeNumpy,
-            SHUFFLE_BUFFER_SIZE, classification_model,
+            TRAIN_FILEPATHS, VAL_FILEPATHS, MAX_FILEPARTS_TRAIN, MAX_FILEPARTS_VAL,
+            PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, minMaxNormalizeNumpy,
+            classification_model,
             loss_object, val_loss, compute_total_loss,
             optimizer,
             train_accuracy, val_accuracy,

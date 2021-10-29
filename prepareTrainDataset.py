@@ -1,11 +1,12 @@
-from helpers import evaluateString
+from helpers import evaluateString, getLabelFromFilename, loadNumpy
 from permutationFunctions import classification_permutations, detection_permutations
 
 import numpy as np
+import time
 import tensorflow as tf
 
 
-def permuteImageGetLabelBoxes(image, permutations, normalization, bboxes, bbox_format, is_detection, is_val):
+def permuteImageGetLabelBoxes(image, permutations, do_permutations, normalization, is_val, bboxes, bbox_format, is_detection):
     '''
     permutes given image and gets label for that image
 
@@ -39,29 +40,31 @@ def permuteImageGetLabelBoxes(image, permutations, normalization, bboxes, bbox_f
     '''
 
     if is_detection:
+
         image, bboxes = detection_permutations(
             image, bboxes, bbox_format, permutations)
 
+        return (image, bboxes)
+
     else:
-        if not is_val:
+        if not is_val and do_permutations:
             image = classification_permutations(image, permutations)
 
         image = normalization(image)
 
-    return (image, bboxes) if is_detection else image
+        image_tensor = tf.convert_to_tensor(image)
+
+        return image_tensor
 
 
-def prepareClassificationDataset(batch_size, train_data, val_data, permutations, normalization, buffer_size, strategy):
+def prepareClassificationDataset(batch_size, filepaths_part, permutations, do_permutations, normalization, strategy, is_val):
     """
     XXX
 
     parameters
     ----------
 
-        train_data : XXX
-            XXX
-
-        val_data : XXX
+        train_filepaths_batch : XXX
             XXX
 
         batch_size : XXX
@@ -82,37 +85,54 @@ def prepareClassificationDataset(batch_size, train_data, val_data, permutations,
     returns
     -------
 
-        train_dataset_dist : XXX
-            XXX
-
-        val_dataset_dist : XXX
+        train_dataset_dist_batch : XXX
             XXX
     """
 
-    train_images_list, train_labels_list = train_data[0], train_data[1]
-    val_images_list, val_labels_list = val_data[0], val_data[1]
+    # start_load_numpy_time = time.time()
+    # print('Start Loading Numpy Files...', flush=True)
 
-    train_images_map = map(lambda image: permuteImageGetLabelBoxes(
-        image, permutations, normalization, bboxes=False, bbox_format=False, is_detection=False, is_val=False), train_images_list)
-    train_images_mapped_list = list(train_images_map)
-    train_dataset_tf = tf.data.Dataset.from_tensor_slices(
-        (train_images_mapped_list, train_labels_list))
-    train_dataset_tf = train_dataset_tf.shuffle(buffer_size).batch(batch_size)
-    train_dataset_dist = strategy.experimental_distribute_dataset(
-        train_dataset_tf)
+    images_list_part = []
+    labels_list_part = []
+    for path in filepaths_part:
 
-    val_images_map = map(lambda image: permuteImageGetLabelBoxes(
-        image, None, normalization, bboxes=False, bbox_format=False, is_detection=False, is_val=True), val_images_list)
-    val_images_mapped_list = list(val_images_map)
-    val_dataset_tf = tf.data.Dataset.from_tensor_slices(
-        (val_images_mapped_list, val_labels_list))
-    val_dataset_tf = val_dataset_tf.batch(batch_size)
-    val_dataset_dist = strategy.experimental_distribute_dataset(val_dataset_tf)
+        image = loadNumpy(path)
+        images_list_part.append(image)
 
-    return train_dataset_dist, val_dataset_dist
+        label = getLabelFromFilename(path)
+        label_tensor = tf.convert_to_tensor(label)
+        labels_list_part.append(label_tensor)
+
+    # end_load_numpy_time = time.time()
+    # print('Finished loading Numpy Files. Time Passed: ' + str(end_load_numpy_time - start_load_numpy_time), flush=True)
+
+    # start_mapping_data_time = time.time()
+    # print('Start Mapping Data...', flush=True)
+
+    images_map = map(lambda image: permuteImageGetLabelBoxes(
+        image, permutations, do_permutations, normalization, is_val, bboxes=None, bbox_format=None, is_detection=False), images_list_part)
+    images_mapped_list_part = list(images_map)
+
+    # end_mapping_data_time = time.time()
+    # print('Finished Mapping Data. Time Passed: ' + str(end_mapping_data_time - start_mapping_data_time), flush=True)
+
+    # start_creating_dataset_time = time.time()
+    # print('Start Creating Tensorflow Dataset...', flush=True)
+
+    data_part = tf.data.Dataset.from_tensor_slices(
+        (images_mapped_list_part, labels_list_part))
+
+    # end_creating_dataset_time = time.time()
+    # print('Finished Creating Tensorflow Dataset. Time Passed: ' + str(end_creating_dataset_time - start_creating_dataset_time), flush=True)
+
+    data_part = data_part.batch(batch_size)
+    data_part_dist = strategy.experimental_distribute_dataset(
+        data_part)
+
+    return data_part_dist
 
 
-def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_offset, permutations, normalization):
+def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_offset, permutations, normalization, is_val):
     """
     XXX
 
@@ -165,7 +185,7 @@ def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_
         bboxes = evaluateString(record['bboxes'].values[0])
 
         image, bboxes = permuteImageGetLabelBoxes(
-            image, permutations, normalization, bboxes, bbox_format, is_detection=True, is_val=False)
+            image, permutations, normalization, is_val, bboxes, bbox_format, is_detection=True)
 
         images_batch.append(image)
         bboxes_batch.append(np.array(bboxes))

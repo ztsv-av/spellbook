@@ -2,7 +2,9 @@ __pycache__/*
 .vscode/*
 object_detection/downloaded_models/*
 datasets/*
-projects/testing/*
+projects/testing_fashionmnist/*
+projects/testing_animals/*
+projects/testing_pascalvoc/*
 projects/testing_detection/*
 projects/petfinder/*
 deprecated/*

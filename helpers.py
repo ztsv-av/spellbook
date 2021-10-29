@@ -242,18 +242,19 @@ def getLabelFromFilename(filename):
 
 def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=0.2):
     """
-    XXX
+    reads files in input directory, splits and copies them into two directories
+    using specified ratio
 
     parameters
     ----------
-        dir : XXX
-            XXX
+        dir : string
+            path to directory with files to split
 
-        train_data_folder : XXX
-            XXX
+        train_data_folder : string
+            path to directory where to store train files
 
-        val_data_folder : XXX
-            XXX
+        val_data_folder : string
+            path to directory where to store validation files
 
         val_data_size : float, default is 0.2
             how much percent of data to allocate for validation
@@ -263,18 +264,17 @@ def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=
     files_train, files_val = train_test_split(
         files_to_split, test_size=val_data_size)
 
-    train_counter = 0
-    val_counter = 0
+    if not os.path.exists(train_data_folder):
+        os.makedirs(train_data_folder)
+
+    if not os.path.exists(val_data_folder):
+        os.makedirs(val_data_folder)
 
     for file in files_train:
         shutil.copy(dir + file, train_data_folder)
-        train_counter += 1
-        print('FINISHED' + str(train_counter) + '/' + str(len(files_to_split)))
 
     for file in files_val:
         shutil.copy(dir + file, val_data_folder)
-        val_counter += 1
-        print('FINISHED' + str(val_counter) + '/' + str(len(files_to_split)))
 
 
 def loadFashionMNIST(dir, reshape_size):
@@ -370,7 +370,7 @@ def buildClassificationPretrainedModel(model_path, custom_objects, num_classes, 
     return model
 
 
-def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, num_classes, activation):
+def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, fc_layers, dropout_rates, num_classes, activation, trainable):
     """
     builds classification ImageNet model given image input shape, number of classes, pooling and activation layers
 
@@ -399,8 +399,27 @@ def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, num_c
 
     loaded_model = model_imagenet(
         include_top=False, weights='imagenet', pooling=pooling, input_shape=input_shape)
+
+    if not trainable:
+        for layer in loaded_model.layers:
+            layer.trainable = False
+
     model = tf.keras.models.Sequential()
     model.add(loaded_model)
+
+    if (fc_layers is not None) or (dropout_rates is not None):
+
+        for fc, dropout in zip(fc_layers, dropout_rates):
+
+            if fc == None:
+                continue
+            else:
+                model.add(tf.keras.layers.Dense(fc, activation='relu'))
+
+            if dropout == None:
+                continue
+            else:
+                model.add(tf.keras.layers.Dropout(dropout))
 
     # add last classification layer
     model.add(tf.keras.layers.Dense(num_classes, activation=activation))
