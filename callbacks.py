@@ -74,7 +74,7 @@ def saveTrainWeights(model, model_name, epoch, save_train_weights_dir):
     if not os.path.exists(save_weights_epoch_dir):
         os.makedirs(save_weights_epoch_dir)
 
-    model.save_weights(save_weights_epoch_dir)
+    model.save(save_weights_epoch_dir + 'model.h5')
 
 
 def saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csv_dir):
