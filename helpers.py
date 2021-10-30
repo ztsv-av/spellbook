@@ -14,6 +14,7 @@ from object_detection.utils import config_util
 from object_detection.builders import model_builder
 from object_detection.utils import visualization_utils as viz_utils
 
+from tensorflow.keras.applications import EfficientNetB0
 
 def loadNumpy(path):
     """
@@ -370,7 +371,7 @@ def buildClassificationPretrainedModel(model_path, custom_objects, num_classes, 
     return model
 
 
-def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, fc_layers, dropout_rates, num_classes, activation, trainable):
+def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, dropout_connect_rate, fc_layers, initial_dropout, dropout_rates, num_classes, activation, trainable):
     """
     builds classification ImageNet model given image input shape, number of classes, pooling and activation layers
 
@@ -397,15 +398,20 @@ def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, fc_la
             XXX
     """
 
-    loaded_model = model_imagenet(
-        include_top=False, weights='imagenet', pooling=pooling, input_shape=input_shape)
+    imagenet_model = model_imagenet(
+        include_top=False, weights='imagenet', input_shape=input_shape, drop_connect_rate=dropout_connect_rate)
 
-    if not trainable:
-        for layer in loaded_model.layers:
-            layer.trainable = False
+    x = imagenet_model.output
 
-    model = tf.keras.models.Sequential()
-    model.add(loaded_model)
+    if pooling == 'avg':
+        x = tf.keras.layers.GlobalAveragePooling2D(name='avg_global_pool')(x)
+    elif pooling == 'max':
+        x = tf.keras.layers.GlobalAveragePooling2D(name='max_global_pool')(x)
+    elif pooling == None:
+        x = tf.keras.layers.Flatten()(x)
+
+    if initial_dropout is not None:
+        x = tf.keras.layers.Dropout(initial_dropout)(x)
 
     if (fc_layers is not None) or (dropout_rates is not None):
 
@@ -414,15 +420,20 @@ def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, fc_la
             if fc == None:
                 continue
             else:
-                model.add(tf.keras.layers.Dense(fc, activation='relu'))
+                x = tf.keras.layers.Dense(fc, activation='relu')(x)
 
             if dropout == None:
                 continue
             else:
-                model.add(tf.keras.layers.Dropout(dropout))
+                x = tf.keras.layers.Dropout(dropout)(x)
 
-    # add last classification layer
-    model.add(tf.keras.layers.Dense(num_classes, activation=activation))
+    predictions = tf.keras.layers.Dense(num_classes, activation=activation)(x)
+
+    model = tf.keras.Model(inputs=imagenet_model.input, outputs=predictions)
+
+    if not trainable:
+        for layer in imagenet_model.layers:
+            layer.trainable = False
 
     return model
 
