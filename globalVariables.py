@@ -9,11 +9,13 @@ NUM_EPOCHS = 5
 NUM_CLASSES = 10
 INPUT_SHAPE = (256, 256, 3)
 OUTPUT_ACTIVATION = None  # 'sigmoid', 'softmax', 'relu', None
-FC_LAYERS = None
-DROPOUT_RATES = None
+FC_LAYERS = (64, None)
+INITIAL_DROPOUT = 0.5
+DROPOUT_RATES = (0.4, None)
+DROP_CONNECT_RATE = 0.4  # 0.2 - default
 LABELS = ""
 LABEL_TO_INTEGER = ""
-MODEL_POOLING = 'avg'
+MODEL_POOLING = 'avg'  # 'max', 'avg', None
 
 TRAIN_FILEPATHS = 'projects/testing_animals/data/train/'
 VAL_FILEPATHS = 'projects/testing_animals/data/val/'
@@ -28,10 +30,10 @@ SAVE_TRAIN_WEIGHTS_DIR = 'projects/testing_animals/training/weights/'
 BATCH_SIZES = {
     'DenseNet121': 16,
     'DenseNet169': 8,
-    'EfficientNetB0': 16,
-    'EfficientNetB1': 16,
-    'EfficientNetB2': 12,
-    'EfficientNetB3': 8,
+    'EfficientNetB0': 12,
+    'EfficientNetB1': 10,
+    'EfficientNetB2': 8,
+    'EfficientNetB3': 6,
     'EfficientNetB4': 4,
     'EfficientNetB5': 4,
     'InceptionResNetV2': 16,
