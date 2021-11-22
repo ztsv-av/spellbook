@@ -9,12 +9,9 @@ from matplotlib.patches import Rectangle
 from PIL import Image
 from sklearn.model_selection import train_test_split
 
-import tensorflow as tf
-from object_detection.utils import config_util
-from object_detection.builders import model_builder
 from object_detection.utils import visualization_utils as viz_utils
 
-from tensorflow.keras.applications import EfficientNetB0
+from globalVariables import DROPOUT_RATES
 
 def loadNumpy(path):
     """
@@ -219,7 +216,7 @@ def getFullPaths(dir):
     return paths
 
 
-def getLabelFromFilename(filename):
+def getLabelFromPath(path):
     """
     XXX
 
@@ -234,11 +231,26 @@ def getLabelFromFilename(filename):
             XXX
     """
 
-    label = filename.split('_')[-1].replace('.npy', '')
+    label = path.split('_')[-1].replace('.npy', '')
     label = label.split('-')
     label = list(map(int, label))
 
     return label
+
+
+def getFeaturesFromPath(path, meta, id_column, feature_column, full_record):
+
+    record = meta[meta[id_column] == path.split('_')[0].split('/')[-1]]
+
+    if full_record:
+
+        features = record.values[0]
+
+    else:
+
+        features = record[feature_column].values[0]
+
+    return features
 
 
 def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=0.2):
@@ -327,169 +339,3 @@ def loadFashionMNIST(dir, reshape_size):
             imgpath.read(), np.uint8, offset=16).reshape(len(y_test), reshape_size[0], reshape_size[1])
 
     return (x_train, y_train), (x_test, y_test)
-
-
-def buildClassificationPretrainedModel(model_path, custom_objects, num_classes, activation):
-    """
-    XXX
-
-    parameters
-    ----------
-        model_path : XXX
-            XXX
-
-        custom_objects : XXX
-            XXX
-
-            example:
-            custom_objects = {
-                'f1': f1,
-                'categorical_focal_loss_fixed': categorical_focal_loss(alpha=[[.25, .25]], gamma=2)}
-
-        num_classes : XXX
-            XXX
-
-        activation : XXX
-            XXX
-
-    returns
-    -------
-        model : XXX
-            XXX
-    """
-
-    loaded_model = tf.keras.models.load_model(model_path, custom_objects)
-
-    model = tf.keras.layers.Sequential()
-    # add all layers except last layer
-    for layer in loaded_model.layers[:-1]:
-        model.add(layer)
-
-    # add last classification layer
-    model.add(tf.keras.layers.Dense(num_classes, activation=activation))
-
-    return model
-
-
-def buildClassificationImageNetModel(model_imagenet, input_shape, pooling, dropout_connect_rate, fc_layers, initial_dropout, dropout_rates, num_classes, activation, trainable):
-    """
-    builds classification ImageNet model given image input shape, number of classes, pooling and activation layers
-
-    parameters
-    ----------
-        model_imagenet : XXX
-            XXX
-
-        input_shape : XXX
-            XXX
-
-        pooling : XXX
-            XXX
-
-        num_classes : int
-            number of classes in dataset
-
-        activation : XXX
-            XXX
-
-    returns
-    -------
-        model : XXX
-            XXX
-    """
-
-    imagenet_model = model_imagenet(
-        include_top=False, weights='imagenet', input_shape=input_shape, drop_connect_rate=dropout_connect_rate)
-
-    x = imagenet_model.output
-
-    if pooling == 'avg':
-        x = tf.keras.layers.GlobalAveragePooling2D(name='avg_global_pool')(x)
-    elif pooling == 'max':
-        x = tf.keras.layers.GlobalAveragePooling2D(name='max_global_pool')(x)
-    elif pooling == None:
-        x = tf.keras.layers.Flatten()(x)
-
-    if initial_dropout is not None:
-        x = tf.keras.layers.Dropout(initial_dropout)(x)
-
-    if (fc_layers is not None) or (dropout_rates is not None):
-
-        for fc, dropout in zip(fc_layers, dropout_rates):
-
-            if fc == None:
-                continue
-            else:
-                x = tf.keras.layers.Dense(fc, activation='relu')(x)
-
-            if dropout == None:
-                continue
-            else:
-                x = tf.keras.layers.Dropout(dropout)(x)
-
-    predictions = tf.keras.layers.Dense(num_classes, activation=activation)(x)
-
-    model = tf.keras.Model(inputs=imagenet_model.input, outputs=predictions)
-
-    if not trainable:
-        for layer in imagenet_model.layers:
-            layer.trainable = False
-
-    return model
-
-
-def buildDetectionModel(num_classes, checkpoint_path, config_path, dummy_shape):
-    """
-    #TODO : napiwi tyt description, pomesti kommenti v description kakie nado -- ostal'nie ydali
-    """
-
-    # Download the checkpoint and put it into models/research/object_detection/test_data/
-    # wget http://download.tensorflow.org/models/object_detection/tf2/20200711/efficientdet_d4_coco17_tpu-32.tar.gz -O ./efficientdet_d4_1024x1024.tar.gz
-    # tar -xf efficientdet_d4_1024x1024.tar.gz
-    # mv efficientdet_d4_coco17_tpu-32/checkpoint models/research/object_detection/test_data/
-    # tf.keras.backend.clear_session()
-
-    # Load the configuration file into a dictionary
-    configs = config_util.get_configs_from_pipeline_file(
-        config_path, config_override=None)
-
-    # Read in the object stored at the key 'model' of the configs dictionary
-    model_config = configs['model']
-
-    # Modify the number of classes from its default
-    model_config.ssd.num_classes = num_classes
-
-    # Freeze batch normalization
-    model_config.ssd.freeze_batchnorm = True
-
-    detection_model = model_builder.build(
-        model_config=model_config, is_training=True)
-
-    tmp_box_predictor_checkpoint = tf.train.Checkpoint(
-        _base_tower_layers_for_heads=detection_model._box_predictor._base_tower_layers_for_heads, _box_prediction_head=detection_model._box_predictor._box_prediction_head)
-
-    tmp_model_checkpoint = tf.train.Checkpoint(
-        _feature_extractor=detection_model._feature_extractor, _box_predictor=tmp_box_predictor_checkpoint)
-
-    # Define a checkpoint
-    checkpoint = tf.train.Checkpoint(model=tmp_model_checkpoint)
-
-    # Restore the checkpoint to the checkpoint path
-    checkpoint.restore(checkpoint_path)
-
-    # Run a dummy image through the model so that variables are created
-    # For the dummy image, you can declare a tensor of zeros that has a shape that the preprocess() method can accept (i.e. [batch, height, width, channels]).
-    # use the detection model's `preprocess()` method and pass a dummy image
-    dummy = tf.zeros(shape=dummy_shape)
-    tmp_image, tmp_shapes = detection_model.preprocess(dummy)
-
-    # run a prediction with the preprocessed image and shapes
-    tmp_prediction_dict = detection_model.predict(tmp_image, tmp_shapes)
-
-    # postprocess the predictions into final detections
-    tmp_detections = detection_model.postprocess(
-        tmp_prediction_dict, tmp_shapes)
-
-    tf.keras.backend.set_learning_phase(True)
-
-    return detection_model
