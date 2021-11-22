@@ -253,6 +253,32 @@ def getFeaturesFromPath(path, meta, id_column, feature_column, full_record):
     return features
 
 
+def findNLargest(array, n):
+
+    sorted_array = sorted(array)
+    
+    n_largest = []
+    check = 0
+    count = 1
+ 
+    for i in range(1, len(sorted_array) + 1):
+ 
+        if(count < n + 1):
+
+            if(check != sorted_array[n - i]):
+                 
+                # handles duplicate values 
+                n_largest.append(sorted_array[n - i])
+                check = sorted_array[n - i]
+                count += 1
+
+        else:
+
+            break
+    
+    return n_largest
+
+
 def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=0.2):
     """
     reads files in input directory, splits and copies them into two directories
