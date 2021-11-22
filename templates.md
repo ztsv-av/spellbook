@@ -53,9 +53,9 @@ and the following `.py` scripts:
 
 | Script                 | Description                                                                        |
 | ---------------------- | ---------------------------------------------------------------------------------- |
-| `dataPreprocessing.py` | Preprocesses data for fitting (preprocessed data is saved to `datasets` directory)                                                                         |
-| `prediction.py`        | Prepares and saves predictions into `predictions` directory                                                                          |
-| `train.py`        | (Optional) Contains a project specific train loop                                                                               |
+| `dataPreprocessing.py` | Preprocesses data for fitting (preprocessed data is saved to `datasets` directory) |
+| `prediction.py`        | Prepares and saves predictions into `predictions` directory                        |
+| `train.py`             | (Optional) Contains a project specific train loop                                       |
 
 ## Project `README` Template
 
