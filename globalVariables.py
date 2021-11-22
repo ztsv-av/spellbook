@@ -7,7 +7,7 @@ import albumentations as A
 # classification
 NUM_EPOCHS = 60
 START_EPOCH = 0
-IMAGE_SHAPE = (512, 512, 3)
+INPUT_SHAPE = (512, 512, 3)
 NUM_FEATURES = 12
 INITIAL_DROPOUT = 0.5
 FC_LAYERS = None
@@ -24,6 +24,7 @@ LABEL_TO_INTEGER = ""
 MODEL_POOLING = 'avg'  # 'max', 'avg', None
 
 DATA_FILEPATHS = 'projects/petfinder/petfinder-previous/data/images-preprocessed/512/'
+ADDITIONAL_DATA_FILEPATHS = ''
 TRAIN_FILEPATHS = 'projects/petfinder/petfinder-previous/data/train/512/'
 VAL_FILEPATHS = 'projects/petfinder/petfinder-previous/data/val/512/'
 DO_KFOLD = True
@@ -156,8 +157,9 @@ PNG_SAVE_PATH = ''
 
 # melspectogram finetune (birdclef 2020-21)
 SAMPLING_RATE = 21952
+INDENT_SECONDS = 32000
 SIGNAL_LENGTH = 5  # seconds
-HOP_LENGTH = int(SIGNAL_LENGTH * SAMPLING_RATE / (IMAGE_SHAPE[1] - 1))
+HOP_LENGTH = int(SIGNAL_LENGTH * SAMPLING_RATE / (INPUT_SHAPE[1] - 1))
 N_FFT = 1536
 FMIN = 500
 FMAX = 12500
