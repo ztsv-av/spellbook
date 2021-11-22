@@ -41,7 +41,17 @@ class DetectOverfittingCallback(tf.keras.callbacks.Callback):
             self.model.stop_training = True
 
 
-def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_train_info_dir):
+def LRLadderDecrease(optimizer, step):
+
+    current_lr = optimizer.learning_rate
+
+    new_lr = current_lr * step
+
+    return new_lr
+
+
+
+def saveTrainInfo(model_name, epoch, fold_num, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_train_info_dir):
 
     info_df = pd.DataFrame({
         'epoch': [epoch + 1],
@@ -52,12 +62,19 @@ def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_a
         'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
 
     save_csv_dir = save_train_info_dir + model_name + '/'
-    save_csv_path = save_csv_dir + 'training_info.csv'
+
+    if fold_num is not None:
+        save_csv_path = save_csv_dir + 'fold-' + str(fold_num + 1) + '_training-info.csv'
+    else:
+        save_csv_path = save_csv_dir + 'training-info.csv'
+
 
     if not os.path.exists(save_csv_dir):
         os.makedirs(save_csv_dir)
 
-    if len(os.listdir(save_csv_dir)) == 0:
+    files_in_dir = os.listdir(save_csv_dir)
+
+    if save_csv_path.split('/')[-1] not in files_in_dir:
         info_df.to_csv(path_or_buf=save_csv_path, index=False)
 
     else:
@@ -66,15 +83,19 @@ def saveTrainInfo(model_name, epoch, train_loss, train_accuracy, val_loss, val_a
         new_info_df.to_csv(path_or_buf=save_csv_path, index=False)
 
 
-def saveTrainWeights(model, model_name, epoch, save_train_weights_dir):
+def saveTrainWeights(model, model_name, epoch, fold_num, save_train_weights_dir):
 
-    save_weights_epoch_dir = save_train_weights_dir + \
-        model_name + '/' + str(epoch + 1) + '/'
+    if fold_num is not None:
+        save_weights_epoch_dir = save_train_weights_dir + \
+            model_name + '/' + 'fold-' + str(fold_num + 1) + '/' + str(epoch + 1) + '/'
+    else:
+        save_weights_epoch_dir = save_train_weights_dir + \
+            model_name + '/' + 'no-folds' + '/' + str(epoch + 1) + '/'
 
     if not os.path.exists(save_weights_epoch_dir):
         os.makedirs(save_weights_epoch_dir)
 
-    model.save(save_weights_epoch_dir + 'model.h5')
+    model.save_weights(save_weights_epoch_dir + 'weights.h5')
 
 
 def saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csv_dir):
