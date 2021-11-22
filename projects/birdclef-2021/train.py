@@ -1,21 +1,26 @@
 import keras
-import numpy as np
-from numpy.core.numeric import indices
-import pandas as pd
 import tensorflow as tf
-import tensorflow_addons as tfa
-import tensorflow.keras.backend as K
+from keras import applications
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
+
+import numpy as np
+import os
+import pandas as pd
 import random
 import librosa
 from skimage.io import imread
 from sklearn.utils import shuffle
-from keras import applications
-from tensorflow.keras.layers import Conv2D, BatchNormalization, MaxPooling2D, GlobalAveragePooling2D, Dense, Dropout
-from tensorflow.keras.models import Sequential
 
-from GLOBAL_VARS import RANDOM_SEED, SPEC_SHAPE, BATCH_SIZE, NUM_EPOCHS, NUM_TRAIN_FILES, NUM_VAL_FILES, LEVEL_NOISE, TRAIN_MELS, N_CLASSES, NOCALL_MELS, CLASS_TO_INT, VAL_MELS
+from globalVariables import (NUM_EPOCHS, NUM_CLASSES, BATCH_SIZES, INPUT_SHAPE, TRAIN_FILEPATHS, VAL_FILEPATHS, ADDITIONAL_FILEPATH, RANDOM_STATE, SAMPLING_RATE, INDENT_SECONDS, SIGNAL_LENGTH, NOISE_LEVEL, FMIN, FMAX)
 
-tf.random.set_seed(RANDOM_SEED)
+tf.random.set_seed(RANDOM_STATE)
+
+# ONE-HOT
+TRAIN_META = pd.read_csv('datasets/train/0garbage/train_metadata.csv')
+LABELS = TRAIN_META['primary_label'].unique()
+CLASS_TO_INT = {k: v for v, k in enumerate(LABELS)}
+print(CLASS_TO_INT)
 
 
 #strategy = tf.distribute.MirroredStrategy(cross_device_ops=tf.distribute.HierarchicalCopyAllReduce()) # FOR MULTI GPU TRAINING
@@ -34,7 +39,7 @@ class My_Custom_Generator(keras.utils.Sequence) :
   
   def __getitem__(self, idx) :
     batch_x = self.filenames[idx * self.batch_size : (idx+1) * self.batch_size]
-    batch_y = np.zeros((self.batch_size, N_CLASSES))
+    batch_y = np.zeros((self.batch_size, NUM_CLASSES))
     
     data_x = []
     for file in batch_x:
@@ -60,12 +65,12 @@ class My_Custom_Generator(keras.utils.Sequence) :
           
         
       file_2 = np.load(self.path + self.filenames[idx2])
-      file_2 = np.roll(file_2, random.randint(SPEC_SHAPE[1] / 16, SPEC_SHAPE[1] / 2),axis=1)
+      file_2 = np.roll(file_2, random.randint(INPUT_SHAPE[1] / 16, INPUT_SHAPE[1] / 2),axis=1)
       file_2_label = self.filenames[idx2].split('_')[0]
       file_2_label_idx = CLASS_TO_INT[file_2_label]
       
       file_3 = np.load(self.path + self.filenames[idx3])
-      file_3 = np.roll(file_3, random.randint(SPEC_SHAPE[1] / 16, SPEC_SHAPE[1] / 2),axis=1)
+      file_3 = np.roll(file_3, random.randint(INPUT_SHAPE[1] / 16, INPUT_SHAPE[1] / 2),axis=1)
       file_3_label = self.filenames[idx3].split('_')[0]
       file_3_label_idx = CLASS_TO_INT[file_3_label]
       
@@ -149,8 +154,8 @@ class My_Custom_Generator(keras.utils.Sequence) :
     nocall_batch_size = random.randint(0, data_x.shape[0] - 1)
     idxs_data_x = np.random.choice(range(data_x.shape[0] - 1), nocall_batch_size, replace=False)
     for idx in idxs_data_x:
-      idx_nocall = random.randint(0, len(NOCALL_MELS) - 1)
-      nocall = np.load('datasets/train/mel_nocalls_col/' + NOCALL_MELS[idx_nocall])
+      idx_nocall = random.randint(0, len(os.listdir(ADDITIONAL_FILEPATH)) - 1)
+      nocall = np.load('datasets/train/mel_nocalls_col/' + ADDITIONAL_FILEPATH[idx_nocall])
       
       #NORMALIZE NOCALL
       if nocall.max() != nocall.min():
@@ -167,25 +172,18 @@ class My_Custom_Generator(keras.utils.Sequence) :
       data_x[i] = librosa.power_to_db(data_x[i], ref=np.max)
       data_x[i] = (data_x[i] + 80) / 80 
     
-    
     # Add white noise
     if random.random()<0.8:
       for i in range(self.batch_size):
-        white_noise = (np.random.sample((SPEC_SHAPE[0], SPEC_SHAPE[1])).astype(np.float32) + 9) * data_x[i].mean() * LEVEL_NOISE * (np.random.sample() + 0.3)
+        white_noise = (np.random.sample((INPUT_SHAPE[0], INPUT_SHAPE[1])).astype(np.float32) + 9) * data_x[i].mean() * NOISE_LEVEL * (np.random.sample() + 0.3)
         data_x[i] = data_x[i] + white_noise
-    
-    # # Add pink noise
-    # if random.random()<0.9:
-    #   r = random.randint(1, SPEC_SHAPE[0])
-    #   pink_noise = np.array([np.concatenate((1 - np.arange(r)/r,np.zeros(SPEC_SHAPE[0]-r)))]).T
-    #   data_x = data_x + pink_noise
     
     # Add bandpass noise
     if random.random()<0.7:
       for i in range(self.batch_size):
-        a = random.randint(0, SPEC_SHAPE[0]//2)
-        b = random.randint(a + 20, SPEC_SHAPE[0])
-        data_x[i, a:b, :] += (np.random.sample((b - a, SPEC_SHAPE[1])).astype(np.float32) + 9) * 0.05 * data_x[i].mean() * LEVEL_NOISE  * (np.random.sample() + 0.3)
+        a = random.randint(0, INPUT_SHAPE[0]//2)
+        b = random.randint(a + 20, INPUT_SHAPE[0])
+        data_x[i, a:b, :] += (np.random.sample((b - a, INPUT_SHAPE[1])).astype(np.float32) + 9) * 0.05 * data_x[i].mean() * NOISE_LEVEL  * (np.random.sample() + 0.3)
     
     
     # NORMALIZE
@@ -198,39 +196,37 @@ class My_Custom_Generator(keras.utils.Sequence) :
 
     return rgb_batch, np.array(batch_y)
 
-def DenseNet121():
 
-  dense_model = applications.DenseNet121(include_top=False, weights='imagenet', pooling='avg', input_shape=(SPEC_SHAPE[0], SPEC_SHAPE[1], 3))
+def buildModel():
+
+  dense_model = applications.DenseNet121(include_top=False, weights='imagenet', pooling='avg', input_shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], 3))
 
   model = Sequential()
   model.add(dense_model)
 
   # Classification layer
-  model.add(Dense(N_CLASSES))
+  model.add(Dense(NUM_CLASSES))
 
   return model
 
-# FOR MULTI GPU TRAINING: with strategy.scope(): 
-model = DenseNet121()   #model = tf.load(weights)
+
+model = buildModel()
 
 optimizer = tf.keras.optimizers.Adam()
-loss_cat = tf.losses.CategoricalCrossentropy()
-loss_focal = tfa.losses.SigmoidFocalCrossEntropy()
 loss_bce = tf.losses.BinaryCrossentropy(from_logits=True)
-
 model.compile(optimizer=optimizer, loss=loss_bce, metrics=['accuracy'])
 
 callbacks = [tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', patience=2, verbose=1, factor=0.5),
             tf.keras.callbacks.EarlyStopping(monitor='val_loss', verbose=1, patience=4),
             tf.keras.callbacks.ModelCheckpoint(filepath='bird_last.h5', monitor='val_loss', verbose=1, save_best_only=True)]
 
-x_train, x_val = TRAIN_MELS, VAL_MELS
+x_train, x_val = TRAIN_FILEPATHS, VAL_FILEPATHS
 for epoch in range(NUM_EPOCHS):
   
   x_train, x_val = shuffle(x_train), shuffle(x_val)
   
-  my_training_batch_generator = My_Custom_Generator(x_train, BATCH_SIZE, 'datasets/train/mel_train_col/')
-  my_validation_batch_generator = My_Custom_Generator(x_val, BATCH_SIZE, 'datasets/train/mel_val_col/')
+  my_training_batch_generator = My_Custom_Generator(x_train, BATCH_SIZES, TRAIN_FILEPATHS)
+  my_validation_batch_generator = My_Custom_Generator(x_val, BATCH_SIZES, VAL_FILEPATHS)
 
-  model.fit_generator(generator=my_training_batch_generator, steps_per_epoch = int(NUM_TRAIN_FILES // BATCH_SIZE),
-                    verbose = 1, validation_data = my_validation_batch_generator, validation_steps = int(NUM_VAL_FILES // BATCH_SIZE), callbacks=callbacks)
+  model.fit_generator(generator=my_training_batch_generator, steps_per_epoch = int(os.listdir(TRAIN_FILEPATHS) // BATCH_SIZES),
+                    verbose = 1, validation_data = my_validation_batch_generator, validation_steps = int(os.listdir(VAL_FILEPATHS) // BATCH_SIZES), callbacks=callbacks)
