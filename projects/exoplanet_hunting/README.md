@@ -1,5 +1,7 @@
 # Exoplanet Hunting Challenge
 
+![exoplanet](https://user-images.githubusercontent.com/73081144/142792026-0eb75b68-7d1e-4d8d-a7df-d3009b8546c1.jpg)
+
 ## Description
 
 The data describe the change in flux (light intensity) of several thousand
