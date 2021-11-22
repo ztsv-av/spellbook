@@ -1,49 +1,19 @@
+from keras.models import load_model
+
 import pandas as pd
 import numpy as np
 import librosa
-import matplotlib.pyplot as plt
 import librosa.display
 import os
-import tensorflow_addons as tfa
-import tensorflow as tf
-from keras.models import load_model
 from itertools import chain
-from skimage.io import imread
 
-# Global vars
-RANDOM_SEED = 1337
-SAMPLE_RATE = 32000
-SIGNAL_LENGTH = 5 # seconds
-SPEC_SHAPE = (128, 256) # height x width
-FMIN = 500
-FMAX = 12500
+from globalVariables import (INPUT_SHAPE, SAMPLING_RATE, SIGNAL_LENGTH, FMIN, FMAX)
+from helpers import findNLargest
 
-def find5largest(arr, n):
-    arr = sorted(arr) # It uses Tuned Quicksort with
-                      # avg. case Time complexity = O(nLogn)
-    
-    largest = []
-    check = 0
-    count = 1
- 
-    for i in range(1, n + 1):
- 
-        if(count < 6):
-            if(check != arr[n - i]):
-                 
-                # to handle duplicate values
-                largest.append(arr[n - i])
-                check = arr[n - i]
-                count += 1
-        else:
-            break
-    
-    return largest
 
 # Labels to digits
 TRAIN_META = pd.read_csv('datasets/train/0garbage/train_metadata.csv')
 labels = TRAIN_META['primary_label'].unique()
-
 label_to_digit = {k: v for v, k in enumerate(labels)}
 
 # Model
@@ -53,22 +23,22 @@ path_audio = 'datasets/train/0garbage/train_soundscapes/20152_SSW_20170805.ogg'
 file = '20152_SSW_20170805'
 fileinfo = file.split(os.sep)[-1].rsplit('.', 1)[0].split('_')
 
-audio, _ = librosa.load(path_audio, sr=SAMPLE_RATE)
+audio, _ = librosa.load(path_audio, sr=SAMPLING_RATE)
 
 pred = {'row_id': [], 'birds': []}
-
 second = 5
+
 for i in range(0, len(audio), int(5 * 32000)):
 
     split = audio[i:i + int(5 * 32000)]
 
     # Create melspectogram of 5 second split
-    hop_length = int(SIGNAL_LENGTH * SAMPLE_RATE / (SPEC_SHAPE[1] - 1))
+    hop_length = int(SIGNAL_LENGTH * SAMPLING_RATE / (INPUT_SHAPE[1] - 1))
     mel_spec = librosa.feature.melspectrogram(y=split,
-                                                sr=SAMPLE_RATE,
+                                                sr=SAMPLING_RATE,
                                                 n_fft=1024,
                                                 hop_length=hop_length,
-                                                n_mels=SPEC_SHAPE[0],
+                                                n_mels=INPUT_SHAPE[0],
                                                 fmin=FMIN,
                                                 fmax=FMAX)
 
@@ -80,11 +50,7 @@ for i in range(0, len(audio), int(5 * 32000)):
         continue
     
     mel_spec = np.expand_dims(mel_spec, 0)
-    
     mel_spec = np.repeat(mel_spec[..., np.newaxis], 3, -1)
-    
-    #spec = np.array([imread('datasets/train/collapsed_train_melspecs_full/daejun_159.png')], dtype='float32')/255.0
-    #spec_rgb = np.repeat(spec[..., np.newaxis], 3, -1)
     
     prediction = bird_model.predict(mel_spec, batch_size=1)
     prediction = list(chain.from_iterable(prediction))
@@ -93,7 +59,7 @@ for i in range(0, len(audio), int(5 * 32000)):
     #prediction_bool = prediction > 0.25
     #print(prediction_bool)
     
-    largest = find5largest(prediction, len(prediction))
+    largest = findNLargest(prediction, 4)
     largest_idx = []
     
     row_id = fileinfo[0] + '_'  + fileinfo[1] + '_'  + str(second)
@@ -118,8 +84,4 @@ for i in range(0, len(audio), int(5 * 32000)):
     pred['birds'].append(pred_5sec)
     pred['row_id'].append(row_id)
     
-    if second == 100:
-        break
-    
     second += 5
-print(pred)
