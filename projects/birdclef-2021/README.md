@@ -3,7 +3,7 @@
 ![birdclef](https://user-images.githubusercontent.com/73081144/142802087-fcebf012-f222-4d7c-9d5e-0b2fd7b77859.png)
 
 ## Description
-- 
+
 In this competition, we automated the acoustic identification of birds in soundscape recordings with the help of deep learning models. 
 We examined an acoustic dataset and build a classification model which categorized signals of interest (bird calls) in a recording.
 
