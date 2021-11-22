@@ -44,18 +44,17 @@ Each project directory consists of following folders:
 
 | Folder         | Description                                           |
 | -------------- | ----------------------------------------------------- |
-| `datasets`     | Project datasets and metadata files                   |
+| `data`         | Project datasets and metadata files                   |
 | `training`     | Trained models' weights and fit logs                  |
 | `best_weights` | Best models' weights picked from `training` directory |
-| `predictions`  | Predictions for test dataset                          |
 
 and the following `.py` scripts:
 
 | Script                 | Description                                                                        |
 | ---------------------- | ---------------------------------------------------------------------------------- |
-| `dataPreprocessing.py` | Preprocesses data for fitting (preprocessed data is saved to `datasets` directory) |
-| `prediction.py`        | Prepares and saves predictions into `predictions` directory                        |
-| `train.py`             | (Optional) Contains a project specific train loop                                       |
+| `dataPreprocessing.py` | Preprocesses data for fitting (preprocessed data is saved to `data` directory)     |
+| `prediction.py`        | Code for predictions                                                               |
+| `train.py`             | (Optional) Contains a project specific train loop                                  |
 
 ## Project `README` Template
 
