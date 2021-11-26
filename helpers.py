@@ -11,7 +11,6 @@ from sklearn.model_selection import train_test_split
 
 from object_detection.utils import visualization_utils as viz_utils
 
-from globalVariables import DROPOUT_RATES
 
 def loadNumpy(path):
     """
