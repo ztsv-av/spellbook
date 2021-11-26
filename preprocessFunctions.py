@@ -82,6 +82,55 @@ def meanStdNormalize(x):
         raise TypeError("first convert x to numpy array")
 
 
+def kerasNormalize(model_name):
+
+    if model_name == 'VGG16':
+
+        normalization_function = tf.keras.applications.vgg16.preprocess_input
+
+    elif model_name == 'VGG19':
+
+        normalization_function = tf.keras.applications.vgg19.preprocess_input
+    
+    elif model_name == 'InceptionV3':
+
+        normalization_function = tf.keras.applications.inception_v3.preprocess_input
+        
+    elif model_name == 'Xception':
+
+        normalization_function = tf.keras.applications.xception.preprocess_input
+        
+    elif model_name == 'MobileNet':
+
+        normalization_function = tf.keras.applications.mobilenet.preprocess_input
+
+    elif model_name == 'MobileNetV2':
+
+        normalization_function = tf.keras.applications.mobilenet_v2.preprocess_input
+    
+    elif model_name == 'InceptionResNetV2':
+
+        normalization_function = tf.keras.applications.inception_resnet_v2.preprocess_input
+    
+    elif (model_name == 'ResNet50') or (model_name == 'ResNet101'):
+
+        normalization_function = tf.keras.applications.resnet50.preprocess_input
+        
+    elif (model_name == 'ResNet50V2') or (model_name == 'ResNet101V2'):
+
+        normalization_function = tf.keras.applications.resnet_v2.preprocess_input
+
+    elif 'DenseNet' in model_name:
+
+        normalization_function = tf.keras.applications.densenet.preprocess_input
+
+    elif 'EfficientNet' in model_name:
+
+        normalization_function = tf.keras.applications.efficientnet.preprocess_input
+
+    return normalization_function
+
+
 def addColorChannels(x, num_channels):
     """
     adds channel dimension to 2D image
