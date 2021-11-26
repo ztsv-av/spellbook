@@ -8,8 +8,8 @@ from tensorflow.keras.layers import *
 
 MODELS_CLASSIFICATION = {
     # 'DenseNet121': DenseNet121,
-    'Xception': Xception,
-    'InceptionV3': InceptionV3}
+    'Xception': Xception}
+    # 'VGG16': VGG16}
     # 'MobileNet': MobileNet,
     # 'MobileNetV2': MobileNetV2,
     # 'ResNet50': ResNet50,
