@@ -53,13 +53,25 @@ def LRLadderDecrease(optimizer, step):
 
 def saveTrainInfo(model_name, epoch, fold_num, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_train_info_dir):
 
-    info_df = pd.DataFrame({
-        'epoch': [epoch + 1],
-        'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-        'train_loss': [train_loss.numpy()],
-        'train_accuracy': [(train_accuracy.result() * 100).numpy()],
-        'val_loss': [val_loss.result().numpy()],
-        'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
+    if val_loss is not None:
+
+        info_df = pd.DataFrame({
+            'epoch': [epoch + 1],
+            'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
+            'train_loss': [train_loss.numpy()],
+            'train_accuracy': [(train_accuracy.result() * 100).numpy()],
+            'val_loss': [val_loss.result().numpy()],
+            'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
+    
+    else:
+
+        info_df = pd.DataFrame({
+            'epoch': [epoch + 1],
+            'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
+            'train_loss': [train_loss.numpy()],
+            'train_accuracy': [(train_accuracy.result() * 100).numpy()],
+            'val_loss': ['No validation'],
+            'val_accuracy': ['No validation']})
 
     save_csv_dir = save_train_info_dir + model_name + '/'
 
@@ -96,6 +108,20 @@ def saveTrainWeights(model, model_name, epoch, fold_num, save_train_weights_dir)
         os.makedirs(save_weights_epoch_dir)
 
     model.save_weights(save_weights_epoch_dir + 'weights.h5')
+
+def saveModel(model, model_name, epoch, fold_num, save_train_weights_dir):
+
+    if fold_num is not None:
+        save_weights_epoch_dir = save_train_weights_dir + \
+            model_name + '/' + 'fold-' + str(fold_num + 1) + '/' + str(epoch + 1) + '/'
+    else:
+        save_weights_epoch_dir = save_train_weights_dir + \
+            model_name + '/' + 'no-folds/' + '/' + str(epoch + 1) + '/'
+
+    if not os.path.exists(save_weights_epoch_dir):
+        os.makedirs(save_weights_epoch_dir)
+
+    model.save(save_weights_epoch_dir + 'savedModel')
 
 
 def saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csv_dir):
