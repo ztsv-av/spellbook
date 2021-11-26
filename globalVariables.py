@@ -5,16 +5,17 @@ import albumentations as A
 
 
 # classification
-NUM_EPOCHS = 60
+NUM_EPOCHS = 30
 START_EPOCH = 0
-INPUT_SHAPE = (512, 512, 3)
-NUM_FEATURES = 12
+INPUT_SHAPE = (256, 256, 3)
+NUM_FEATURES = [307, 3]
 INITIAL_DROPOUT = 0.5
-FC_LAYERS = None
-DROPOUT_RATES = None
+FC_LAYERS = (512, 64)
+DROPOUT_RATES = (0.5, None)
 DROP_CONNECT_RATE = 0.4  # 0.2 - default
-OUTPUT_ACTIVATION = 'softmax'  # 'sigmoid', 'softmax', 'relu', None
-NUM_CLASSES = 4
+OUTPUT_ACTIVATION = None  # 'sigmoid', 'softmax', 'relu', None
+NUM_CLASSES = 307
+DO_PREDICTIONS = True
 UNFREEZE = True
 NUM_UNFREEZE_LAYERS = None
 IMAGE_FEATURE_EXTRACTOR_FC = 64
@@ -22,30 +23,32 @@ AUTOENCODER_FC = (256, 64, 256)
 LABELS = ""
 LABEL_TO_INTEGER = ""
 MODEL_POOLING = 'avg'  # 'max', 'avg', None
-
-DATA_FILEPATHS = 'projects/petfinder/petfinder-previous/data/images-preprocessed/512/'
+DATA_FILEPATHS = 'projects/petfinder/petfinder-previous/data/images-preprocessed/256/'
 ADDITIONAL_DATA_FILEPATHS = ''
-TRAIN_FILEPATHS = 'projects/petfinder/petfinder-previous/data/train/512/'
-VAL_FILEPATHS = 'projects/petfinder/petfinder-previous/data/val/512/'
+TRAIN_FILEPATHS = 'projects/petfinder/petfinder-previous/data/train/256/'
+VAL_FILEPATHS = 'projects/petfinder/petfinder-previous/data/val/256/'
+DO_VALIDATION = True
 DO_KFOLD = True
-NUM_FOLDS = 5
+NUM_FOLDS = 4
 RANDOM_STATE = 1337
 METADATA = pd.read_csv('projects/petfinder/petfinder-previous/data/metadata/preprocessed_metadata.csv')
 ID_COLUMN = 'id'
-FEATURE_COLUMN = 'Maturity'  # ['Type', 'Age', 'Breed', 'Gender', 'Color', 'Maturity', 'Fur', 'Health']
+FEATURE_COLUMN = 'Breed'  # ['Type', 'Age', 'Breed', 'Gender', 'Color', 'Maturity', 'Fur', 'Health']
 FULL_RECORD = False
-MAX_FILES_PER_PART = 300
+MAX_FILES_PER_PART = 900
 MAX_FILEPARTS_TRAIN = len(os.listdir(TRAIN_FILEPATHS)) // MAX_FILES_PER_PART
 MAX_FILEPARTS_VAL = len(os.listdir(VAL_FILEPATHS)) // MAX_FILES_PER_PART
 SHUFFLE_BUFFER_SIZE = 4096
 TRAINED_MODELS_PATH = ''
 TRAINED_MODELS_FILES = None  # os.listdir()
-SAVE_TRAIN_INFO_DIR = 'projects/petfinder/petfinder-previous/training/info/512/'
-SAVE_TRAIN_WEIGHTS_DIR = 'projects/petfinder/petfinder-previous/training/weights/512/'
+SAVE_TRAIN_INFO_DIR = 'projects/petfinder/petfinder-previous/training/info/256/'
+SAVE_TRAIN_WEIGHTS_DIR = 'projects/petfinder/petfinder-previous/training/weights/256/'
 LOAD_WEIGHTS = False
-CLASSIFICATION_CHECKPOINT_PATH = 'projects/petfinder/petfinder-previous/training/weights/512/Xception/fold-4/30/weights.h5'
+CLASSIFICATION_CHECKPOINT_PATH = 'projects/petfinder/petfinder-previous/models/breed/weights.h5'
 
 BATCH_SIZES = {
+    'VGG16': 16,
+    'VGG19': 16,
     'DenseNet121': 16,
     'DenseNet169': 8,
     'EfficientNetB0': 12,
@@ -55,14 +58,14 @@ BATCH_SIZES = {
     'EfficientNetB4': 4,
     'EfficientNetB5': 4,
     'InceptionResNetV2': 16,
-    'InceptionV3': 8,
+    'InceptionV3': 16,
     'MobileNet': 16,
     'MobileNetV2': 16,
     'ResNet50': 16,
     'ResNet50V2': 16,
     'ResNet101': 16,
     'ResNet101V2': 16,
-    'Xception': 8}
+    'Xception': 16}
 
 # for 256x256
 BATCH_SIZES_256 = {
@@ -128,20 +131,20 @@ SAVE_TRAIN_INFO_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
 
 # optimizers
 LEARNING_RATE = 0.001
+LR_EXP = False
 LR_DECAY_STEPS = 500
 LR_DECAY_RATE = 0.95
 LR_LADDER = True
 LR_LADDER_STEP = 0.75
-LR_LADDER_EPOCHS = 10
-LR_EXP = False
+LR_LADDER_EPOCHS = 5
 
 # losses
-FROM_LOGITS = False
+FROM_LOGITS = True # from_logits=True => no activation function
 LABEL_SMOOTING = 0.001
 
 # metrics
 # use 0.0 when loss = BinaryCrossentropy(from_logits=True), otherwise 0.5 or any desired value
-BINARY_ACCURACY_THRESHOLD = 0.0
+ACCURACY_THRESHOLD = 0.0
 F1_SCORE_AVERAGE = 'macro'
 
 # callbacks
@@ -181,21 +184,30 @@ OPTICAL_DISTORT_LIMIT = 0.4
 OPTICAL_SHIFT_LIMIT = 0.5  # doesn't really do much
 ROTATE_LIMIT = 30
 INVERT_PROBABILITY = 0.5
+BRIGHTNESS_LIMIT = 0.2
+CONTRAST_LIMIT = 0.2
+HUE_LIMIT = 0
+SATURATION_LIMIT = [15, 35]
+VALUE_LIMIT = 0
 
 DO_PERMUTATIONS = True
-PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 4
+PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 2
 PERMUTATIONS_CLASSIFICATION = [
     A.RandomGamma(gamma_limit=GAMMA_LIMIT,
                   p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     # A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT,
     #             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.GlassBlur(max_delta=GLASS_BLUR_MAXDELTA, iterations=GLASS_BLUR_ITERATIONS,
-    #             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+    A.GlassBlur(max_delta=GLASS_BLUR_MAXDELTA, iterations=GLASS_BLUR_ITERATIONS,
+                p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     A.Sharpen(alpha=SHARPEN_ALPHA, lightness=SHARPEN_LIGHTNESS,
             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     A.Emboss(strength=EMBOSS_STRENGTH,
-            p=PERMUTATION_PROBABILITY_CLASSIFICATION)]
+            p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+    A.RandomBrightnessContrast(brightness_limit=BRIGHTNESS_LIMIT, 
+        contrast_limit=CONTRAST_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+    A.HueSaturationValue(hue_shift_limit=HUE_LIMIT, sat_shift_limit=SATURATION_LIMIT, 
+        val_shift_limit=VALUE_LIMIT, p=PERMUTATION_PROBABILITY_CLASSIFICATION)]
     # A.Downscale(scale_min=DOWNSCALE_MIN, scale_max=DOWNSCALE_MIN,
     #             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     # A.GridDistortion(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
