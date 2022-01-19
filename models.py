@@ -6,9 +6,12 @@ from tensorflow.keras.applications import *
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import *
 
+from globalVariables import DROPOUT_RATES, FC_LAYERS
+
 MODELS_CLASSIFICATION = {
     # 'DenseNet121': DenseNet121,
-    'Xception': Xception}
+    'InceptionV3': InceptionV3}
+    # 'Xception': Xception}
     # 'VGG16': VGG16}
     # 'MobileNet': MobileNet,
     # 'MobileNetV2': MobileNetV2,
@@ -56,9 +59,31 @@ def userDefinedModel(num_classes, activation):
     return model
 
 
-def unfreezeModel(model, num_last_layers):
+def unfreezeModel(model, num_input_layers, batch_norm, num_layers):
 
-    for layer in model.layers[-num_last_layers:]:
+    num_last_layers = 3 + num_input_layers
+
+    if batch_norm:
+
+        num_last_layers += 1
+
+    if FC_LAYERS != None:
+
+        for layer in FC_LAYERS:
+
+            if layer != None:
+
+                num_last_layers += 1
+        
+        for layer in DROPOUT_RATES:
+
+            if layer != None:
+
+                num_last_layers += 1
+        
+    num_layers_unfreeze = num_layers + num_last_layers
+
+    for layer in model.layers[-num_layers_unfreeze + 1: -num_last_layers]:
         if not isinstance(layer, tf.keras.layers.BatchNormalization):
             layer.trainable = True
 
@@ -108,7 +133,7 @@ def buildClassificationPretrainedModel(model_path, pretrained_model, custom_obje
     return model
 
 
-def buildClassificationImageNetModel(input_layer, model_name, model_imagenet, pooling, dropout_connect_rate, initial_dropout, fc_layers, dropout_rates, num_classes, activation, trainable, do_predictions):
+def buildClassificationImageNetModel(inputs, model_name, model_imagenet, pooling, dropout_connect_rate, do_batch_norm, initial_dropout, concat_features_before, concat_features_after, fc_layers, dropout_rates, num_classes, activation, trainable, do_predictions):
     """
     builds classification ImageNet model given image input shape, number of classes, pooling and activation layers
 
@@ -138,11 +163,11 @@ def buildClassificationImageNetModel(input_layer, model_name, model_imagenet, po
     if 'EfficientNet' in model_name:
 
         imagenet_model = model_imagenet(
-            include_top=False, weights='imagenet', input_tensor=input_layer, drop_connect_rate=dropout_connect_rate)
+            include_top=False, weights='imagenet', input_tensor=inputs[0], drop_connect_rate=dropout_connect_rate, pooling=pooling)
     else:
 
         imagenet_model = model_imagenet(
-            include_top=False, weights='imagenet', input_tensor=input_layer)
+            include_top=False, weights='imagenet', input_tensor=inputs[0], pooling=pooling)
 
     if not trainable:
 
@@ -150,23 +175,24 @@ def buildClassificationImageNetModel(input_layer, model_name, model_imagenet, po
 
     feature_extractor = imagenet_model.output
 
-    if pooling == 'avg':
+    if do_batch_norm:
 
-        feature_extractor = tf.keras.layers.GlobalAveragePooling2D(name='avg_global_pool')(feature_extractor)
-
-    elif pooling == 'max':
-
-        feature_extractor = tf.keras.layers.GlobalAveragePooling2D(name='max_global_pool')(feature_extractor)
-
-    else:
-
-        feature_extractor = tf.keras.layers.Flatten()(feature_extractor)
-
-    feature_extractor = tf.keras.layers.BatchNormalization()(feature_extractor)
+        feature_extractor = tf.keras.layers.BatchNormalization()(feature_extractor)
 
     if initial_dropout is not None:
 
         feature_extractor = tf.keras.layers.Dropout(initial_dropout)(feature_extractor)
+    
+    if concat_features_before:
+
+        feature_layers = [layer for layer in inputs[1:]]
+        feature_layers.insert(0, feature_extractor)
+
+        concat_layer = tf.keras.layers.Concatenate(name='concat_features')(feature_layers)
+    
+    else:
+
+        concat_layer = None
 
     if (fc_layers is not None) or (dropout_rates is not None):
 
@@ -178,7 +204,15 @@ def buildClassificationImageNetModel(input_layer, model_name, model_imagenet, po
 
             else:
 
-                feature_extractor = tf.keras.layers.Dense(fc, activation='relu')(feature_extractor)
+                if concat_layer is not None:
+
+                    feature_extractor = tf.keras.layers.Dense(fc, activation='relu')(concat_layer)
+
+                    concat_layer = None
+
+                else:
+
+                    feature_extractor = tf.keras.layers.Dense(fc, activation='relu')(feature_extractor)
 
             if dropout == None:
 
@@ -188,17 +222,40 @@ def buildClassificationImageNetModel(input_layer, model_name, model_imagenet, po
 
                 feature_extractor = tf.keras.layers.Dropout(dropout)(feature_extractor)
 
+    if concat_features_after:
+
+        feature_layers = [layer for layer in inputs[1:]]
+        feature_layers.insert(0, feature_extractor)
+
+        concat_layer = tf.keras.layers.Concatenate(name='concat_features')(feature_layers)
+    
+    else:
+
+        concat_layer = None
+
     if do_predictions:
 
-        predictions = tf.keras.layers.Dense(num_classes, activation=activation)(feature_extractor)
+        if concat_layer is not None:
 
-        model = tf.keras.Model(inputs=imagenet_model.input, outputs=predictions)
+            predictions = tf.keras.layers.Dense(num_classes, activation=activation)(concat_layer)
+
+        else:
+
+            predictions = tf.keras.layers.Dense(num_classes, activation=activation)(feature_extractor)
+
+        model = tf.keras.Model(inputs=inputs, outputs=predictions)
 
         return model
 
     else:
 
-        model = tf.keras.Model(inputs=imagenet_model.input, outputs=feature_extractor)
+        if concat_layer is not None:
+
+            model = tf.keras.Model(inputs=inputs, outputs=concat_layer)
+
+        else:
+
+            model = tf.keras.Model(inputs=inputs, outputs=feature_extractor)
 
         return model
 

@@ -1,13 +1,11 @@
 from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
-from callbacks import saveTrainInfo, saveTrainWeights, saveTrainInfoDetection, saveCheckpointDetection
-from helpers import getFullPaths
+from callbacks import LRLadderDecrease ,saveTrainInfo, saveTrainWeights, saveModel, saveTrainInfoDetection, saveCheckpointDetection
+from helpers import getFullPaths, loadNumpy, getFeaturesFromPath, getLabelFromPath
 
 import os
 import time
 import tensorflow as tf
 from sklearn.utils import shuffle
-
-# CLASSIFICATION
 
 
 def classificationDistributedTrainStepWrapper():
@@ -22,7 +20,7 @@ def classificationDistributedTrainStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
+    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy, is_autoencoder):
         """
         computes reduced loss after one distributed train step
 
@@ -55,7 +53,7 @@ def classificationDistributedTrainStepWrapper():
         """
 
         per_replica_losses = strategy.run(classificationTrainStep, args=(
-            inputs, model, compute_total_loss, optimizer, train_accuracy))
+            inputs, model, compute_total_loss, optimizer, train_accuracy, is_autoencoder))
 
         reduced_loss = strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
@@ -69,7 +67,7 @@ def classificationDistributedTrainStepWrapper():
     return classificationDistributedTrainStep
 
 
-def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
+def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, is_autoencoder):
     """
     computes total loss after one train step
 
@@ -98,17 +96,35 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
             total loss after train step
     """
 
-    images, labels = inputs
+    if True:
+
+        data_features, labels = inputs
+        data, features_t, features_b, features_f, features_s, features_c, features_a = data_features
+        # labels_list = [label for label in labels]
+
+    else:
+
+        data, labels = inputs
 
     with tf.GradientTape() as tape:
 
-        predictions = model(images, training=True)
-        loss = compute_total_loss(labels, predictions)
+        if True:
+
+            predictions = model([data, features_t, features_b, features_f, features_s, features_c, features_a], training=True)
+
+        else:
+
+            predictions = model(data, training=True)
+
+        labels_concat = tf.concat(labels, axis=1)
+        predictions_concat = tf.concat(predictions, axis=1)
+
+        loss = compute_total_loss(labels_concat, predictions_concat)
 
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
-    train_accuracy.update_state(labels, predictions)
+    train_accuracy.update_state(labels_concat, predictions_concat)
 
     return loss
 
@@ -125,7 +141,7 @@ def classificationDistributedValStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
+    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy, is_autoencoder):
         """
         XXX
 
@@ -157,12 +173,12 @@ def classificationDistributedValStepWrapper():
                 XXX
         """
 
-        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
+        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy, is_autoencoder))
 
     return classificationDistributedValStep
 
 
-def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
+def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy, is_autoencoder):
     """
     updates loss and accuracy after validation step for classification
 
@@ -184,19 +200,41 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
             XXX
     """
 
-    images, labels = inputs
+    if True:
 
-    predictions = model(images, training=False)
-    val_batch_loss = loss_object(labels, predictions)
+        data_features, labels = inputs
+        data, features_t, features_b, features_f, features_s, features_c, features_a = data_features
+        # labels_list = [label for label in labels]
+
+        predictions = model([data, features_t, features_b, features_f, features_s, features_c, features_a], training=False)
+
+    else:
+
+        data, labels = inputs
+
+        predictions = model(data, training=False)
+    
+    labels_concat = tf.concat(labels, axis=1)
+    predictions_concat = tf.concat(predictions, axis=1)
+
+    val_batch_loss = loss_object(labels_concat, predictions_concat)
 
     val_loss.update_state(val_batch_loss)
-    val_accuracy.update_state(labels, predictions)
+    val_accuracy.update_state(labels_concat, predictions_concat)
 
 
 def classificationCustomTrain(
-        batch_size, num_epochs, train_paths, val_paths, max_fileparts_train, max_fileparts_val, permutations, do_permutations, normalization,
-        model, loss_object, val_loss, compute_total_loss, optimizer, train_accuracy, val_accuracy,
-        save_train_info_dir, save_train_weights_dir, model_name, strategy):
+        batch_size, num_epochs, start_epoch,
+        train_paths_list, val_paths_list, do_validation, fold, max_fileparts_train, max_fileparts_val,
+        metadata, id_column, feature_column, full_record,
+        shuffle_buffer_size, permutations, do_permutations, normalization,
+        model_name, model,
+        loss_object, val_loss, compute_total_loss,
+        lr_ladder, lr_ladder_step, lr_ladder_epochs, optimizer,
+        train_accuracy, val_accuracy,
+        save_train_info_dir, save_train_weights_dir,
+        strategy,
+        is_autoencoder, pretrained):
     """
     XXX
 
@@ -260,13 +298,11 @@ def classificationCustomTrain(
     wrapperTrain = classificationDistributedTrainStepWrapper()
     wrapperVal = classificationDistributedValStepWrapper()
 
-    train_paths_list = getFullPaths(train_paths)
-    val_paths_list = getFullPaths(val_paths)
-
-    for epoch in range(num_epochs):
+    for epoch in range(start_epoch, num_epochs):
 
         train_paths_list_shuffled = shuffle(train_paths_list)
-        val_paths_list_shuffled = shuffle(val_paths_list)
+        if do_validation:
+            val_paths_list_shuffled = shuffle(val_paths_list)
 
         total_loss = 0.0
         num_batches = 0
@@ -280,72 +316,142 @@ def classificationCustomTrain(
                 int(((part + 1) / max_fileparts_train) * len(train_paths_list_shuffled))]
 
             start_load_data_time = time.time()
-            print('Loading data...', flush=True)
+            if fold == None:
+                print('\nLoading training data...', flush=True)
+            else:
+                print('Fold ' + str(fold + 1) + '. Loading training data...', flush=True)
 
             train_distributed_part = prepareClassificationDataset(
-                batch_size, train_filepaths_part, permutations, do_permutations, normalization, strategy, is_val=False)
+                batch_size, train_filepaths_part, metadata, id_column, feature_column, full_record,
+                permutations, do_permutations, normalization, strategy, is_autoencoder, is_val=False)
 
             end_load_data_time = time.time()
-
-            print('Finished loading data. Time passed: ' + str(end_load_data_time - start_load_data_time), flush=True)
+            if fold == None:
+                print('Finished loading training data. Time passed: ' 
+                    + str(end_load_data_time - start_load_data_time), flush=True)
+            else:
+                print('Fold ' + str(fold + 1) + '. Finished loading training data. Time passed: ' 
+                    + str(end_load_data_time - start_load_data_time), flush=True)
 
             for batch in train_distributed_part:
 
                 total_loss += wrapperTrain(
-                    batch, model, compute_total_loss, optimizer, train_accuracy, strategy)
+                    batch, model, compute_total_loss, optimizer, train_accuracy, strategy, is_autoencoder)
 
                 num_batches += 1
 
             end_part_time = time.time()
-
-            print('Training: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
-                ', passed time: ' + str(end_part_time - start_part_time), flush=True)
+            if fold == None:
+                print('\nTraining: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
+                    ', passed time: ' + str(end_part_time - start_part_time), flush=True)
+            else:
+                print('\nFold ' + str(fold + 1) + '. Training: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
+                    ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
         train_loss = total_loss / num_batches
 
-        for part in range(max_fileparts_val):
+        del train_distributed_part
 
-            start_part_time = time.time()
+        if do_validation:
 
-            val_filepaths_part = val_paths_list_shuffled[
-                int(part * len(val_paths_list_shuffled) / max_fileparts_val) :
-                int(((part + 1) / max_fileparts_val) * len(val_paths_list_shuffled))]
+            for part in range(max_fileparts_val):
 
-            start_load_data_time = time.time()
-            print('Loading data...', flush=True)
+                start_part_time = time.time()
 
-            val_distributed_batch = prepareClassificationDataset(
-                batch_size, val_filepaths_part, None, do_permutations, normalization, strategy, is_val=True)
+                val_filepaths_part = val_paths_list_shuffled[
+                    int(part * len(val_paths_list_shuffled) / max_fileparts_val) :
+                    int(((part + 1) / max_fileparts_val) * len(val_paths_list_shuffled))]
 
-            end_load_data_time = time.time()
-            print('Finished loading data. Time passed: ' + str(end_load_data_time - start_load_data_time), flush=True)
+                start_load_data_time = time.time()
+                if fold == None:
+                    print('\nLoading validation data...', flush=True)
+                else:
+                    print('\nFold ' + str(fold + 1) + '. Loading validation data...', flush=True)
 
-            for batch in val_distributed_batch:
+                val_distributed_part = prepareClassificationDataset(
+                    batch_size, val_filepaths_part, metadata, id_column, feature_column, full_record,
+                    None, do_permutations, normalization, strategy, is_autoencoder, is_val=True)
 
-                wrapperVal(
-                    batch, model, loss_object, val_loss, val_accuracy, strategy)
+                end_load_data_time = time.time()
+                if fold == None:
+                    print('Finished validation loading data. Time passed: ' 
+                        + str(end_load_data_time - start_load_data_time), flush=True)
+                else:
+                    print('Fold ' + str(fold + 1) + '. Finished validation loading data. Time passed: ' 
+                        + str(end_load_data_time - start_load_data_time), flush=True)
 
-            end_part_time = time.time()
+                for batch in val_distributed_part:
 
-            print('Validation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
-                ', passed time: ' + str(end_part_time - start_part_time), flush=True)
+                    wrapperVal(
+                        batch, model, loss_object, val_loss, val_accuracy, strategy, is_autoencoder)
 
-        template = (
-            "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
-        print(template.format(
-            epoch + 1, train_loss, train_accuracy.result() * 100,
-            val_loss.result(), val_accuracy.result() * 100, flush=True))
+                end_part_time = time.time()
+                if fold == None:
+                    print('\nValidation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
+                        ', passed time: ' + str(end_part_time - start_part_time), flush=True)
+                else:
+                    print('\nFold ' + str(fold + 1) + '. Validation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
+                        ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
-        # callbacks
-        saveTrainInfo(model_name, epoch, train_loss, train_accuracy,
-                      val_loss, val_accuracy, optimizer, save_train_info_dir)
-        saveTrainWeights(model, model_name, epoch, save_train_weights_dir)
+            del val_distributed_part
 
-        val_loss.reset_states()
-        train_accuracy.reset_states()
-        val_accuracy.reset_states()
+            template = (
+                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
+            print('\n' + template.format(
+                epoch + 1, train_loss, train_accuracy.result() * 100,
+                val_loss.result(), val_accuracy.result() * 100, flush=True))
 
-# DETECTION
+            # callbacks
+            saveTrainInfo(model_name, epoch, fold, train_loss, train_accuracy,
+                        val_loss, val_accuracy, optimizer, save_train_info_dir)
+            saveModel(model, model_name, epoch, fold, save_train_weights_dir)
+
+            if lr_ladder:
+
+                if ((epoch + 1) % lr_ladder_epochs == 0):
+
+                    new_lr = LRLadderDecrease(optimizer, lr_ladder_step)
+
+                    optimizer.learning_rate = new_lr
+
+            val_loss.reset_states()
+            train_accuracy.reset_states()
+            val_accuracy.reset_states()
+
+            # sleep 120 seconds
+            if ((epoch + 1) % 10 == 0):
+
+                print('\nSleeping 120 seconds after every 10 epochs. Zzz...', flush=True)
+                time.sleep(120)
+        
+        else:
+
+            template = (
+                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
+            print('\n' + template.format(
+                epoch + 1, train_loss, train_accuracy.result() * 100,
+                'No validation', 'No validation', flush=True))
+
+            # callbacks
+            saveTrainInfo(model_name, epoch, fold, train_loss, train_accuracy,
+                        None, None, optimizer, save_train_info_dir)
+            saveModel(model, model_name, epoch, fold, save_train_weights_dir)
+
+            if lr_ladder:
+
+                if ((epoch + 1) % lr_ladder_epochs == 0):
+
+                    new_lr = LRLadderDecrease(optimizer, lr_ladder_step)
+
+                    optimizer.learning_rate = new_lr
+
+            train_accuracy.reset_states()
+
+            # sleep 120 seconds
+            if ((epoch + 1) % 10 == 0):
+
+                print('\nSleeping 120 seconds after every 10 epochs. Zzz...', flush=True)
+                time.sleep(120)
 
 
 def detectionTrainStep(

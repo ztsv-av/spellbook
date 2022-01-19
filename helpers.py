@@ -56,7 +56,7 @@ def loadImage(path, image_type):
     return image_converted
 
 
-def saveNumpyArray(x, dir):
+def saveNumpyArray(x, path):
     """
     saves numpy array to specified directory
 
@@ -65,18 +65,18 @@ def saveNumpyArray(x, dir):
         x : ndarray
             numpy array
 
-        dir : str
+        path : str
             full path where to save x
     """
 
     try:
-        np.save(dir, x)
+        np.save(path, x)
 
     except AttributeError:
         raise TypeError("input image is not numpy array")
 
 
-def convertNumpy2png(x, dir):
+def convertNumpy2png(x, path):
     """
     saves numpy array as .png image to specified directory
 
@@ -85,7 +85,7 @@ def convertNumpy2png(x, dir):
         x : ndarray
             numpy array representing image (such as spectogram or dicom)
 
-        dir : str
+        path : str
             full path where to save x as .png image
     """
 
@@ -102,7 +102,7 @@ def convertNumpy2png(x, dir):
         image_2d_scaled = np.uint8(image_2d_scaled)
 
         # write the .png file
-        with open(dir, 'wb') as png_file:
+        with open(path, 'wb') as png_file:
             w = png.Writer(shape[1], shape[0], greyscale=True)
             w.write(png_file, image_2d_scaled)
 
@@ -239,7 +239,7 @@ def getLabelFromPath(path):
 
 def getFeaturesFromPath(path, meta, id_column, feature_column, full_record):
 
-    record = meta[meta[id_column] == path.split('_')[0].split('/')[-1]]
+    record = meta[meta[id_column] == path.split('/')[-1]]
 
     if full_record:
 

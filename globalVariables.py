@@ -5,46 +5,49 @@ import albumentations as A
 
 
 # classification
-NUM_EPOCHS = 30
+NUM_EPOCHS = 60
 START_EPOCH = 0
 INPUT_SHAPE = (256, 256, 3)
-NUM_FEATURES = [307, 3]
-INITIAL_DROPOUT = 0.5
+CONCAT_FEATURES_BEFORE = True
+CONCAT_FEATURES_AFTER = False
+NUM_FEATURES = [2, 167, 3, 4, 7, 3] # [2, 3, 7, 167, 3, 4]
+INITIAL_DROPOUT = 0.2
 FC_LAYERS = (512, 64)
-DROPOUT_RATES = (0.5, None)
+DROPOUT_RATES = (0.2, None)
 DROP_CONNECT_RATE = 0.4  # 0.2 - default
 OUTPUT_ACTIVATION = None  # 'sigmoid', 'softmax', 'relu', None
-NUM_CLASSES = 307
+NUM_CLASSES = 1
+DO_BATCH_NORM = False
 DO_PREDICTIONS = True
 UNFREEZE = True
-NUM_UNFREEZE_LAYERS = None
+UNFREEZE_FULL = False
+NUM_UNFREEZE_LAYERS = 63
 IMAGE_FEATURE_EXTRACTOR_FC = 64
 AUTOENCODER_FC = (256, 64, 256)
 LABELS = ""
 LABEL_TO_INTEGER = ""
 MODEL_POOLING = 'avg'  # 'max', 'avg', None
-DATA_FILEPATHS = 'projects/petfinder/petfinder-previous/data/images-preprocessed/256/'
+DATA_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-preprocessed/'
 ADDITIONAL_DATA_FILEPATHS = ''
-TRAIN_FILEPATHS = 'projects/petfinder/petfinder-previous/data/train/256/'
-VAL_FILEPATHS = 'projects/petfinder/petfinder-previous/data/val/256/'
+TRAIN_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-preprocessed-train/'
+VAL_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-preprocessed-val/'
 DO_VALIDATION = True
-DO_KFOLD = True
-NUM_FOLDS = 4
+DO_KFOLD = False
+NUM_FOLDS = 5
 RANDOM_STATE = 1337
-METADATA = pd.read_csv('projects/petfinder/petfinder-previous/data/metadata/preprocessed_metadata.csv')
+METADATA = pd.read_csv('projects/petfinder/petfinder-previous/data/metadata/age-full-last-predicted-breeds.csv')
 ID_COLUMN = 'id'
-FEATURE_COLUMN = 'Breed'  # ['Type', 'Age', 'Breed', 'Gender', 'Color', 'Maturity', 'Fur', 'Health']
+FEATURE_COLUMN = 'popularity'
 FULL_RECORD = False
 MAX_FILES_PER_PART = 900
-MAX_FILEPARTS_TRAIN = len(os.listdir(TRAIN_FILEPATHS)) // MAX_FILES_PER_PART
-MAX_FILEPARTS_VAL = len(os.listdir(VAL_FILEPATHS)) // MAX_FILES_PER_PART
 SHUFFLE_BUFFER_SIZE = 4096
 TRAINED_MODELS_PATH = ''
 TRAINED_MODELS_FILES = None  # os.listdir()
-SAVE_TRAIN_INFO_DIR = 'projects/petfinder/petfinder-previous/training/info/256/'
-SAVE_TRAIN_WEIGHTS_DIR = 'projects/petfinder/petfinder-previous/training/weights/256/'
+SAVE_TRAIN_INFO_DIR = 'projects/petfinder/petfinder-previous/training/info/'
+SAVE_TRAIN_WEIGHTS_DIR = 'projects/petfinder/petfinder-previous/training/weights/'
 LOAD_WEIGHTS = False
-CLASSIFICATION_CHECKPOINT_PATH = 'projects/petfinder/petfinder-previous/models/breed/weights.h5'
+LOAD_MODEL = False
+CLASSIFICATION_CHECKPOINT_PATH = 'projects/petfinder/petfinder-previous/training/weights/InceptionV3/no-folds/8/savedModel/'
 
 BATCH_SIZES = {
     'VGG16': 16,
@@ -135,12 +138,13 @@ LR_EXP = False
 LR_DECAY_STEPS = 500
 LR_DECAY_RATE = 0.95
 LR_LADDER = True
-LR_LADDER_STEP = 0.75
-LR_LADDER_EPOCHS = 5
+LR_LADDER_STEP = 0.5
+LR_LADDER_EPOCHS = 15
 
 # losses
 FROM_LOGITS = True # from_logits=True => no activation function
-LABEL_SMOOTING = 0.001
+LABEL_SMOOTHING = 0.005
+LOSS_REDUCTION = None
 
 # metrics
 # use 0.0 when loss = BinaryCrossentropy(from_logits=True), otherwise 0.5 or any desired value
@@ -191,7 +195,7 @@ SATURATION_LIMIT = [15, 35]
 VALUE_LIMIT = 0
 
 DO_PERMUTATIONS = True
-PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 2
+PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 4
 PERMUTATIONS_CLASSIFICATION = [
     A.RandomGamma(gamma_limit=GAMMA_LIMIT,
                   p=PERMUTATION_PROBABILITY_CLASSIFICATION),

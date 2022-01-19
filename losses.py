@@ -64,8 +64,6 @@ def categoricalFocalLossWrapper(reduction, alpha=0.25, gamma=2.0):
         # compute mean loss in mini batch
         mean_loss = K.mean(K.sum(loss, axis=-1))
 
-        print(mean_loss.shape)
-
         if reduction == None:
 
             mean_loss = tf.expand_dims(mean_loss, axis=-1)
@@ -151,7 +149,7 @@ def binaryFocalLossWrapper(reduction, alpha=0.25, gamma=2.0):
     return binaryFocalLoss
 
 
-def rootMeanSquaredErrorLoss(reduction, y_true, y_pred):
+def rootMeanSquaredErrorLossWrapper(reduction):
     """
     calculates RMSE loss between true and predicted labels
 
@@ -169,10 +167,14 @@ def rootMeanSquaredErrorLoss(reduction, y_true, y_pred):
             RMSE loss
     """
 
-    rmse_loss =  K.sqrt(K.mean(K.square(y_pred - y_true)))
+    def rootMeanSquaredErrorLoss(y_true, y_pred):
 
-    if reduction == None:
+        rmse_loss =  tf.keras.metrics.mean_squared_error(y_true, y_pred) ** 0.5
 
-        rmse_loss = tf.expand_dims(rmse_loss, axis=-1)
+        if reduction == None:
 
-    return rmse_loss
+            rmse_loss = tf.expand_dims(rmse_loss, axis=-1)
+
+        return rmse_loss
+
+    return rootMeanSquaredErrorLoss
