@@ -133,7 +133,14 @@ def buildClassificationPretrainedModel(model_path, pretrained_model, custom_obje
     return model
 
 
-def buildClassificationImageNetModel(inputs, model_name, model_imagenet, pooling, dropout_connect_rate, do_batch_norm, initial_dropout, concat_features_before, concat_features_after, fc_layers, dropout_rates, num_classes, activation, trainable, do_predictions):
+def buildClassificationImageNetModel(
+    inputs, 
+    model_name, model_imagenet, 
+    pooling, dropout_connect_rate, do_batch_norm, initial_dropout, 
+    concat_features_before, concat_features_after, 
+    fc_layers, dropout_rates, 
+    num_classes, activation, 
+    do_predictions):
     """
     builds classification ImageNet model given image input shape, number of classes, pooling and activation layers
 
@@ -169,9 +176,7 @@ def buildClassificationImageNetModel(inputs, model_name, model_imagenet, pooling
         imagenet_model = model_imagenet(
             include_top=False, weights='imagenet', input_tensor=inputs[0], pooling=pooling)
 
-    if not trainable:
-
-        imagenet_model.trainable = False
+    imagenet_model.trainable = False
 
     feature_extractor = imagenet_model.output
 
@@ -317,22 +322,46 @@ def buildDetectionModel(num_classes, checkpoint_path, config_path, dummy_shape):
     return detection_model
 
 
-def buildAutoencoderPetfinder(
-    num_image_features, num_features, image_feature_extractor_fc, autoencoder_fc):
+def buildDenoisingAutoencoder(
+    c_inputs, 
+    c_model_name, c_model_imagenet, 
+    c_pooling, c_dropout_connect_rate, c_do_batch_norm, c_initial_dropout, 
+    c_concat_features_before, c_concat_features_after, 
+    c_fc_layers, c_dropout_rates, 
+    c_num_classes, c_activation, 
+    c_do_predictions,
+    inputs_features,
+    dense_neurons_data_features, dense_neurons_encoder, dense_neurons_bottle, dense_neurons_decoder,
+    predictions_features,
+    input_den_autoenc_layers):
 
-    input_image_features_layer = tf.keras.layers.Input(shape=(num_image_features, ), name='input_image')
-    input_features_layer = tf.keras.layers.Input(shape=(num_features,), name='input_features')
+    classification_model = buildClassificationImageNetModel(
+        c_inputs, c_model_name, c_model_imagenet,
+        c_pooling, c_dropout_connect_rate, c_do_batch_norm, c_initial_dropout,
+        c_concat_features_before, c_concat_features_after, 
+        c_fc_layers, c_dropout_rates,
+        c_num_classes, c_activation, 
+        c_do_predictions)
 
-    image_features = tf.keras.layers.Dense(image_feature_extractor_fc, activation='relu', name='dense_image_features')(input_image_features_layer)
+    dense_data_features_layer = tf.keras.layers.Dense(dense_neurons_data_features, activation='relu', name="dense_data_features_layer", use_bias=False)(classification_model.layers[-1].output)
+    concat_features_layers = [dense_data_features_layer]
+    for features_layer in inputs_features:
+        concat_features_layers.append(features_layer)
 
-    concatenate_layer = tf.keras.layers.Concatenate(name='concat')([image_features, input_features_layer])
+    concat_layer = tf.keras.layers.Concatenate(name='concat_features')(concat_features_layers)
+    
+    dense_encoder_layer = tf.keras.layers.Dense(dense_neurons_encoder, activation='relu', name="dense_encoder_layer", use_bias=False)(concat_layer)
+    dense_bottle_layer = tf.keras.layers.Dense(dense_neurons_bottle, activation='relu', name="dense_bottle_layer", use_bias=False)(dense_encoder_layer)
+    dense_decoder_layer = tf.keras.layers.Dense(dense_neurons_decoder, activation='relu', name="dense_decoder_layer", use_bias=False)(dense_bottle_layer)
 
-    fc1 = tf.keras.layers.Dense(autoencoder_fc[0], activation='relu', name='encoder_dense')(concatenate_layer)
-    fc2 = tf.keras.layers.Dense(autoencoder_fc[1], activation='relu', name='bottleneck')(fc1)
-    fc3 = tf.keras.layers.Dense(autoencoder_fc[2], activation='relu', name='decoder_dense')(fc2)
+    prediction_layers = []
 
-    predictions = tf.keras.layers.Dense(num_features, name='predict_features')(fc3)
+    for idx, (features, activation) in enumerate(predictions_features):
 
-    autoencoder = tf.keras.models.Model(inputs=[input_image_features_layer, input_features_layer], outputs=predictions)
+        prediction_layer = tf.keras.layers.Dense(features, activation=activation, name=('prediction_layer_' + idx))(dense_decoder_layer)
 
-    return autoencoder
+        prediction_layers.append(prediction_layer)
+
+    denoising_autoencoder = tf.keras.models.Model(inputs=input_den_autoenc_layers, outputs=prediction_layers)
+
+    return denoising_autoencoder
