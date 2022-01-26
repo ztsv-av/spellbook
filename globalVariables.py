@@ -30,7 +30,7 @@ BATCH_SIZES = {
 INPUT_SHAPE = (256, 256, 3)
 
 LOAD_FEATURES = False
-NUM_FEATURES = [2, 167, 3, 4, 7, 3] # [2, 3, 7, 167, 3, 4]
+NUM_ADD_FEATURES = [2, 167, 3, 4, 7, 3] # [2, 3, 7, 167, 3, 4]
 CONCAT_FEATURES_BEFORE = True
 CONCAT_FEATURES_AFTER = False
 
@@ -57,12 +57,12 @@ TRAIN_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-p
 VAL_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-preprocessed-val/'
 DO_VALIDATION = True
 MAX_FILES_PER_PART = 900
-SHUFFLE_BUFFER_SIZE = 4096
 RANDOM_STATE = 1337
 
 METADATA = pd.read_csv('projects/petfinder/petfinder-previous/data/metadata/age-full-last-predicted-breeds.csv')
 ID_COLUMN = 'id'
-FEATURE_COLUMN = 'popularity'
+TARGET_FEATURE_COLUMNS = ['popularity']
+ADD_FEATURES_COLUMNS = ['type', 'breed', 'age']
 FULL_RECORD = False
 
 DO_KFOLD = False
