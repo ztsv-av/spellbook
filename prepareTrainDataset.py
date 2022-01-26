@@ -1,3 +1,4 @@
+from pandas import concat
 from helpers import evaluateString, getLabelFromPath, getFeaturesFromPath, loadNumpy, saveNumpyArray
 from permutationFunctions import classification_permutations, detection_permutations
 
@@ -6,7 +7,11 @@ import time
 import tensorflow as tf
 
 
-def permuteImageGetLabelBoxes(image, permutations, do_permutations, normalization, is_val, bboxes, bbox_format, is_detection):
+def permuteImageGetLabelBoxes(
+    image, 
+    permutations, do_permutations, normalization, 
+    is_val, 
+    bboxes, bbox_format, is_detection):
     '''
     permutes given image and gets label for that image
 
@@ -59,8 +64,10 @@ def permuteImageGetLabelBoxes(image, permutations, do_permutations, normalizatio
 
 
 def prepareClassificationDataset(
-    batch_size, filepaths, meta, id_column, feature_column, full_record,
-    permutations, do_permutations, normalization, strategy, is_autoencoder, is_val):
+    batch_size, filepaths, 
+    meta, id_column, feature_columns, add_features_columns, full_record,
+    permutations, do_permutations, normalization, 
+    strategy, is_val):
     """
     XXX
 
@@ -92,132 +99,53 @@ def prepareClassificationDataset(
             XXX
     """
 
-    if is_autoencoder:
+    data_list = []
+    labels_list = [[] for num_targets in feature_columns]
 
-        data_list = []
-        features_list = []
-
-        for path in filepaths:
-
-            data = loadNumpy(path)
-            data_list.append(data)
-
-            features = getFeaturesFromPath(path, meta)
-            features_tensor = tf.cast(tf.convert_to_tensor(features), dtype=tf.float32)
-            features_list.append(features_tensor)
-
-        data_dataset = tf.data.Dataset.from_tensor_slices(
-            (data_list, features_list))
-
-        data_dataset = data_dataset.batch(batch_size)
-
-        data_dataset_dist = strategy.experimental_distribute_dataset(
-            data_dataset)
-
-        return data_dataset_dist
-
-
+    if add_features_columns is not None:
+        add_features_list = [[] for num_features in add_features_columns]
     else:
-
-        data_list = []
-
-        # labels_list = []
-
-        labels_t_list = []
-        labels_b_list = []
-        labels_f_list = []
-        labels_s_list = []
-        labels_c_list = []
-        labels_a_list = []
-
-        for path in filepaths:
-
-            data = loadNumpy(path)
-            data_list.append(data)
-
-            # label = getFeaturesFromPath(path, meta, id_column, feature_column, full_record)
-
-            label_t = getFeaturesFromPath(path, meta, id_column, 'type', full_record)
-            label_b = getFeaturesFromPath(path, meta, id_column, 'breed', full_record)
-            label_f = getFeaturesFromPath(path, meta, id_column, 'fur', full_record)
-            label_s = getFeaturesFromPath(path, meta, id_column, 'size', full_record)
-            label_c = getFeaturesFromPath(path, meta, id_column, 'color', full_record)
-            label_a = getFeaturesFromPath(path, meta, id_column, 'age', full_record)
-
-            # if feature_column != 'popularity':
-                
-            #     label = evaluateString(label)
-
-            # else:
-
-            #     label = [label]
-            #     label = np.array(label, dtype=np.int32)
-                
-            label_t = evaluateString(label_t)
-            label_b = evaluateString(label_b)
-            label_f = evaluateString(label_f)
-            label_s = evaluateString(label_s)
-            label_c = evaluateString(label_c)
-            label_a = evaluateString(label_a)
-
-            # label_tensor = tf.convert_to_tensor(label, dtype=tf.float32)
-            # labels_list.append(label_tensor)
-
-            label_t_tensor = tf.convert_to_tensor(label_t, dtype=tf.float32)
-            labels_t_list.append(label_t_tensor)
-            label_b_tensor = tf.convert_to_tensor(label_b, dtype=tf.float32)
-            labels_b_list.append(label_b_tensor)
-            label_f_tensor = tf.convert_to_tensor(label_f, dtype=tf.float32)
-            labels_f_list.append(label_f_tensor)
-            label_s_tensor = tf.convert_to_tensor(label_s, dtype=tf.float32)
-            labels_s_list.append(label_s_tensor)
-            label_c_tensor = tf.convert_to_tensor(label_c, dtype=tf.float32)
-            labels_c_list.append(label_c_tensor)
-            label_a_tensor = tf.convert_to_tensor(label_a, dtype=tf.float32)
-            labels_a_list.append(label_a_tensor)
-
-        data_map = map(lambda data: permuteImageGetLabelBoxes(
-            data, permutations, do_permutations, normalization, is_val, bboxes=None, bbox_format=None, is_detection=False), data_list)
-        data_mapped_list = list(data_map)
-
-        data_dataset = tf.data.Dataset.from_tensor_slices(
-            ((data_mapped_list, labels_t_list, labels_b_list, labels_f_list, labels_s_list, labels_c_list, labels_a_list), (labels_t_list, labels_b_list, labels_f_list, labels_s_list, labels_c_list, labels_a_list)))
-
-        data_dataset = data_dataset.batch(batch_size)
-
-        data_dataset_dist = strategy.experimental_distribute_dataset(
-            data_dataset)
-
-        return data_dataset_dist
-
-        # data_list = []
-        # labels_list = []
-
-        # for path in filepaths:
-
-        #     data = loadNumpy(path)
-        #     data_list.append(data)
-
-        #     label = getLabelFromPath(path)
-        #     label_tensor = tf.convert_to_tensor(label)
-        #     labels_list.append(label_tensor)
-
-        # data_map = map(lambda data: permuteImageGetLabelBoxes(
-        #     data, permutations, do_permutations, normalization, is_val, bboxes=None, bbox_format=None, is_detection=False), data_list)
-        # data_mapped_list = list(data_map)
-
-        # data_dataset = tf.data.Dataset.from_tensor_slices(
-        #     (data_mapped_list, labels_list))
-
-        # data_dataset = data_dataset.batch(batch_size)
-
-        # data_dataset_dist = strategy.experimental_distribute_dataset(
-        #     data_dataset)
-
-        # return data_dataset_dist
-
+        add_features_list = []
+    
     # start_load_numpy_time = time.time()
     # print('Start Loading Numpy Files...', flush=True)
+
+    for path in filepaths:
+
+        data = loadNumpy(path)
+        data_list.append(data)
+
+        for feature_idx, feature_column in feature_columns:
+
+            label = getFeaturesFromPath(path, meta, id_column, feature_column, full_record)
+
+            if type(label) == int or type(label) == float:
+                
+                label = np.array(label, dtype=np.int32)
+
+            else:
+
+                label = evaluateString(label)
+
+            label_tensor = tf.convert_to_tensor(label, dtype=tf.float32)
+            labels_list[feature_idx].append(label_tensor)
+
+        if add_features_columns is not None:
+
+            for feature_idx, add_feature_columns in enumerate(add_features_columns):
+
+                add_feature = getFeaturesFromPath(path, meta, id_column, add_feature_columns, full_record)
+
+                if type(add_feature) == int or type(add_feature) == float:
+                    
+                    add_feature = np.array(add_feature, dtype=np.int32)
+
+                else:
+
+                    add_feature = evaluateString(add_feature)
+                
+                add_feature_tensor = tf.convert_to_tensor(add_feature, dtype=tf.float32)
+                add_features_list[feature_idx].append(add_feature_tensor)
 
     # end_load_numpy_time = time.time()
     # print('Finished loading Numpy Files. Time Passed: ' + str(end_load_numpy_time - start_load_numpy_time), flush=True)
@@ -225,15 +153,45 @@ def prepareClassificationDataset(
     # start_mapping_data_time = time.time()
     # print('Start Mapping Data...', flush=True)
 
+    data_map = map(lambda data: permuteImageGetLabelBoxes(
+        data, permutations, do_permutations, normalization, is_val, bboxes=None, bbox_format=None, is_detection=False), data_list)
+    data_mapped_list = list(data_map)
+
     # end_mapping_data_time = time.time()
     # print('Finished Mapping Data. Time Passed: ' + str(end_mapping_data_time - start_mapping_data_time), flush=True)
+
+    # start_formatting_data_time = time.time()
+    # print('Start Formatting Data...', flush=True)
+
+    concat_data = [data_mapped_list]
+    for add_feature in add_features_list:
+         concat_data.append(add_feature)
+    concat_data = tuple(concat_data)
+    if len(concat_data) == 1:
+        concat_data = concat_data[0]
+
+    labels_list = tuple(labels_list)
+    if len(labels_list) == 1:
+        labels_list = labels_list[0]
+
+    # end_formatting_data_time = time.time()
+    # print('Finished Formatting Data. Time Passed: ' + str(end_formatting_data_time - start_formatting_data_time), flush=True)
 
     # start_creating_dataset_time = time.time()
     # print('Start Creating Tensorflow Dataset...', flush=True)
 
+    data_dataset = tf.data.Dataset.from_tensor_slices(
+        (concat_data, labels_list))
+
+    data_dataset = data_dataset.batch(batch_size)
+
+    data_dataset_dist = strategy.experimental_distribute_dataset(
+        data_dataset)
+
     # end_creating_dataset_time = time.time()
     # print('Finished Creating Tensorflow Dataset. Time Passed: ' + str(end_creating_dataset_time - start_creating_dataset_time), flush=True)
 
+    return data_dataset_dist
 
 
 def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_offset, permutations, normalization, is_val):
