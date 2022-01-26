@@ -20,7 +20,7 @@ def classificationDistributedTrainStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy, is_autoencoder):
+    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
         """
         computes reduced loss after one distributed train step
 
@@ -53,7 +53,7 @@ def classificationDistributedTrainStepWrapper():
         """
 
         per_replica_losses = strategy.run(classificationTrainStep, args=(
-            inputs, model, compute_total_loss, optimizer, train_accuracy, is_autoencoder))
+            inputs, model, compute_total_loss, optimizer, train_accuracy))
 
         reduced_loss = strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
@@ -67,7 +67,7 @@ def classificationDistributedTrainStepWrapper():
     return classificationDistributedTrainStep
 
 
-def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, is_autoencoder):
+def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
     """
     computes total loss after one train step
 
@@ -96,25 +96,31 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
             total loss after train step
     """
 
-    if True:
+    if type(inputs[0]) is tuple:
 
-        data_features, labels = inputs
-        data, features_t, features_b, features_f, features_s, features_c, features_a = data_features
-        # labels_list = [label for label in labels]
+        input_data_features = inputs[0]
+        data = input_data_features[0]
+        features = input_data_features[1:]
 
     else:
 
-        data, labels = inputs
+        data = inputs[0]
+        features = []
+    
+    if type(inputs[1]) is tuple:
+
+        input_labels = inputs[1]
+        labels = [label for label in input_labels]
+    
+    else:
+
+        labels = inputs[1]
 
     with tf.GradientTape() as tape:
 
-        if True:
+        prediction_data = data + features
 
-            predictions = model([data, features_t, features_b, features_f, features_s, features_c, features_a], training=True)
-
-        else:
-
-            predictions = model(data, training=True)
+        predictions = model(prediction_data, training=True)
 
         labels_concat = tf.concat(labels, axis=1)
         predictions_concat = tf.concat(predictions, axis=1)
@@ -141,7 +147,7 @@ def classificationDistributedValStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy, is_autoencoder):
+    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
         """
         XXX
 
@@ -173,12 +179,12 @@ def classificationDistributedValStepWrapper():
                 XXX
         """
 
-        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy, is_autoencoder))
+        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
 
     return classificationDistributedValStep
 
 
-def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy, is_autoencoder):
+def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
     """
     updates loss and accuracy after validation step for classification
 
@@ -200,19 +206,29 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy, is
             XXX
     """
 
-    if True:
+    if type(inputs[0]) is tuple:
 
-        data_features, labels = inputs
-        data, features_t, features_b, features_f, features_s, features_c, features_a = data_features
-        # labels_list = [label for label in labels]
-
-        predictions = model([data, features_t, features_b, features_f, features_s, features_c, features_a], training=False)
+        input_data_features = inputs[0]
+        data = input_data_features[0]
+        features = input_data_features[1:]
 
     else:
 
-        data, labels = inputs
+        data = inputs[0]
+        features = []
+    
+    if type(inputs[1]) is tuple:
 
-        predictions = model(data, training=False)
+        input_labels = inputs[1]
+        labels = [label for label in input_labels]
+    
+    else:
+
+        labels = inputs[1]
+
+    prediction_data = data + features
+
+    predictions = model(prediction_data, training=False)
     
     labels_concat = tf.concat(labels, axis=1)
     predictions_concat = tf.concat(predictions, axis=1)
@@ -224,17 +240,16 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy, is
 
 
 def classificationCustomTrain(
-        batch_size, num_epochs, start_epoch,
-        train_paths_list, val_paths_list, do_validation, fold, max_fileparts_train, max_fileparts_val,
-        metadata, id_column, feature_column, full_record,
-        shuffle_buffer_size, permutations, do_permutations, normalization,
+        num_epochs, start_epoch, batch_size,
+        train_paths_list, val_paths_list, do_validation, max_fileparts_train, max_fileparts_val, fold,
+        metadata, id_column, feature_columns, add_features_columns, full_record,
+        permutations, do_permutations, normalization,
         model_name, model,
         loss_object, val_loss, compute_total_loss,
         lr_ladder, lr_ladder_step, lr_ladder_epochs, optimizer,
         train_accuracy, val_accuracy,
         save_train_info_dir, save_train_weights_dir,
-        strategy,
-        is_autoencoder, pretrained):
+        strategy):
     """
     XXX
 
@@ -322,8 +337,10 @@ def classificationCustomTrain(
                 print('Fold ' + str(fold + 1) + '. Loading training data...', flush=True)
 
             train_distributed_part = prepareClassificationDataset(
-                batch_size, train_filepaths_part, metadata, id_column, feature_column, full_record,
-                permutations, do_permutations, normalization, strategy, is_autoencoder, is_val=False)
+                batch_size, train_filepaths_part, 
+                metadata, id_column, feature_columns, add_features_columns, full_record,
+                permutations, do_permutations, normalization, 
+                strategy, is_val=False)
 
             end_load_data_time = time.time()
             if fold == None:
@@ -336,7 +353,7 @@ def classificationCustomTrain(
             for batch in train_distributed_part:
 
                 total_loss += wrapperTrain(
-                    batch, model, compute_total_loss, optimizer, train_accuracy, strategy, is_autoencoder)
+                    batch, model, compute_total_loss, optimizer, train_accuracy, strategy)
 
                 num_batches += 1
 
@@ -369,8 +386,10 @@ def classificationCustomTrain(
                     print('\nFold ' + str(fold + 1) + '. Loading validation data...', flush=True)
 
                 val_distributed_part = prepareClassificationDataset(
-                    batch_size, val_filepaths_part, metadata, id_column, feature_column, full_record,
-                    None, do_permutations, normalization, strategy, is_autoencoder, is_val=True)
+                    batch_size, val_filepaths_part, 
+                    metadata, id_column, feature_columns, add_features_columns, full_record,
+                    None, do_permutations, normalization, 
+                    strategy, is_val=True)
 
                 end_load_data_time = time.time()
                 if fold == None:
@@ -383,7 +402,7 @@ def classificationCustomTrain(
                 for batch in val_distributed_part:
 
                     wrapperVal(
-                        batch, model, loss_object, val_loss, val_accuracy, strategy, is_autoencoder)
+                        batch, model, loss_object, val_loss, val_accuracy, strategy)
 
                 end_part_time = time.time()
                 if fold == None:
