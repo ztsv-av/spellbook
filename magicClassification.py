@@ -1,14 +1,14 @@
 from globalVariables import (
     NUM_EPOCHS, START_EPOCH, BATCH_SIZES, 
     INPUT_SHAPE,
-    LOAD_FEATURES, NUM_FEATURES, CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
+    LOAD_FEATURES, NUM_ADD_FEATURES, CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
     MODEL_POOLING, DROP_CONNECT_RATE, INITIAL_DROPOUT, DO_BATCH_NORM, FC_LAYERS, DROPOUT_RATES,      
     DO_PREDICTIONS, NUM_CLASSES, OUTPUT_ACTIVATION,
     UNFREEZE, UNFREEZE_FULL, NUM_UNFREEZE_LAYERS,
     LOAD_WEIGHTS, LOAD_MODEL,
     BUILD_AUTOENCODER, 
-    DATA_FILEPATHS, TRAIN_FILEPATHS, VAL_FILEPATHS, DO_VALIDATION, MAX_FILES_PER_PART, SHUFFLE_BUFFER_SIZE, RANDOM_STATE,
-    METADATA, ID_COLUMN, FEATURE_COLUMN, FULL_RECORD,
+    DATA_FILEPATHS, TRAIN_FILEPATHS, VAL_FILEPATHS, DO_VALIDATION, MAX_FILES_PER_PART, RANDOM_STATE,
+    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, FULL_RECORD,
     DO_KFOLD, NUM_FOLDS, 
     CLASSIFICATION_CHECKPOINT_PATH, TRAINED_MODELS_PATH, 
     SAVE_TRAIN_WEIGHTS_DIR, SAVE_TRAIN_INFO_DIR,
@@ -82,13 +82,13 @@ def classificationCustom():
 
                         if LOAD_FEATURES:
 
-                            for idx, features in enumerate(NUM_FEATURES):
+                            for idx, features in enumerate(NUM_ADD_FEATURES):
 
-                                input_features_layer = tf.keras.layers.Input(shape=(NUM_FEATURES[features], ), name=('input_features_layer_' + idx))
+                                input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
 
                                 input_features_layers.append(input_features_layer)
                         
-                        predictions_features = NUM_FEATURES
+                        predictions_features = NUM_ADD_FEATURES
                         
                         input_den_autoenc_layers = input_layers_classification + input_features_layers
 
@@ -113,9 +113,9 @@ def classificationCustom():
 
                         if LOAD_FEATURES:
 
-                            for idx, features in enumerate(NUM_FEATURES):
+                            for idx, features in enumerate(NUM_ADD_FEATURES):
 
-                                input_features_layer = tf.keras.layers.Input(shape=(NUM_FEATURES[features], ), name=('input_features_layer_' + idx))
+                                input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
 
                                 input_layers.append(input_features_layer)
 
@@ -187,17 +187,16 @@ def classificationCustom():
                 normalization_function = kerasNormalize(model_name)
 
                 classificationCustomTrain(
-                    batch_size, NUM_EPOCHS, START_EPOCH,
-                    train_paths_list, val_paths_list, DO_VALIDATION, fold, max_fileparts_train, max_fileparts_val,
-                    METADATA, ID_COLUMN, FEATURE_COLUMN, FULL_RECORD,
-                    SHUFFLE_BUFFER_SIZE, PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
+                    NUM_EPOCHS, START_EPOCH, batch_size,
+                    train_paths_list, val_paths_list, DO_VALIDATION, max_fileparts_train, max_fileparts_val, fold,
+                    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, FULL_RECORD,
+                    PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                     model_name, model,
                     loss_object, val_loss, compute_total_loss,
                     LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
                     train_accuracy, val_accuracy,
                     SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
-                    strategy,
-                    is_autoencoder=False, pretrained=False)
+                    strategy)
 
                 print('________________________________________')
                 print('\n')
@@ -224,12 +223,12 @@ def classificationCustom():
 
         else:
 
-            if DO_VALIDATION:
+            train_paths_list = getFullPaths(TRAIN_FILEPATHS)
+            max_fileparts_train = len(train_paths_list) // MAX_FILES_PER_PART
+            if max_fileparts_train == 0:
+                max_fileparts_train = 1
 
-                train_paths_list = getFullPaths(TRAIN_FILEPATHS)
-                max_fileparts_train = len(train_paths_list) // MAX_FILES_PER_PART
-                if max_fileparts_train == 0:
-                    max_fileparts_train = 1
+            if DO_VALIDATION:
 
                 val_paths_list = getFullPaths(VAL_FILEPATHS)
                 max_fileparts_val = len(val_paths_list) // MAX_FILES_PER_PART
@@ -237,11 +236,6 @@ def classificationCustom():
                     max_fileparts_val = 1
 
             else:
-
-                train_paths_list = getFullPaths(DATA_FILEPATHS)
-                max_fileparts_train = len(train_paths_list) // MAX_FILES_PER_PART
-                if max_fileparts_train == 0:
-                    max_fileparts_train = 1
                     
                 val_paths_list = None
                 max_fileparts_val = None
@@ -261,13 +255,13 @@ def classificationCustom():
 
                     if LOAD_FEATURES:
 
-                        for idx, features in enumerate(NUM_FEATURES):
+                        for idx, features in enumerate(NUM_ADD_FEATURES):
 
-                            input_features_layer = tf.keras.layers.Input(shape=(NUM_FEATURES[features], ), name=('input_features_layer_' + idx))
+                            input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
 
                             input_features_layers.append(input_features_layer)
                     
-                    predictions_features = NUM_FEATURES
+                    predictions_features = NUM_ADD_FEATURES
                     
                     input_den_autoenc_layers = input_layers_classification + input_features_layers
 
@@ -292,9 +286,9 @@ def classificationCustom():
 
                     if LOAD_FEATURES:
 
-                        for idx, features in enumerate(NUM_FEATURES):
+                        for idx, features in enumerate(NUM_ADD_FEATURES):
 
-                            input_features_layer = tf.keras.layers.Input(shape=(NUM_FEATURES[features], ), name=('input_features_layer_' + idx))
+                            input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
 
                             input_layers.append(input_features_layer)
 
@@ -371,17 +365,16 @@ def classificationCustom():
             normalization_function = kerasNormalize(model_name)
 
             classificationCustomTrain(
-                batch_size, NUM_EPOCHS, START_EPOCH,
-                train_paths_list, val_paths_list, DO_VALIDATION, None, max_fileparts_train, max_fileparts_val,
-                METADATA, ID_COLUMN, FEATURE_COLUMN, FULL_RECORD,
-                SHUFFLE_BUFFER_SIZE, PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
+                NUM_EPOCHS, START_EPOCH, batch_size,
+                train_paths_list, val_paths_list, DO_VALIDATION, max_fileparts_train, max_fileparts_val, None,
+                METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, FULL_RECORD,
+                PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                 model_name, model,
                 loss_object, val_loss, compute_total_loss,
                 LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
                 train_accuracy, val_accuracy,
                 SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
-                strategy,
-                is_autoencoder=False, pretrained=False)
+                strategy)
 
             print('________________________________________')
             print('\n')
