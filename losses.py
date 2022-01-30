@@ -23,7 +23,8 @@ def categoricalFocalLossWrapper(reduction, alpha=0.25, gamma=2.0):
             the size of the array needs to be consistent with the number of classes
 
         gamma : float, default is 2.0
-          focusing parameter for modulating factor
+          focusing parameter for modulating factor / relaxation parameter
+          more the value of gamma, more importance will be given to misclassified examples and very less loss will be propagated from easy examples.
 
     returns
     -------
@@ -39,10 +40,10 @@ def categoricalFocalLossWrapper(reduction, alpha=0.25, gamma=2.0):
 
         parameters
         ----------
-            y_true : XXX
+            y_true : tensor
                 tensor of the same shape as `y_pred`
 
-            y_pred : XXX
+            y_pred : tensor
               tensor resulting from a softmax
 
         returns
@@ -86,10 +87,14 @@ def binaryFocalLossWrapper(reduction, alpha=0.25, gamma=2.0):
     parameters
     ----------
         alpha : float, default is 0.25
-            XXX
+            the same as weighing factor in balanced cross entropy
+            alpha is used to specify the weight of different categories/labels
+            the size of the array needs to be consistent with the number of classes
 
         gamma : float, default is 2.0
-            XXX
+            relaxation parameter
+            more the value of gamma, more importance will be given to misclassified examples 
+            and very less loss will be propagated from easy examples.
 
       returns
       -------
@@ -103,10 +108,10 @@ def binaryFocalLossWrapper(reduction, alpha=0.25, gamma=2.0):
 
         parameters
         ----------
-            y_true : XXX
+            y_true : tensor
                 true labels
 
-            y_pred : XXX
+            y_pred : tensor
                 predicted labels
 
         returns
@@ -155,10 +160,10 @@ def rootMeanSquaredErrorLossWrapper(reduction):
 
     parameters
     ----------
-        y_true : XXX
+        y_true : tensor
             true labels
 
-        y_pred : XXX
+        y_pred : tensor
             predicted labels
 
     returns
