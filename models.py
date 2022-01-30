@@ -31,20 +31,21 @@ MODELS_CLASSIFICATION = {
 
 def userDefinedModel(num_classes, activation):
     """
-    XXX
+    working function
+    here you define a simple custom model
 
     parameters
     ----------
-        num_classes : XXX
-            XXX
+        num_classes : integer
+            number of classes to predict
 
-        activation : XXX
-            XXX
+        activation : object
+            activation function to use at the last layer
 
     returns
     -------
-        model : XXX
-            XXX
+        model : object
+            created model
     """
 
     model = Sequential([
@@ -60,6 +61,29 @@ def userDefinedModel(num_classes, activation):
 
 
 def unfreezeModel(model, num_input_layers, batch_norm, num_layers):
+    """
+    unfrezees a number of top layers of a model for training
+
+    parameters
+    ----------
+        model : object
+            model to be trained
+
+        num_input_layers : int
+            number of input layers in the model
+
+        batch_norm : boolean
+            whether a model has a batch normalization at the last layers or not
+
+        num_layers : int
+            number layers to unfreeze
+        
+
+    returns
+    -------
+        model : object
+            model with unfreezed layers
+    """
 
     num_last_layers = 3 + num_input_layers
 
@@ -92,31 +116,39 @@ def unfreezeModel(model, num_input_layers, batch_norm, num_layers):
 
 def buildClassificationPretrainedModel(model_path, pretrained_model, custom_objects, num_classes, activation, load_model):
     """
-    XXX
+    either loads a model or takes a pretrained model as a parameter and recreates a new one
+    without the last dense layer and defines a new head layer
+    with the desired number of neurons
 
     parameters
     ----------
-        model_path : XXX
-            XXX
+        model_path : string
+            full path to the model
 
-        custom_objects : XXX
-            XXX
+        pretrained_model : object
+
+
+        custom_objects : dictionary
+            contains custom objects from training that are were not loaded from tensorflow or keras libraries
 
             example:
             custom_objects = {
                 'f1': f1,
                 'categorical_focal_loss_fixed': categorical_focal_loss(alpha=[[.25, .25]], gamma=2)}
 
-        num_classes : XXX
-            XXX
+        num_classes : int
+            number of the last dense layer neurons
 
-        activation : XXX
-            XXX
+        activation : object
+            activation function at the last layer
+
+        load_model : boolean
+            whether to load an existing model from path
 
     returns
     -------
-        model : XXX
-            XXX
+        model : object
+            recreated model
     """
 
     if load_model:
@@ -142,29 +174,61 @@ def buildClassificationImageNetModel(
     num_classes, activation, 
     do_predictions):
     """
-    builds classification ImageNet model given image input shape, number of classes, pooling and activation layers
+    builds classification ImageNet model body and creates custom head layers after global pooling
 
     parameters
     ----------
-        model_imagenet : XXX
-            XXX
 
-        input_shape : XXX
-            XXX
+        inputs : list
+            list of input layers
 
-        pooling : XXX
-            XXX
+        model_name : string
+            name of the ImageNet model
+
+        model_imagenet : tf.keras.applications object
+            ImageNet model to load
+
+        pooling : string or None
+            either 'avg', 'max', or None
+            None means that the output of the model will be the 4D tensor output of the last convolutional layer.
+            'avg' means that global average pooling will be applied to the output of the last convolutional layer, and thus the output of the model will be a 2D tensor
+            'max' means that global max pooling will be applied.
+
+        dropout_connect_rate : decimal
+            works only with EfficientNet models
+            defines rate of all dropout layers before global pooling
+
+        do_batch_norm : boolean
+            whether to include batch normalization layer after global pooling
+
+        initial_dropout : decimal
+            dropout rate after global pooling
+
+        concat_features_before : boolean
+            whether to concatenate additional features before fully connected and dropout layers
+
+        concat_features_after : boolean
+            whether to concatenate additional features after fully connected and dropout layers and before prediction layer
+
+        fc_layers : tuple or None
+            whether to include additional fully connected layers before prediction layer
+
+        dropout_rates : tuple or None
+            whether to include dropout layers between last fully connected layers and their rate
 
         num_classes : int
-            number of classes in dataset
+            number of classes
 
-        activation : XXX
-            XXX
+        activation : object
+            activation function of the last dense layer
+
+        do_predictions : boolean
+            whether to create last dense layer
 
     returns
     -------
-        model : XXX
-            XXX
+        model : object
+            created model
     """
 
     if 'EfficientNet' in model_name:
@@ -267,26 +331,46 @@ def buildClassificationImageNetModel(
 
 def buildDetectionModel(num_classes, checkpoint_path, config_path, dummy_shape):
     """
-    #TODO : napiwi tyt description, pomesti kommenti v description kakie nado -- ostal'nie ydali
+    builds an object localization/classification model from Object Detection API library and loads weights
+
+    to download a checkpoint, use following commands in the terminal:
+        - wget http://download.tensorflow.org/models/object_detection/tf2/20200711/efficientdet_d4_coco17_tpu-32.tar.gz -O ./efficientdet_d4_1024x1024.tar.gz (use proper link and filename)
+        - tar -xf efficientdet_d4_1024x1024.tar.gz
+        - mv efficientdet_d4_coco17_tpu-32/checkpoint models/research/object_detection/test_data/
+
+    parameters
+    ----------
+
+        num_classes : int
+            number of neurons at the last dense layer
+
+        checkpoint_path : string
+            path to the model training checkpoint to load
+
+        config_path : string
+            path to the model configuration file to load
+
+        dummy_shape : tuple
+            used to define a dummy image with specified shape and run it through the model so that variables are created
+
+    returns
+    -------
+        detection_model : object
+            restored model
     """
 
     # Download the checkpoint and put it into models/research/object_detection/test_data/
     # wget http://download.tensorflow.org/models/object_detection/tf2/20200711/efficientdet_d4_coco17_tpu-32.tar.gz -O ./efficientdet_d4_1024x1024.tar.gz
     # tar -xf efficientdet_d4_1024x1024.tar.gz
     # mv efficientdet_d4_coco17_tpu-32/checkpoint models/research/object_detection/test_data/
-    # tf.keras.backend.clear_session()
 
-    # Load the configuration file into a dictionary
     configs = config_util.get_configs_from_pipeline_file(
         config_path, config_override=None)
 
-    # Read in the object stored at the key 'model' of the configs dictionary
     model_config = configs['model']
 
-    # Modify the number of classes from its default
     model_config.ssd.num_classes = num_classes
 
-    # Freeze batch normalization
     model_config.ssd.freeze_batchnorm = True
 
     detection_model = model_builder.build(
@@ -298,22 +382,15 @@ def buildDetectionModel(num_classes, checkpoint_path, config_path, dummy_shape):
     tmp_model_checkpoint = tf.train.Checkpoint(
         _feature_extractor=detection_model._feature_extractor, _box_predictor=tmp_box_predictor_checkpoint)
 
-    # Define a checkpoint
     checkpoint = tf.train.Checkpoint(model=tmp_model_checkpoint)
 
-    # Restore the checkpoint to the checkpoint path
     checkpoint.restore(checkpoint_path)
 
-    # Run a dummy image through the model so that variables are created
-    # For the dummy image, you can declare a tensor of zeros that has a shape that the preprocess() method can accept (i.e. [batch, height, width, channels]).
-    # use the detection model's `preprocess()` method and pass a dummy image
     dummy = tf.zeros(shape=dummy_shape)
     tmp_image, tmp_shapes = detection_model.preprocess(dummy)
 
-    # run a prediction with the preprocessed image and shapes
     tmp_prediction_dict = detection_model.predict(tmp_image, tmp_shapes)
 
-    # postprocess the predictions into final detections
     tmp_detections = detection_model.postprocess(
         tmp_prediction_dict, tmp_shapes)
 
