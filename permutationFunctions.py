@@ -228,11 +228,12 @@ def detection_permutations(image, bboxes, bbox_format, permutations):
         image : np.array
             input image
 
-        bboxes : XXX
-            XXX
+        bboxes : list
+            list of list(s) of bounding boxes
 
-        bbox_format : XXX
-            XXX
+        bbox_format : string
+            either 'pascal_voc', 'albumentations', 'coco', and 'yolo'
+            which format bounding boxes are in
 
         permutations : list
             list of function permutations
@@ -242,8 +243,8 @@ def detection_permutations(image, bboxes, bbox_format, permutations):
         image : np.array
             permutated image
 
-        bboxes : XXX
-            XXX
+        bboxes : list of list(s) of bounding boxes
+            permutated bounding boxes
     """
 
     # add class label
