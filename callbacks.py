@@ -24,6 +24,9 @@ class TimeCallback(tf.keras.callbacks.Callback):
 
 class DetectOverfittingCallback(tf.keras.callbacks.Callback):
     """
+    detects whether the model is overfitting or not
+    checks if validation loss divided by the training loss is more than the specified threshold
+    if it is, the training stops
     """
 
     def __init__(self, threshold):
@@ -42,6 +45,23 @@ class DetectOverfittingCallback(tf.keras.callbacks.Callback):
 
 
 def LRLadderDecrease(optimizer, step):
+    """
+    decreases optimizer's learning rate in a ladder fashion
+    multiplies current learning rate by the specified fraction (step)
+
+    parameters
+    ----------
+        optimizer : object
+            model's optimizer
+
+        step : number (usually a rational)
+            learning rate multiplier
+
+    returns
+    -------
+        new_lr : number
+            new optimizer's learning rate
+    """
 
     current_lr = optimizer.learning_rate
 
@@ -52,6 +72,38 @@ def LRLadderDecrease(optimizer, step):
 
 
 def saveTrainInfo(model_name, epoch, fold_num, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_train_info_dir):
+    """
+    saves current training information in a dataframe
+
+    parameters
+    ----------
+        model_name : string
+            model name
+
+        epoch : integer
+            training epoch number
+
+        fold_num : integer
+            training fold number
+
+        train_loss : number
+            training loss of the model
+
+        train_accuracy : number
+            training accuracy of the model
+
+        val_loss : number
+            validation loss of the model
+
+        val_accuracy : number
+            validation accuracy of the model
+
+        optimizer : object
+            model's optimizer
+
+        save_train_info_dir : string
+            directory where to save the information dataframe
+    """
 
     if val_loss is not None:
 
@@ -96,6 +148,26 @@ def saveTrainInfo(model_name, epoch, fold_num, train_loss, train_accuracy, val_l
 
 
 def saveTrainWeights(model, model_name, epoch, fold_num, save_train_weights_dir):
+    """
+    saves model's weights
+
+    parameters
+    ----------
+        model : object
+            nodel which is being trained
+
+        model_name : string
+            model name
+
+        epoch : integer
+            training epoch number
+
+        fold_num : integer
+            training fold number
+
+        save_train_weights_dir : string
+            directory where to save the weights
+    """
 
     if fold_num is not None:
         save_weights_epoch_dir = save_train_weights_dir + \
@@ -109,22 +181,68 @@ def saveTrainWeights(model, model_name, epoch, fold_num, save_train_weights_dir)
 
     model.save_weights(save_weights_epoch_dir + 'weights.h5')
 
-def saveModel(model, model_name, epoch, fold_num, save_train_weights_dir):
+def saveModel(model, model_name, epoch, fold_num, save_model_dir):
+    """
+    saves model's weights, optimizer state and metrics
+
+    parameters
+    ----------
+        model : object
+            nodel which is being trained
+
+        model_name : string
+            model name
+
+        epoch : integer
+            training epoch number
+
+        fold_num : integer
+            training fold number
+
+        save_model_dir : string
+            directory where to save the model
+    """
 
     if fold_num is not None:
-        save_weights_epoch_dir = save_train_weights_dir + \
+        save_model_epoch_dir = save_model_dir + \
             model_name + '/' + 'fold-' + str(fold_num + 1) + '/' + str(epoch + 1) + '/'
     else:
-        save_weights_epoch_dir = save_train_weights_dir + \
+        save_model_epoch_dir = save_model_dir + \
             model_name + '/' + 'no-folds/' + '/' + str(epoch + 1) + '/'
 
-    if not os.path.exists(save_weights_epoch_dir):
-        os.makedirs(save_weights_epoch_dir)
+    if not os.path.exists(save_model_epoch_dir):
+        os.makedirs(save_model_epoch_dir)
 
-    model.save(save_weights_epoch_dir + 'savedModel')
+    model.save(save_model_epoch_dir + 'savedModel')
 
 
 def saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, optimizer, save_csv_dir):
+    """
+    saves current training information of an object detection model in a dataframe
+
+    parameters
+    ----------
+        model_name : string
+            model name
+
+        epoch : integer
+            training epoch number
+
+        loc_loss : number
+            currect localization loss
+
+        class_loss : number
+            currect classification loss
+
+        total_loss : number
+            localization loss + classification loss
+
+        optimizer : object
+            model's optimizer
+
+        save_csv_dir : string
+            directory where to save the information dataframe
+    """
 
     info_df = pd.DataFrame({
         'epoch': [epoch + 1],
@@ -149,6 +267,29 @@ def saveTrainInfoDetection(model_name, epoch, loc_loss, class_loss, total_loss, 
 
 
 def saveCheckpointDetection(model_name, epoch, model, loc_loss, optimizer, checkpoint_save_dir):
+    """
+    saves current training information of an object detection model in a dataframe
+
+    parameters
+    ----------
+        model_name : string
+            model name
+
+        epoch : integer
+            training epoch number
+
+        model : object
+            model that is being trained
+
+        loc_loss : number
+            currect localization loss
+
+        optimizer : object
+            model's optimizer
+
+        checkpoint_save_dir : string
+            directory where to save the training checkpoint
+    """
 
     checkpoint_save_dir_epoch = checkpoint_save_dir + model_name + \
         '/' + str(epoch) + '_loss-' + str(loc_loss.numpy())
