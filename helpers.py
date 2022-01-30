@@ -41,8 +41,8 @@ def loadImage(path, image_type):
         path: string
             full path to input image
 
-        image_type : XXX
-            XXX
+        image_type : string or dtype
+            Typecode or data-type to which the array is cast.
 
     returns
     -------
@@ -179,10 +179,10 @@ def visualizeDetections(image, boxes, classes, scores, category_index, score_thr
 
         category_index: dict
             dictionary containing category dictionaries
-            (each holding category index `id` and category name `name`) keyed with category indices XXX
+            (each holding category index `id` and category name `name`) keyed with category indices
 
         score_threshold : float
-            #TODO
+            minimum score threshold for a box or keypoint to be visualized
     """
 
     image_annotations = image.copy()
@@ -217,17 +217,18 @@ def getFullPaths(dir):
 
 def getLabelFromPath(path):
     """
-    XXX
+    returns list of labels corresponding to the file path 
+    filename is itself a sequence of labels separated by the dash symbol
 
     parameters
     ----------
-        filename : XXX
-            XXX
+        path : string
+            full path to the image file
 
     returns
     -------
-        label : XXX
-            XXX
+        label : list of integers
+            labels corresponding to the file
     """
 
     label = path.split('_')[-1].replace('.npy', '')
@@ -238,6 +239,32 @@ def getLabelFromPath(path):
 
 
 def getFeaturesFromPath(path, meta, id_column, feature_column, full_record):
+    """
+    returns row or a cell data from the dataframe
+
+    parameters
+    ----------
+        path : string
+            full path to the image file
+        
+        meta : dataframe
+            contains columns with data
+
+        id_column : string
+            name of the filename id column in the dataframe
+        
+        feature_column : string
+            name of the column from which to load the data
+        
+        full_record : boolean
+            either True or False
+            return a whole row or just a cell
+
+    returns
+    -------
+        features : string or a number
+            data from the desired column of the dataframe
+    """
 
     record = meta[meta[id_column] == path.split('/')[-1]]
 
