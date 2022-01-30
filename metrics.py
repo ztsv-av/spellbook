@@ -8,15 +8,15 @@ def precision(y_true, y_pred):
 
     parameters
     ----------
-        y_true : XXX
-            XXX
+        y_true : tensor
+            true labels
 
-        y_pred : XXX
-            XXX
+        y_pred : tensor
+            predicted labels
 
     returns
     -------
-        precision : XXX
+        precision : number
             value of precision between true and predicted labels
     """
 
@@ -33,15 +33,15 @@ def recall(y_true, y_pred):
 
     parameters
     ----------
-        y_true : XXX
-            XXX
+        y_true : tensor
+            true labels
 
-        y_pred : XXX
-            XXX
+        y_pred : tensor
+            predicted labels
 
     returns
     -------
-        recall : XXX
+        recall : number
             value of recall between true and predicted labels
     """
 
@@ -58,11 +58,11 @@ def f1(y_true, y_pred, apply_sigmoid_on_predicted_labels=False):
 
     parameters
     ----------
-        y_true : XXX
-            XXX
+        y_true : tensor
+            true labels
 
-        y_pred : XXX
-            XXX
+        y_pred : tensor
+            predicted labels
 
         apply_sigmoid_on_predicted_labels : boolean, default is False
             applies sigmoid function on predicted labels
@@ -70,7 +70,7 @@ def f1(y_true, y_pred, apply_sigmoid_on_predicted_labels=False):
 
     returns
     -------
-        f1 : XXX
+        f1 : number
             value of f1 between true and predicted labels
     """
 
