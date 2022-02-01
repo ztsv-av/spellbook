@@ -175,7 +175,17 @@ def buildClassificationImageNetModel(
     do_predictions):
     """
     builds classification ImageNet model body and creates custom head layers after global pooling
-
+    the process of building a model architecture is as follows:
+        1. an ImageNet model body is initialized without head layers, that is all layers before global pooling (included)
+        2. optional batch normalization and dropout layers are added
+        3. if additional feature layers are needed:
+            - it either concatenates them now with a global pooling layer, or a batch normalization layer, or a dropout layer 
+            (depends on the last layer in the model architecture)
+            - otherwise additional features are concatenated with the last layer before the dense (prediction) layer
+        4. optional fully connected and dropout layers are addded
+        5. optional prediction layer is added
+        6. finally, the model is created and returned
+        
     parameters
     ----------
 
