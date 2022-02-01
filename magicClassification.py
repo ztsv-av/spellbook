@@ -44,7 +44,22 @@ strategy = tf.distribute.MirroredStrategy(
 
 def classificationCustom():
     """
-    XXX
+    main working function that starts the whole training process
+    it does the following:
+        - creates a list with paths to training files
+        - iterates through every model initialized in models.py
+        - if DO_KFOLD = True it iterates through every fold for each model
+        - initializes as much input layers as needed, as well as additional input feature layers
+        - creates a model:
+            - if BUILD_AUTOENCODER = True it creates an autoencoder with ImageNet model body instead of a modified ImageNet model
+            - otherwise it either creates a modified ImageNet model (read more in description of buildClassificationImageNetModel function in models.py file)
+            - or any custom model initialized in models.py file
+        - if UNFREEZE = True it unfrezees either all layers or a specific number of top layers in the model (transfer learning)
+        - optionally loads model weights from a training checkpoint or a whole pretrained model
+        - initializes loss function, learning rate, optimizer and metrics
+        - if DO_VALIDATION = True it will check a model perfomance after every training epoch
+        - calls a function that starts a training process and passes all initialized variables to it
+    every action is based on the global variables initialized in globalVariables.py
     """
 
     data_paths_list = np.array(getFullPaths(DATA_FILEPATHS))
