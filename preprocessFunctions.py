@@ -22,7 +22,6 @@ def minMaxNormalizeNumpy(x):
             normalized image
     """
 
-    # convert type of x to float32 (from uint8, etc.)
     if x.dtype != 'float32':
         x = np.float32(x)
 
@@ -83,6 +82,20 @@ def meanStdNormalize(x):
 
 
 def kerasNormalize(model_name):
+    """
+    initializes a normalization function based on the ImageNet model
+
+    parameters
+    ----------
+        model_name : string
+            name of the ImageNet model
+
+    returns
+    -------
+        normalization_function : function
+            tf.keras.applications preprocess function
+    """
+
 
     if model_name == 'VGG16':
 
