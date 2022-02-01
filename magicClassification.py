@@ -44,7 +44,7 @@ strategy = tf.distribute.MirroredStrategy(
 
 def classificationCustom():
     """
-    main working function that starts the whole training process
+    main working function that starts the whole training process for classification or encoding-decoding tasks
     it does the following:
         - creates a list with paths to training files
         - iterates through every model initialized in models.py
