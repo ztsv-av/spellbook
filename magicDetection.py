@@ -57,6 +57,17 @@ to_fine_tune = tmp_list
 
 
 def detection():
+    """
+    main working function that starts the whole training process for object detection and classification tasks
+    the process is as follows:
+        - model, its config file and weights are loaded from Tensorflow Object Detection API database
+        - config file is modified with variables from globalVariables.py
+        - training checkpoint is loaded and model weights are restored
+        - model is created and initialized
+        - learning rate and optimizer are initialized and added to the model object
+        - training function is called and all initialized variables are passed to it
+    every action is based on the global variables initialized in globalVariables.py
+    """
 
     learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=LEARNING_RATE, decay_steps=LR_DECAY_STEPS, decay_rate=LR_DECAY_RATE)
