@@ -29,18 +29,10 @@ MODELS_CLASSIFICATION = {
     # 'EfficientNetB5': EfficientNetB5}
 
 
-def userDefinedModel(num_classes, activation):
+def userDefinedModel():
     """
     working function
-    here you define a simple custom model
-
-    parameters
-    ----------
-        num_classes : integer
-            number of classes to predict
-
-        activation : object
-            activation function to use at the last layer
+    here you define any custom model
 
     returns
     -------
@@ -55,7 +47,7 @@ def userDefinedModel(num_classes, activation):
         MaxPooling2D(),
         Flatten(),
         Dense(64, activation='relu'),
-        Dense(num_classes, activation=activation)])
+        Dense(1, activation='softmax')])
 
     return model
 
@@ -185,7 +177,7 @@ def buildClassificationImageNetModel(
         4. optional fully connected and dropout layers are addded
         5. optional prediction layer is added
         6. finally, the model is created and returned
-        
+
     parameters
     ----------
 
