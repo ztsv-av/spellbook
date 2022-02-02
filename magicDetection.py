@@ -74,7 +74,10 @@ def detection():
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     detectionTrain(
-        BATCH_SIZE_DETECTION, NUM_EPOCHS_DETECTION, NUM_CLASSES_DETECTION, LABEL_ID_OFFSET,
-        TRAIN_FILEPATHS_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, PERMUTATIONS_DETECTION,
-        None, detection_model, MODEL_NAME_DETECTION, optimizer, to_fine_tune,
+        NUM_EPOCHS_DETECTION, BATCH_SIZE_DETECTION, 
+        NUM_CLASSES_DETECTION, LABEL_ID_OFFSET,
+        TRAIN_FILEPATHS_DETECTION, BBOX_FORMAT, TRAIN_META_DETECTION, 
+        PERMUTATIONS_DETECTION, None,
+        detection_model, MODEL_NAME_DETECTION, 
+        optimizer, to_fine_tune,
         SAVE_CHECKPOINT_DIR, SAVE_TRAIN_INFO_DIR_DETECTION)
