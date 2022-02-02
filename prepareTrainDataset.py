@@ -3,7 +3,6 @@ from helpers import evaluateString, getLabelFromPath, getFeaturesFromPath, loadN
 from permutationFunctions import classification_permutations, detection_permutations
 
 import numpy as np
-import time
 import tensorflow as tf
 
 
