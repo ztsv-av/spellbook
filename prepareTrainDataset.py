@@ -73,6 +73,16 @@ def prepareClassificationDataset(
     strategy, is_val):
     """
     prepares data for training for classification/encoding-decoding tasks
+    the process of preparing data for training/validation is as follows:
+        - create empty lists for data, target labels and optionally additional features
+        - for each path in filepaths:
+            - load data and append it to data list
+            - load target labels and append them to target labels list
+            - optionally load additional features and append to the corresponding list
+        - map all loaded data to the preprocessData function to permute and normalize it
+        - create a tf.data.Dataset.from_tensor_slices object using preprocessed data and target labels + additional features lists
+        - batch Dataset object
+        - use strategy.experimental_distribute_dataset on the batched Dataset to distribute it across GPUs while training the model
 
     parameters
     ----------
