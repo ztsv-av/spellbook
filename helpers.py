@@ -238,7 +238,7 @@ def getLabelFromPath(path):
     return label
 
 
-def getFeaturesFromPath(path, meta, id_column, feature_column, full_record):
+def getFeaturesFromPath(path, meta, id_column, feature_column):
     """
     returns row or a cell data from the dataframe
 
@@ -255,10 +255,6 @@ def getFeaturesFromPath(path, meta, id_column, feature_column, full_record):
         
         feature_column : string
             name of the column from which to load the data
-        
-        full_record : boolean
-            either True or False
-            return a whole row or just a cell
 
     returns
     -------
@@ -268,13 +264,7 @@ def getFeaturesFromPath(path, meta, id_column, feature_column, full_record):
 
     record = meta[meta[id_column] == path.split('/')[-1]]
 
-    if full_record:
-
-        features = record.values[0]
-
-    else:
-
-        features = record[feature_column].values[0]
+    features = record[feature_column].values[0]
 
     return features
 

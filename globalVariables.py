@@ -63,7 +63,6 @@ METADATA = pd.read_csv('projects/petfinder/petfinder-previous/data/metadata/age-
 ID_COLUMN = 'id'
 TARGET_FEATURE_COLUMNS = ['popularity']
 ADD_FEATURES_COLUMNS = ['type', 'breed', 'age']
-FULL_RECORD = False
 
 DO_KFOLD = False
 NUM_FOLDS = 5

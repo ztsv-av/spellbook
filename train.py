@@ -242,7 +242,7 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
 def classificationCustomTrain(
         num_epochs, start_epoch, batch_size,
         train_paths_list, val_paths_list, do_validation, max_fileparts_train, max_fileparts_val, fold,
-        metadata, id_column, feature_columns, add_features_columns, full_record,
+        metadata, id_column, feature_columns, add_features_columns,
         permutations, do_permutations, normalization,
         model_name, model,
         loss_object, val_loss, compute_total_loss,
@@ -338,7 +338,7 @@ def classificationCustomTrain(
 
             train_distributed_part = prepareClassificationDataset(
                 batch_size, train_filepaths_part, 
-                metadata, id_column, feature_columns, add_features_columns, full_record,
+                metadata, id_column, feature_columns, add_features_columns,
                 permutations, do_permutations, normalization, 
                 strategy, is_val=False)
 
@@ -387,7 +387,7 @@ def classificationCustomTrain(
 
                 val_distributed_part = prepareClassificationDataset(
                     batch_size, val_filepaths_part, 
-                    metadata, id_column, feature_columns, add_features_columns, full_record,
+                    metadata, id_column, feature_columns, add_features_columns,
                     None, do_permutations, normalization, 
                     strategy, is_val=True)
 

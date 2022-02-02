@@ -8,7 +8,7 @@ from globalVariables import (
     LOAD_WEIGHTS, LOAD_MODEL,
     BUILD_AUTOENCODER, 
     DATA_FILEPATHS, TRAIN_FILEPATHS, VAL_FILEPATHS, DO_VALIDATION, MAX_FILES_PER_PART, RANDOM_STATE,
-    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, FULL_RECORD,
+    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS,
     DO_KFOLD, NUM_FOLDS, 
     CLASSIFICATION_CHECKPOINT_PATH, TRAINED_MODELS_PATH, 
     SAVE_TRAIN_WEIGHTS_DIR, SAVE_TRAIN_INFO_DIR,
@@ -204,7 +204,7 @@ def classificationCustom():
                 classificationCustomTrain(
                     NUM_EPOCHS, START_EPOCH, batch_size,
                     train_paths_list, val_paths_list, DO_VALIDATION, max_fileparts_train, max_fileparts_val, fold,
-                    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, FULL_RECORD,
+                    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS,
                     PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                     model_name, model,
                     loss_object, val_loss, compute_total_loss,
@@ -382,7 +382,7 @@ def classificationCustom():
             classificationCustomTrain(
                 NUM_EPOCHS, START_EPOCH, batch_size,
                 train_paths_list, val_paths_list, DO_VALIDATION, max_fileparts_train, max_fileparts_val, None,
-                METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, FULL_RECORD,
+                METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS,
                 PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                 model_name, model,
                 loss_object, val_loss, compute_total_loss,
