@@ -88,7 +88,7 @@ def prepareClassificationDataset(
     ----------
 
         batch_size : integer
-            the number of training examples in one batch of data
+            number of training examples in one batch of data
 
         filepaths : list
             full paths to files
@@ -114,9 +114,8 @@ def prepareClassificationDataset(
         normalization : function
             normalization function to apply to data
 
-        strategy : object
-            tf.distribute object
-            used to properly create experimental_distribute_dataset
+        strategy : tf.distribute object
+            TensorFlow API used in distributed training
 
         is_val : boolean
             shows whether it is a validation or training iteration
