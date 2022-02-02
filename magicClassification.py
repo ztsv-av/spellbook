@@ -187,10 +187,10 @@ def classificationCustom():
                     else:
                         optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
 
-                    train_accuracy = tf.keras.metrics.CategoricalAccuracy(
-                        name='train_accuracy')
-                    val_accuracy = tf.keras.metrics.CategoricalAccuracy(
-                        name='val_accuracy')
+                    train_metric = tf.keras.metrics.CategoricalAccuracy(
+                        name='train_metric')
+                    val_metric = tf.keras.metrics.CategoricalAccuracy(
+                        name='val_metric')
 
                     # rename optimizer weights to train multiple models
                     with K.name_scope(optimizer.__class__.__name__):
@@ -209,7 +209,7 @@ def classificationCustom():
                     model_name, model,
                     loss_object, val_loss, compute_total_loss,
                     LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
-                    train_accuracy, val_accuracy,
+                    train_metric, val_metric,
                     SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
                     strategy)
 
@@ -227,8 +227,8 @@ def classificationCustom():
                 del loss_object
                 del val_loss
                 del optimizer
-                del train_accuracy
-                del val_accuracy
+                del train_metric
+                del val_metric
 
                 K.clear_session()
 
@@ -362,13 +362,13 @@ def classificationCustom():
                 else:
                     optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
 
-                train_accuracy = tf.keras.metrics.MeanSquaredError(
+                train_metric = tf.keras.metrics.MeanSquaredError(
                     name='train_MSE')
                 if DO_VALIDATION:
-                    val_accuracy = tf.keras.metrics.MeanSquaredError(
+                    val_metric = tf.keras.metrics.MeanSquaredError(
                         name='val_MSE')
                 else:
-                    val_accuracy = None
+                    val_metric = None
 
                 # rename optimizer weights to train multiple models
                 with K.name_scope(optimizer.__class__.__name__):
@@ -387,7 +387,7 @@ def classificationCustom():
                 model_name, model,
                 loss_object, val_loss, compute_total_loss,
                 LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
-                train_accuracy, val_accuracy,
+                train_metric, val_metric,
                 SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
                 strategy)
 
@@ -405,8 +405,8 @@ def classificationCustom():
             del loss_object
             del val_loss
             del optimizer
-            del train_accuracy
-            del val_accuracy
+            del train_metric
+            del val_metric
 
             K.clear_session()
 
