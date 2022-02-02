@@ -7,96 +7,117 @@ import time
 import tensorflow as tf
 
 
-def permuteImageGetLabelBoxes(
-    image, 
+def preprocessData(
+    data, 
     permutations, do_permutations, normalization, 
     is_val, 
     bboxes, bbox_format, is_detection):
     '''
-    permutes given image and gets label for that image
+    permutes given data and applies a normalization function
 
     parameters
     ----------
-        image : XXX
-            XXX
+        data : numpy array
+            data to preprocess
 
-        permutations : XXX
-            XXX
+        permutations : list
+            list with permutation functions
 
-        normalization : XXX
-            XXX
+        normalization : function
+            normalization function
 
-        bboxes : XXX
-            XXX
+        bboxes : list
+            list of bounding boxes
 
-        bbox_format : XXX
-            XXX
+        bbox_format : string
+            describes in which format bounding boxes are
 
-        is_detection : XXX
-            XXX
+        is_detection : boolean
+            True if the object detection model is being trained
 
-        is_val : XXX
-            XXX
+        is_val : boolean
+            True if it is the validation stage
 
     returns
     -------
-        (image, bboxes) : tuple
-            XXX
+        (data, bboxes) : tuple of arrays
+            preprocessed data and bounding boxes
+
+        or
+
+        data_tensor : tensor
+            tensor of preprocessed data
     '''
 
     if is_detection:
 
-        image, bboxes = detection_permutations(
-            image, bboxes, bbox_format, permutations)
+        data, bboxes = detection_permutations(
+            data, bboxes, bbox_format, permutations)
 
-        return (image, bboxes)
+        return (data, bboxes)
 
     else:
         if not is_val:
             if do_permutations:
-                image = classification_permutations(image, permutations)
+                data = classification_permutations(data, permutations)
 
-        image = normalization(image)
+        data = normalization(data)
 
-        image_tensor = tf.convert_to_tensor(image)
+        data_tensor = tf.convert_to_tensor(data)
 
-        return image_tensor
+        return data_tensor
 
 
 def prepareClassificationDataset(
     batch_size, filepaths, 
-    meta, id_column, feature_columns, add_features_columns, full_record,
+    meta, id_column, feature_columns, add_features_columns,
     permutations, do_permutations, normalization, 
     strategy, is_val):
     """
-    XXX
+    prepares data for training for classification/encoding-decoding tasks
 
     parameters
     ----------
 
-        train_filepaths_batch : XXX
-            XXX
+        batch_size : integer
+            the number of training examples in one batch of data
 
-        batch_size : XXX
-            XXX
+        filepaths : list
+            full paths to files
 
-        buffer_size : XXX
-            XXX
+        meta : dataframe
+            metadata, table containing ids of files, additional features and features to predict
 
-        strategy : XXX
-            XXX
+        id_column : string
+            name of the id column in the metadata
 
-        permutations : XXX
-            XXX
+        feature_columns : list
+            names of target feature columns
 
-        normalization : XXX
-            XXX
+        add_features_columns : list
+            names of additional feature columns to add as an input when training
+
+        permutations : list
+            list of data permutation functions
+
+        do_permutations : boolen
+            either to perfrom data permutations or not
+
+        normalization : function
+            normalization function to apply to data
+
+        strategy : object
+            tf.distribute object
+            used to properly create experimental_distribute_dataset
+
+        is_val : boolean
+            shows whether it is a validation or training iteration
 
     returns
     -------
 
-        train_dataset_dist_batch : XXX
-            XXX
+        data_dataset_dist : strategy.experimental_distribute_dataset object
+            loaded, preprocessed, and batched data
     """
 
     data_list = []
@@ -117,7 +138,7 @@ def prepareClassificationDataset(
 
         for feature_idx, feature_column in feature_columns:
 
-            label = getFeaturesFromPath(path, meta, id_column, feature_column, full_record)
+            label = getFeaturesFromPath(path, meta, id_column, feature_column)
 
             if type(label) == int or type(label) == float:
                 
@@ -134,7 +155,7 @@ def prepareClassificationDataset(
 
             for feature_idx, add_feature_columns in enumerate(add_features_columns):
 
-                add_feature = getFeaturesFromPath(path, meta, id_column, add_feature_columns, full_record)
+                add_feature = getFeaturesFromPath(path, meta, id_column, add_feature_columns)
 
                 if type(add_feature) == int or type(add_feature) == float:
                     
@@ -153,7 +174,7 @@ def prepareClassificationDataset(
     # start_mapping_data_time = time.time()
     # print('Start Mapping Data...', flush=True)
 
-    data_map = map(lambda data: permuteImageGetLabelBoxes(
+    data_map = map(lambda data: preprocessData(
         data, permutations, do_permutations, normalization, is_val, bboxes=None, bbox_format=None, is_detection=False), data_list)
     data_mapped_list = list(data_map)
 
@@ -196,43 +217,48 @@ def prepareClassificationDataset(
 
 def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_offset, permutations, normalization, is_val):
     """
-    XXX
+    prepares data for training for object detection tasks
 
     parameters
     ----------
 
-        filepaths : XXX
-            XXX
+        filepaths : list
+            full paths to files
 
-        bbox_format : XXX
-            XXX
+        bbox_format : string
+            format of bounding boxes
 
-        meta : XXX
-            XXX
+        meta : dataframe
+            metadata, table containing ids of files, additional features, features to predict and coordintates of bounding boxes
 
-        num_classes : XXX
-            XXX
+        num_classes : integer
+            number of classes to predict
 
-        label_id_offset : XXX
-            XXX
+        label_id_offset : integer
+            shifts all classes by a certain number of indices
+            so that the model receives one-hot labels where non-background
+            classes start counting at the zeroth index
 
-        permutations : XXX
-            XXX
+        permutations : list
+            list of data permutation functions
 
-        normalization : XXX
-            XXX
+        normalization : function
+            normalization function to apply to data
+
+        is_val : boolean
+            shows whether it is a validation or training iteration
 
     returns
     -------
 
-        images_tensors : XXX
-            XXX
+        images_tensors : list
+            list of preprocessed image tensors
 
-        bboxes_tensors : XXX
-            XXX
+        bboxes_tensors : list
+            list of preprocessed bounding boxes tensors
 
-        classes_one_hot_tensors : XXX
-            XXX
+        classes_one_hot_tensors : list
+            list of one-hot label tensors
     """
 
     images_batch = []
@@ -246,7 +272,7 @@ def prepareDetectionDataset(filepaths, bbox_format, meta, num_classes, label_id_
         image = np.load(filepath)
         bboxes = evaluateString(record['bboxes'].values[0])
 
-        image, bboxes = permuteImageGetLabelBoxes(
+        image, bboxes = preprocessData(
             image, permutations, normalization, is_val, bboxes, bbox_format, is_detection=True)
 
         images_batch.append(image)
