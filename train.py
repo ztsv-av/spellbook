@@ -10,50 +10,51 @@ from sklearn.utils import shuffle
 
 def classificationDistributedTrainStepWrapper():
     """
-    wrapper for distributed train step for classification
+    wrapper for distributed training iteration on a batch of data
 
     returns
     -------
 
         classificationDistributedTrainStep : function
-            function that computes reduced loss after distributed train step
+            function that computes reduced loss on a batch of data
     """
 
     @tf.function
-    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy, strategy):
+    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_metric, strategy):
         """
-        computes reduced loss after one distributed train step
+        computes losses on every GPU and reduces (averages) them
 
         parameters
         ----------
 
-            inputs : XXX
-                XXX
+            inputs : tuple
+                contains training data and target features
 
-            model : XXX
-                XXX
+            model : object
+                model that is being trained
 
-            compute_total_loss : XXX
-                XXX
+            compute_total_loss : function
+                returns average loss for each loss calculated on each GPU
 
-            optimizer : XXX
-                XXX
+            optimizer : object
+                function or an algorithm that modifies weights and learning rate of a model
 
-            train_accuracy : XXX
-                XXX
+            train_metric : object/function
+                train metric to calculate
 
-            strategy : XXX
-                XXX
+            strategy : tf.distribute object
+                TensorFlow API used in distributed training
 
         returns
         -------
 
-            reduced_loss : XXX
-                XXX
+            reduced_loss : tensor
+                training loss calculated on a batch of data
+                reduced for every used GPU
         """
 
         per_replica_losses = strategy.run(classificationTrainStep, args=(
-            inputs, model, compute_total_loss, optimizer, train_accuracy))
+            inputs, model, compute_total_loss, optimizer, train_metric))
 
         reduced_loss = strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
@@ -67,33 +68,33 @@ def classificationDistributedTrainStepWrapper():
     return classificationDistributedTrainStep
 
 
-def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_accuracy):
+def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_metric):
     """
-    computes total loss after one train step
+    computes loss on a batch of data, performs gradient descent to train a model and updates training metrics
 
     parameters
     ----------
 
-        inputs : XXX
-            XXX
+        inputs : tuple
+            contains training data and target features
 
-        model : XXX
-            XXX
+        model : object
+            model that is being trained
 
-        compute_total_loss : XXX
-            XXX
+        compute_total_loss : function
+            returns average loss for each loss calculated on each GPU
 
-        optimizer : XXX
-            XXX
+        optimizer : object
+            function or an algorithm that modifies weights and learning rate of a model
 
-        train_accuracy : XXX
-            XXX
+        train_metric : object/function
+            train metric to calculate
 
     returns
     -------
 
-        loss : XXX
-            total loss after train step
+        loss : tensor
+            total loss of a batch of data
     """
 
     if type(inputs[0]) is tuple:
@@ -130,80 +131,84 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
-    train_accuracy.update_state(labels_concat, predictions_concat)
+    train_metric.update_state(labels_concat, predictions_concat)
 
     return loss
 
 
 def classificationDistributedValStepWrapper():
     """
-    XXX
+    wrapper for distributed validation iteration on a batch of data
 
     returns
     -------
 
-        classificationDistributedValStep : XXX
-            XXX
+        classificationDistributedValStep : function
+            function that calls another function to compute validation loss on a batch of data
     """
 
     @tf.function
-    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_accuracy, strategy):
+    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_metric, strategy):
         """
-        XXX
+        calls classificationValStep function to compute validation loss on a batch of data and update validation metrics
+        no need to reduce the loss because it is being updated inside classificationValStep function
 
         parameters
         ----------
 
-            inputs : XXX
-                XXX
+            inputs : tuple
+                contains training data and target features
 
-            model : XXX
-                XXX
+            model : object
+                model that is being validated
 
-            loss_object : XXX
-                XXX
+            loss_object : object/function
+                computes loss between true and predicted labels
 
-            val_loss : XXX
-                XXX
+            val_loss : object
+                validation loss to update
+                usually just a mean
 
-            val_accuracy : XXX
-                XXX
+            val_metric : object/function
+                validation metric to calculate
 
-            strategy : XXX
-                XXX
+            strategy : tf.distribute object
+                TensorFlow API used in distributed training
 
         returns
         -------
 
-            XXX : XXX
-                XXX
+            strategy.run(classificationValStep) : call to a function
+                calls a function that computes and updates states of validation loss and metrics
         """
 
-        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_accuracy))
+        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_metric))
 
     return classificationDistributedValStep
 
 
-def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
+def classificationValStep(inputs, model, loss_object, val_loss, val_metric):
     """
-    updates loss and accuracy after validation step for classification
+    computes loss on a batch of data and updates states of validation loss and metrics
 
     parameters
     ----------
-        inputs : XXX
-            XXX
 
-        model : XXX
-            XXX
+        inputs : tuple
+            contains training data and target features
 
-        loss_object : XXX
-            XXX
+        model : object
+            model that is being validated
 
-        val_loss : XXX
-            XXX
+        loss_object : object/function
+            computes loss between true and predicted labels
 
-        val_accuracy : XXX
-            XXX
+        val_loss : object
+            validation loss to update
+            usually just a mean
+
+        val_metric : object/function
+            validation metric to calculate
     """
 
     if type(inputs[0]) is tuple:
@@ -236,7 +241,7 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_accuracy):
     val_batch_loss = loss_object(labels_concat, predictions_concat)
 
     val_loss.update_state(val_batch_loss)
-    val_accuracy.update_state(labels_concat, predictions_concat)
+    val_metric.update_state(labels_concat, predictions_concat)
 
 
 def classificationCustomTrain(
@@ -247,69 +252,115 @@ def classificationCustomTrain(
         model_name, model,
         loss_object, val_loss, compute_total_loss,
         lr_ladder, lr_ladder_step, lr_ladder_epochs, optimizer,
-        train_accuracy, val_accuracy,
+        train_metric, val_metric,
         save_train_info_dir, save_train_weights_dir,
         strategy):
     """
-    XXX
+    main training function for classification/encoding-decoding tasks
+    for each epoch it divides training and validation files into parts
+    for every part it preprocessed data, computes loss and metrics
+    after an epoch is finished, it saves the training information and model weights
+    as well as updates loss and metric states of the model and learning rate
 
     parameters
     ----------
 
-        batch_size : XXX
-            XXX
+        num_epochs : integer
+            number of epochs to train the model
 
-        num_epochs : XXX
-            XXX
+        start_epoch : integer
+            number of the epoch from which the training process starts
 
-        train_data : XXX
-            XXX
+        batch_size : integer
+            number of training examples in one batch of data
 
-        val_data : XXX
-            XXX
+        train_paths_list : list
+            full paths to train files
 
-        max_file_parts : XXX
-            XXX
+        val_paths_list : list
+            full paths to validation files
 
-        permutations : XXX
-            XXX
+        do_validation : boolean
+            do validation or not
 
-        normalization : XXX
-            XXX
+        max_fileparts_train : integer
+            maximum number of training parts
+            one part has a certain number of files in it
+            used to solve memory allocation error
 
-        model : XXX
-            XXX
+        max_fileparts_val : integer
+            maximum number of validation parts
+            one part has a certain number of files in it
+            used to solve memory allocation error
 
-        loss_object : XXX
-            XXX
+        fold : integer
+            fold number
 
-        val_loss : XXX
-            XXX
+        metadata : dataframe
+            table containing ids of files, additional features and features to predict
 
-        compute_total_loss : XXX
-            XXX
+        id_column : string
+            name of the id column in the metadata
 
-        optimizer : XXX
-            XXX
+        feature_columns : list
+            names of target feature columns
 
-        train_accuracy : XXX
-            XXX
+        add_features_columns : list
+            names of additional feature columns to add as an input when training
 
-        val_accuracy : XXX
-            XXX
+        permutations : list
+            list of data permutation functions
 
-        save_train_info_dir : XXX
-            XXX
+        do_permutations : boolean
+            either to perfrom data permutations or not
 
-        save_train_weights_dir : XXX
-            XXX
+        normalization : function
+            normalization function to apply to data
 
-        model_name : XXX
-            XXX
+        model_name : string
+            name of the model
 
-        strategy : XXX
-            XXX
+        model : object
+            model to train
+
+        loss_object : object/function
+            computes loss between true and predicted labels
+
+        val_loss : object
+            validation loss to update
+            usually just a mean
+
+        compute_total_loss : function
+            returns average loss for each loss calculated on each GPU
+
+        lr_ladder : boolean
+            either to perform ladder learning rate reduction or not
+
+        lr_ladder_step : decimal
+            ladder learning rate reductuion rate
+
+        lr_ladder_epochs : integer
+            number of epochs to pass to perform the ladder learning rate reduction
+
+        optimizer : object
+            function or an algorithm that modifies weights and learning rate of a model
+
+        train_metric : object/function
+            train metric to calculate
+
+        val_metric : object/function
+            validation metric to calculate
+
+        save_train_info_dir : string
+            full path to directory where to save training information, such as epoch number, training loss, training accuracy, etc.
+
+        save_train_weights_dir : string
+            full path to directory where to save model weights
+
+        strategy : tf.distribute object
+            TensorFlow API used in distributed training
     """
+
     wrapperTrain = classificationDistributedTrainStepWrapper()
     wrapperVal = classificationDistributedValStepWrapper()
 
@@ -353,7 +404,7 @@ def classificationCustomTrain(
             for batch in train_distributed_part:
 
                 total_loss += wrapperTrain(
-                    batch, model, compute_total_loss, optimizer, train_accuracy, strategy)
+                    batch, model, compute_total_loss, optimizer, train_metric, strategy)
 
                 num_batches += 1
 
@@ -402,7 +453,7 @@ def classificationCustomTrain(
                 for batch in val_distributed_part:
 
                     wrapperVal(
-                        batch, model, loss_object, val_loss, val_accuracy, strategy)
+                        batch, model, loss_object, val_loss, val_metric, strategy)
 
                 end_part_time = time.time()
                 if fold == None:
@@ -417,12 +468,12 @@ def classificationCustomTrain(
             template = (
                 "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
             print('\n' + template.format(
-                epoch + 1, train_loss, train_accuracy.result() * 100,
-                val_loss.result(), val_accuracy.result() * 100, flush=True))
+                epoch + 1, train_loss, train_metric.result() * 100,
+                val_loss.result(), val_metric.result() * 100, flush=True))
 
             # callbacks
-            saveTrainInfo(model_name, epoch, fold, train_loss, train_accuracy,
-                        val_loss, val_accuracy, optimizer, save_train_info_dir)
+            saveTrainInfo(model_name, epoch, fold, train_loss, train_metric,
+                        val_loss, val_metric, optimizer, save_train_info_dir)
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
             if lr_ladder:
@@ -434,8 +485,8 @@ def classificationCustomTrain(
                     optimizer.learning_rate = new_lr
 
             val_loss.reset_states()
-            train_accuracy.reset_states()
-            val_accuracy.reset_states()
+            train_metric.reset_states()
+            val_metric.reset_states()
 
             # sleep 120 seconds
             if ((epoch + 1) % 10 == 0):
@@ -448,11 +499,11 @@ def classificationCustomTrain(
             template = (
                 "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
             print('\n' + template.format(
-                epoch + 1, train_loss, train_accuracy.result() * 100,
+                epoch + 1, train_loss, train_metric.result() * 100,
                 'No validation', 'No validation', flush=True))
 
             # callbacks
-            saveTrainInfo(model_name, epoch, fold, train_loss, train_accuracy,
+            saveTrainInfo(model_name, epoch, fold, train_loss, train_metric,
                         None, None, optimizer, save_train_info_dir)
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
@@ -464,7 +515,7 @@ def classificationCustomTrain(
 
                     optimizer.learning_rate = new_lr
 
-            train_accuracy.reset_states()
+            train_metric.reset_states()
 
             # sleep 120 seconds
             if ((epoch + 1) % 10 == 0):
@@ -477,30 +528,42 @@ def detectionTrainStep(
         image_list, groundtruth_boxes_list, groundtruth_classes_list,
         model, vars_to_fine_tune, optimizer):
     """
-    single training iteration
+    single object detection training iteration
+    computes localization and classification losses for input batches of data
+    and performs gradient descent to train the model parameters
 
     parameters
     ----------
         image_list: array
-            array of [1, height, width, 3] Tensor of type tf.float32
+            array of [height, width, 3] tensors of type tf.float32
             images reshaped to model's preprocess function
 
         groundtruth_boxes_list: array
-            array of Tensors of shape [num_boxes, 4] with type tf.float32 representing groundtruth boxes for each image in batch
+            array of tensors of shape [num_boxes, 4] with type tf.float32 representing groundtruth boxes for each image
 
         groundtruth_classes_list: array
-            list of Tensors of shape [num_boxes, num_classes] with type tf.float32 representing groundtruth boxes for each image in batch
+            list of tensors of shape [num_boxes, num_classes] with type tf.float32 representing groundtruth boxes for each image
+        
+        model : object
+            model to train
+        
+        vars_to_fine_tune : list
+            list of trainable variables ('WeightSharedConvolutionalBoxPredictor' variables) of the model
+        
+        optimizer : object
+            function or an algorithm that modifies weights and learning rate of a model
+            
 
     returns
     -------
         total_loss: scalar tensor
-            represents total loss for input batch
+            represents total loss for input data
 
         loc_loss: scalar tensor
-            represents localization loss for input batch
+            represents localization loss for input data
 
         class_loss: scalar tensor
-            represents classification loss for input batch
+            represents classification loss for input data
     """
 
     with tf.GradientTape() as tape:
@@ -545,60 +608,71 @@ def detectionTrainStep(
 
 
 def detectionTrain(
-        batch_size, num_epochs, num_classes, label_id_offset,
-        train_filepaths, bbox_format, meta, permutations,
-        normalization, model, model_name, optimizer,
-        to_fine_tune, checkpoint_save_dir, save_train_info_dir):
+        num_epochs, batch_size,
+        num_classes, label_id_offset,
+        train_filepaths, bbox_format, meta, 
+        permutations, normalization,
+        model, model_name,
+        optimizer,to_fine_tune, 
+        checkpoint_save_dir, save_train_info_dir):
     """
-    XXX
+    main training function for object detection and classification tasks
+    for each epoch it split data in parts
+    for each part it loads and preprocesses the data,
+    computes localization and classification losses
+    and updates their states
+    it minimizes loss functions by finding their local minimum/maximum,
+    i.e. by performing a gradient descent
 
     parameters
     ----------
 
-    batch_size : XXX
-        XXX
+    num_epochs : integer
+        number of epochs to train the model
 
-    num_epochs : XXX
-        XXX
+    batch_size : integer
+        number of training examples in one batch of data
 
-    num_classes : XXX
-        XXX
+    num_classes : integer
+        number of classes to predict
 
-    label_id_offset : XXX
-        XXX
+    label_id_offset : integer
+        shifts all classes by a certain number of indices
+        so that the model receives one-hot labels where non-background
+        classes start counting at the zeroth index
 
-    train_filepaths : XXX
-        XXX
+    train_filepaths : list
+        full paths to files
 
-    bbox_format : XXX
-        XXX
+    bbox_format : string
+        format of bounding boxes
 
-    meta : XXX
-        XXX
+    meta : dataframe
+        metadata, table containing ids of files, additional features, features to predict and coordintates of bounding boxes
 
-    permutations : XXX
-        XXX
+    permutations : list
+        list of data permutation functions
+        
+    normalization : function
+        normalization function to apply to data
 
-    normalization : XXX
-        XXX
+    model : object
+        model to train
 
-    model : XXX
-        XXX
+    model_name : string
+        name of the model
 
-    model_name : XXX
-        XXX
+    optimizer : object
+        function or an algorithm that modifies weights and learning rate of a model
 
-    optimizer : XXX
-        XXX
+    to_fine_tune : list
+        list of trainable variables ('WeightSharedConvolutionalBoxPredictor' variables) of the model
 
-    to_fine_tune : XXX
-        XXX
+    checkpoint_save_dir : string
+        full path to directory where to save the training checkpoint (model weights)
 
-    checkpoint_save_dir : XXX
-        XXX
-
-    save_train_info_dir : XXX
-        XXX
+    save_train_info_dir : string
+        full path to directory where to save training information, that is epoch number, loss values and learning rate
     """
 
     train_filepaths_list = getFullPaths(train_filepaths)
