@@ -6,5 +6,7 @@ projects/testing_fashionmnist/*
 projects/testing_animals/*
 projects/testing_pascalvoc/*
 projects/testing_detection/*
-projects/petfinder/*
+projects/petfinder/data/*
+projects/petfinder/petfinder-previous/*
+projects/petfinder/training/*
 deprecated/*
