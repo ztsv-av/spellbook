@@ -18,7 +18,7 @@ We came up with a following plan:
 4. Train final model to predict Pawpularity score using given images and predicted additional features.
 
 Datasets that we used:
-- [PetFinder.my - Pawpularity Contest](PetFinder.my - Pawpularity Contest) (competition dataset)
+- [PetFinder.my - Pawpularity Contest](https://www.kaggle.com/c/petfinder-pawpularity-score/overview) (competition dataset)
 - [PetFinder.my Adoption Prediction](https://www.kaggle.com/c/petfinder-adoption-prediction/data) (used to train Age and Color feature model)
 - [Stanford Dogs Dataset](https://www.kaggle.com/jessicali9530/stanford-dogs-dataset) (used to train Breed feature model)
 - [Cat Breeds Dataset](https://www.kaggle.com/ma7555/cat-breeds-dataset) (needed serious data cleanup - a lot of wrongly classified images) (used to train Breed feature model)
@@ -34,7 +34,12 @@ We decided to predict 4 main features: Type, Color, Breed, Age. For each of thes
 
 After that, we used these models to predict features for Petfinder images.
 We tried to use the same InceptionV3 model to predict Pawpularity score. After the global pooling layer we concatenated additional features with extracted image features, passed them to multiple Fully Connected layers and to the final 1 neuron Dense layer. RMSE score was extremely high.
-So, we decided to use a denoising autoencoder (the idea taken from here: [part of 9th place (denoising auto-encoder NN)](https://www.kaggle.com/c/petfinder-adoption-prediction/discussion/88740)). The idea was to train the model to encode image features and additional features, apply swap noise, and decode additional features back. After fitting, we would concatenate last Fully Connected layers together (encoder, bottleneck and decoder layers), add new Fully Connected layers and the last 1 neuron Dense layer and retrain the model to predict Pawpularity score. Unfortunately, this idea was not successful either.
+So, we decided to use a denoising autoencoder (the idea taken from here: [part of 9th place (denoising auto-encoder NN)](https://www.kaggle.com/c/petfinder-adoption-prediction/discussion/88740)). The idea was to train the model to encode image features and additional features, apply swap noise, and decode additional features back. After fitting, we would concatenate last Fully Connected layers together (encoder, bottleneck and decoder layers), add new Fully Connected layers and the last 1 neuron Dense layer and retrain the model to predict Pawpularity score. Unfortunately, this idea was not successful either - we did not have enough time to code swap noise technique. 
+
+Now, we have another idea - to use transfer learning logic. In previous Petfinder competition we had to predict AdoptionSpeed, which we think correlates with Pawpularity in this competition. So, the plan is this:
+ - use additional features models to predict lacking features for previous Petfinder data.
+ - train a classification model to predict AdoptionSpeed, change last prediction layer and continue to train this model on new Petfinder data or 
+ - train an autoencoder to restore additional features, change last layers so that the model solves classification task, that is predicts AdoptionSpeed. Then, change last prediction layer to fit regression task and continue training on new Petfinder data.
 
 ## Data Preprocessing
 
@@ -91,7 +96,7 @@ For data permutation we used random gamma, horizontal flip, glass blur, sharpen,
 
 ### Models
 
-For feature extraction we used ImageNet Inception V3.
+For image features extraction we used ImageNet Inception V3. For additional feature prediction we modified ImageNet model head layers, and for Pawpularity we used a denoising autoencoder architecture.
 
 ### Loss
 
