@@ -23,7 +23,7 @@ from globalVariables import (
 from models import MODELS_CLASSIFICATION, unfreezeModel, buildClassificationImageNetModel, buildDenoisingAutoencoder
 from train import classificationCustomTrain
 from preprocessFunctions import kerasNormalize
-from losses import rootMeanSquaredErrorLossWrapper
+from losses import categoricalFocalLossWrapper
 from helpers import getFullPaths
 
 import time
@@ -161,7 +161,7 @@ def classificationCustom():
 
                                 else:
 
-                                    to_unfreeze = NUM_UNFREEZE_LAYERS
+                                    to_unfreeze = NUM_UNFREEZE_LAYERS[model_name]
 
                             model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze)
 
@@ -334,7 +334,7 @@ def classificationCustom():
 
                             else:
 
-                                to_unfreeze = NUM_UNFREEZE_LAYERS
+                                to_unfreeze = NUM_UNFREEZE_LAYERS[model_name]
 
                         model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze)
 
@@ -342,7 +342,7 @@ def classificationCustom():
 
                         model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
 
-                loss_object = rootMeanSquaredErrorLossWrapper(reduction=LOSS_REDUCTION)
+                loss_object = categoricalFocalLossWrapper(reduction=LOSS_REDUCTION)
 
                 def compute_total_loss(labels, predictions):
                     per_gpu_loss = loss_object(labels, predictions)
