@@ -143,7 +143,7 @@ def prepareClassificationDataset(
         data = loadNumpy(path)
         data_list.append(data)
 
-        for feature_idx, feature_column in feature_columns:
+        for feature_idx, feature_column in enumerate(feature_columns):
 
             label = getFeaturesFromPath(path, meta, id_column, feature_column)
 
