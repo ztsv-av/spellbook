@@ -119,7 +119,13 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
 
     with tf.GradientTape() as tape:
 
-        prediction_data = data + features
+        if len(features) == 0:
+
+            prediction_data = data # + features
+        
+        else:
+
+            prediction_data = data + features
 
         predictions = model(prediction_data, training=True)
 
@@ -231,7 +237,13 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_metric):
 
         labels = inputs[1]
 
-    prediction_data = data + features
+    if len(features) == 0:
+
+        prediction_data = data # + features
+    
+    else:
+
+        prediction_data = data + features
 
     predictions = model(prediction_data, training=False)
     
