@@ -4,6 +4,7 @@ import png
 import ast
 import shutil
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from PIL import Image
@@ -262,7 +263,13 @@ def getFeaturesFromPath(path, meta, id_column, feature_column):
             data from the desired column of the dataframe
     """
 
-    record = meta[meta[id_column] == path.split('/')[-1]]
+    file_id = path.split('/')[-1]
+
+    if '_' in file_id:
+
+        file_id = file_id.split('_')[0]
+
+    record = meta[meta[id_column] == file_id]
 
     features = record[feature_column].values[0]
 
@@ -338,7 +345,7 @@ def loadFashionMNIST(dir, reshape_size):
 
     parameters
     -----------
-        dir: string
+        dir : string
             path to directory that contains 4 files:
                 train_labels.gz, train_images.gz,
                 test_labels.gz, test_images.gz
@@ -381,3 +388,26 @@ def loadFashionMNIST(dir, reshape_size):
             imgpath.read(), np.uint8, offset=16).reshape(len(y_test), reshape_size[0], reshape_size[1])
 
     return (x_train, y_train), (x_test, y_test)
+
+
+def deleteFiles(path, to_delete):
+    """
+    randomly deletes a number of files from a given directory
+
+    parameters
+    -----------
+        path : string
+            path to directory where to delete files
+
+        to_delete : int
+            number of files to delete
+            cannot exceed total number of files in a directory
+    """
+
+    files = os.listdir(path)
+    random_idxs = random.sample(range(0, len(files)), to_delete)
+
+    for random_idx in random_idxs:
+
+        file_to_delete = files[random_idx]
+        os.remove(path + file_to_delete)
