@@ -1,3 +1,5 @@
+import numpy as np
+
 import tensorflow.keras.backend as K
 from tensorflow.keras.activations import sigmoid
 
@@ -84,3 +86,58 @@ def f1(y_true, y_pred, apply_sigmoid_on_predicted_labels=False):
               (precisionScore + recallScore + K.epsilon()))
 
     return f1
+
+
+def map5PerExample(y_true, y_pred):
+    """
+    computes the precision score of one example
+
+    parameters
+    ----------
+    y_true : int/double/string/anything
+            true label of the  example (one true element)
+
+    y_pred : list
+            list of predicted elements
+
+    returns
+    -------
+        score : double
+            map5 score for one example
+    """
+
+    try:
+        score = 1 / (y_pred[:5].index(y_true) + 1)
+        return score
+
+    except ValueError:
+        return 0.0
+
+
+def map5(y_true, y_pred):
+    """
+    computes the average over multiple examples (batch)
+
+    parameters
+    ----------
+    y_true : list
+             list of the true labels. (only one true label per example allowed!)
+
+    y_pred : list of list
+             list of predicted elements (order does matter, 5 predictions allowed per example)
+
+    example : 
+        y_true = [1, 2, 3, 4, 5]
+        y_pred = [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]]
+        b = [map5PerExample(l, p) for l,p in zip(y_true, y_pred)] => [1.0, 0.5, 0.333, 0.25, 0.2]
+        a = map5(y_true, y_pred) => 0.458
+
+    returns
+    -------
+    score : double
+        map5 metric value for a whole batch
+    """
+
+    score = np.mean([map5PerExample(l, p) for l,p in zip(y_true, y_pred)])
+
+    return score
