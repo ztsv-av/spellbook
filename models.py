@@ -9,10 +9,11 @@ from tensorflow.keras.layers import *
 from globalVariables import DROPOUT_RATES, FC_LAYERS
 
 MODELS_CLASSIFICATION = {
+    # 'Swin': None,
+    'convnext_base_384_in22ft1k': None}
+    # 'InceptionV3': InceptionV3}
     # 'DenseNet121': DenseNet121,
-    'InceptionV3': InceptionV3}
-    # 'Xception': Xception}
-    # 'VGG16': VGG16}
+    # 'Xception': Xception,
     # 'MobileNet': MobileNet,
     # 'MobileNetV2': MobileNetV2,
     # 'ResNet50': ResNet50,
@@ -23,10 +24,11 @@ MODELS_CLASSIFICATION = {
     # 'ResNet101V2': ResNet101V2,
     # 'EfficientNetB0': EfficientNetB0,
     # 'EfficientNetB1': EfficientNetB1,
-    # 'EfficientNetB2': EfficientNetB2}
+    # 'EfficientNetB2': EfficientNetB2, 
     # 'EfficientNetB3': EfficientNetB3,
     # 'EfficientNetB4': EfficientNetB4,
     # 'EfficientNetB5': EfficientNetB5}
+    # # 'VGG16': VGG16}
 
 
 def userDefinedModel():
@@ -77,7 +79,7 @@ def unfreezeModel(model, num_input_layers, batch_norm, num_layers):
             model with unfreezed layers
     """
 
-    num_last_layers = 3 + num_input_layers
+    num_last_layers = 2 + num_input_layers
 
     if batch_norm:
 
@@ -236,16 +238,28 @@ def buildClassificationImageNetModel(
     if 'EfficientNet' in model_name:
 
         imagenet_model = model_imagenet(
-            include_top=False, weights='imagenet', input_tensor=inputs[0], drop_connect_rate=dropout_connect_rate, pooling=pooling)
+            include_top=False, weights='imagenet', input_tensor=inputs[0], drop_connect_rate=dropout_connect_rate)
     else:
 
         imagenet_model = model_imagenet(
-            include_top=False, weights='imagenet', input_tensor=inputs[0], pooling=pooling)
+            include_top=False, weights='imagenet', input_tensor=inputs[0])
 
     imagenet_model.trainable = False
 
     feature_extractor = imagenet_model.output
 
+    if pooling == 'avg':
+
+        feature_extractor = tf.keras.layers.GlobalAveragePooling2D(name='avg_global_pool')(feature_extractor)
+    
+    elif pooling == 'max':
+
+        feature_extractor = tf.keras.layers.GlobalAveragePooling2D(name='max_global_pool')(feature_extractor)
+
+    else:
+
+        feature_extractor = tf.keras.layers.Flatten()(feature_extractor)
+    
     if do_batch_norm:
 
         feature_extractor = tf.keras.layers.BatchNormalization()(feature_extractor)
