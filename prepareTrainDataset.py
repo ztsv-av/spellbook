@@ -1,4 +1,4 @@
-from helpers import evaluateString, getLabelFromPath, getFeaturesFromPath, loadNumpy, saveNumpyArray
+from helpers import evaluateString, getLabelFromPath, getFeaturesFromPath, loadNumpy, createOneHotVector
 from permutationFunctions import classification_permutations, detection_permutations
 
 import numpy as np
@@ -67,8 +67,10 @@ def preprocessData(
 
 
 def prepareClassificationDataset(
-    batch_size, filepaths, 
-    meta, id_column, feature_columns, add_features_columns,
+    batch_size, num_classes, num_add_classes, 
+    filepaths, 
+    meta, id_column, feature_columns, add_features_columns, 
+    filename_underscore, create_onehot, onehot_idx, onehot_idxs_add,  
     permutations, do_permutations, normalization, 
     strategy, is_val):
     """
@@ -90,6 +92,12 @@ def prepareClassificationDataset(
         batch_size : integer
             number of training examples in one batch of data
 
+        num_classes : integer
+            number of classes
+
+        num_add_classes : list
+            contains integers representing number of classes in additional features
+
         filepaths : list
             full paths to files
 
@@ -104,6 +112,19 @@ def prepareClassificationDataset(
 
         add_features_columns : list
             names of additional feature columns to add as an input when training
+
+        filename_underscore : boolean
+            True if end of a filename has a class after an underscore
+
+        create_onehot : boolean
+            whether to use metadata and load one-hot vector from there
+            or create a new one using a name of the file
+        
+        onehot_idx : int
+            which idx to use when splitting filename path by underscore to create one-hot vector
+
+        onehot_idxs_add : list
+             contains indicies to use when splitting filename path by underscore to create one-hot vectors for additional features
 
         permutations : list
             list of data permutation functions
@@ -145,15 +166,21 @@ def prepareClassificationDataset(
 
         for feature_idx, feature_column in enumerate(feature_columns):
 
-            label = getFeaturesFromPath(path, meta, id_column, feature_column)
+            if create_onehot:
 
-            if type(label) == int or type(label) == float:
-                
-                label = np.array(label, dtype=np.int32)
-
+                label = createOneHotVector(path, onehot_idx, num_classes)
+            
             else:
 
-                label = evaluateString(label)
+                label = getFeaturesFromPath(path, meta, id_column, feature_column, filename_underscore)
+
+                if type(label) == int or type(label) == float:
+                    
+                    label = np.array(label, dtype=np.int32)
+
+                else:
+
+                    label = evaluateString(label)
 
             label_tensor = tf.convert_to_tensor(label, dtype=tf.float32)
             labels_list[feature_idx].append(label_tensor)
@@ -162,15 +189,21 @@ def prepareClassificationDataset(
 
             for feature_idx, add_feature_columns in enumerate(add_features_columns):
 
-                add_feature = getFeaturesFromPath(path, meta, id_column, add_feature_columns)
+                if create_onehot:
 
-                if type(add_feature) == int or type(add_feature) == float:
-                    
-                    add_feature = np.array(add_feature, dtype=np.int32)
-
+                    add_feature = createOneHotVector(path, onehot_idxs_add[feature_idx], num_add_classes[feature_idx])
+                
                 else:
 
-                    add_feature = evaluateString(add_feature)
+                    add_feature = getFeaturesFromPath(path, meta, id_column, add_feature_columns, filename_underscore)
+
+                    if type(add_feature) == int or type(add_feature) == float:
+                        
+                        add_feature = np.array(add_feature, dtype=np.int32)
+
+                    else:
+
+                        add_feature = evaluateString(add_feature)
                 
                 add_feature_tensor = tf.convert_to_tensor(add_feature, dtype=tf.float32)
                 add_features_list[feature_idx].append(add_feature_tensor)
