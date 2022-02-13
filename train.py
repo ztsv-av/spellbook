@@ -215,7 +215,14 @@ def classificationDistributedValStepWrapper():
                 calls a function that computes and updates states of validation loss and metrics
         """
 
-        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, metric_type, val_metric))
+        per_replica_metrics = strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, metric_type, val_metric))
+
+        reduced_metric = 0.0
+        if metric_type == 'custom':
+            reduced_metric = strategy.reduce(
+                tf.distribute.ReduceOp.SUM, per_replica_metrics, axis=None)
+
+        return reduced_metric
 
     return classificationDistributedValStep
 
@@ -291,10 +298,13 @@ def classificationValStep(inputs, model, loss_object, val_loss, metric_type, val
 
     if metric_type == 'custom':
 
-        return
+        return 0.0
 
     else:
+
         val_metric.update_state(labels_concat, predictions_concat)
+
+        return 0.0
 
 
 def classificationCustomTrain(
@@ -483,8 +493,11 @@ def classificationCustomTrain(
 
             for batch in train_distributed_part:
 
-                total_loss, total_train_metric += wrapperTrain(
+                batch_loss, batch_train_metric = wrapperTrain(
                     batch, model, compute_total_loss, optimizer, metric_type, train_metric, strategy)
+
+                total_loss += batch_loss
+                total_train_metric += batch_train_metric
 
                 num_train_batches += 1
 
@@ -538,8 +551,10 @@ def classificationCustomTrain(
 
                 for batch in val_distributed_part:
 
-                    total_val_metric += wrapperVal(
+                    batch_val_metric = wrapperVal(
                         batch, model, loss_object, val_loss, metric_type, val_metric, strategy)
+
+                    total_val_metric += batch_val_metric
 
                     num_val_batches += 1
 
