@@ -20,7 +20,7 @@ def classificationDistributedTrainStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, train_metric, strategy):
+    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, metric_type, train_metric, strategy):
         """
         computes losses on every GPU and reduces (averages) them
 
@@ -38,7 +38,10 @@ def classificationDistributedTrainStepWrapper():
 
             optimizer : object
                 function or an algorithm that modifies weights and learning rate of a model
-
+            
+            metric_type : string
+                either a custom metric or imported
+            
             train_metric : object/function
                 train metric to calculate
 
@@ -53,22 +56,27 @@ def classificationDistributedTrainStepWrapper():
                 reduced for every used GPU
         """
 
-        per_replica_losses = strategy.run(classificationTrainStep, args=(
-            inputs, model, compute_total_loss, optimizer, train_metric))
+        per_replica_losses, per_replica_metrics = strategy.run(classificationTrainStep, args=(
+            inputs, model, compute_total_loss, optimizer, metric_type, train_metric))
 
         reduced_loss = strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
+
+        reduced_metric = 0.0
+        if metric_type == 'custom':
+            reduced_metric = strategy.reduce(
+                tf.distribute.ReduceOp.SUM, per_replica_metrics, axis=None)
 
         # test if per replica training works
         # tf.print(per_replica_losses.values)
         # tf.print(reduced_loss)
 
-        return reduced_loss
+        return reduced_loss, reduced_metric
 
     return classificationDistributedTrainStep
 
 
-def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_metric):
+def classificationTrainStep(inputs, model, compute_total_loss, optimizer, metric_type, train_metric):
     """
     computes loss on a batch of data, performs gradient descent to train a model and updates training metrics
 
@@ -86,7 +94,10 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
 
         optimizer : object
             function or an algorithm that modifies weights and learning rate of a model
-
+       
+        metric_type : string
+            either a custom metric or imported
+        
         train_metric : object/function
             train metric to calculate
 
@@ -142,9 +153,17 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
-    train_metric.update_state(labels_concat, predictions_concat)
+    if metric_type == 'custom':
 
-    return loss
+        train_metric = 0
+
+        return loss, train_metric
+
+    else:
+
+        train_metric.update_state(labels_concat, predictions_concat)
+
+        return loss, 0.0
 
 
 def classificationDistributedValStepWrapper():
@@ -159,7 +178,7 @@ def classificationDistributedValStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedValStep(inputs, model, loss_object, val_loss, val_metric, strategy):
+    def classificationDistributedValStep(inputs, model, loss_object, val_loss, metric_type, val_metric, strategy):
         """
         calls classificationValStep function to compute validation loss on a batch of data and update validation metrics
         no need to reduce the loss because it is being updated inside classificationValStep function
@@ -179,7 +198,10 @@ def classificationDistributedValStepWrapper():
             val_loss : object
                 validation loss to update
                 usually just a mean
-
+            
+            metric_type : string
+                either a custom metric or imported
+            
             val_metric : object/function
                 validation metric to calculate
 
@@ -193,12 +215,12 @@ def classificationDistributedValStepWrapper():
                 calls a function that computes and updates states of validation loss and metrics
         """
 
-        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, val_metric))
+        return strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, metric_type, val_metric))
 
     return classificationDistributedValStep
 
 
-def classificationValStep(inputs, model, loss_object, val_loss, val_metric):
+def classificationValStep(inputs, model, loss_object, val_loss, metric_type, val_metric):
     """
     computes loss on a batch of data and updates states of validation loss and metrics
 
@@ -217,7 +239,10 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_metric):
         val_loss : object
             validation loss to update
             usually just a mean
-
+        
+        metric_type : string
+            either a custom metric or imported
+        
         val_metric : object/function
             validation metric to calculate
     """
@@ -263,7 +288,13 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_metric):
     val_batch_loss = loss_object(labels_concat, predictions_concat)
 
     val_loss.update_state(val_batch_loss)
-    val_metric.update_state(labels_concat, predictions_concat)
+
+    if metric_type == 'custom':
+
+        return
+
+    else:
+        val_metric.update_state(labels_concat, predictions_concat)
 
 
 def classificationCustomTrain(
@@ -275,7 +306,7 @@ def classificationCustomTrain(
         model_name, model,
         loss_object, val_loss, compute_total_loss,
         lr_ladder, lr_ladder_step, lr_ladder_epochs, optimizer,
-        train_metric, val_metric,
+        metric_type, train_metric, val_metric,
         save_train_info_dir, save_train_weights_dir,
         strategy):
     """
@@ -388,6 +419,9 @@ def classificationCustomTrain(
         optimizer : object
             function or an algorithm that modifies weights and learning rate of a model
 
+        metric_type : string
+            either a custom metric or imported
+
         train_metric : object/function
             train metric to calculate
 
@@ -414,7 +448,8 @@ def classificationCustomTrain(
             val_paths_list_shuffled = shuffle(val_paths_list)
 
         total_loss = 0.0
-        num_batches = 0
+        total_train_metric = 0.0
+        num_train_batches = 0
 
         for part in range(max_fileparts_train):
 
@@ -448,10 +483,10 @@ def classificationCustomTrain(
 
             for batch in train_distributed_part:
 
-                total_loss += wrapperTrain(
-                    batch, model, compute_total_loss, optimizer, train_metric, strategy)
+                total_loss, total_train_metric += wrapperTrain(
+                    batch, model, compute_total_loss, optimizer, metric_type, train_metric, strategy)
 
-                num_batches += 1
+                num_train_batches += 1
 
             end_part_time = time.time()
             if fold == None:
@@ -461,9 +496,13 @@ def classificationCustomTrain(
                 print('\nFold ' + str(fold + 1) + '. Training: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
                     ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
-        train_loss = total_loss / num_batches
+        train_loss = total_loss / num_train_batches
+        train_metric = total_train_metric / num_train_batches
 
         del train_distributed_part
+
+        total_val_metric = 0.0
+        num_val_batches = 0
 
         if do_validation:
 
@@ -499,8 +538,10 @@ def classificationCustomTrain(
 
                 for batch in val_distributed_part:
 
-                    wrapperVal(
-                        batch, model, loss_object, val_loss, val_metric, strategy)
+                    total_val_metric += wrapperVal(
+                        batch, model, loss_object, val_loss, metric_type, val_metric, strategy)
+
+                    num_val_batches += 1
 
                 end_part_time = time.time()
                 if fold == None:
@@ -510,17 +551,31 @@ def classificationCustomTrain(
                     print('\nFold ' + str(fold + 1) + '. Validation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
                         ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
+            val_metric = total_val_metric / num_val_batches
+
             del val_distributed_part
 
             template = (
-                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
-            print('\n' + template.format(
-                epoch + 1, train_loss, train_metric.result() * 100,
-                val_loss.result(), val_metric.result() * 100, flush=True))
+                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, Validation Accuracy: {}")
+            
+            if metric_type == 'custom':
+            
+                print('\n' + template.format(
+                    epoch + 1, train_loss, train_metric * 100,
+                    val_loss.result(), val_metric * 100, flush=True))
+                
+            else:
+
+                print('\n' + template.format(
+                    epoch + 1, train_loss, train_metric.result() * 100,
+                    val_loss.result(), val_metric.result() * 100, flush=True)) 
 
             # callbacks
-            saveTrainInfo(model_name, epoch, fold, train_loss, train_metric,
-                        val_loss, val_metric, optimizer, save_train_info_dir)
+            saveTrainInfo(
+                model_name, epoch, fold, 
+                train_loss, val_loss, 
+                metric_type, train_metric, val_metric, 
+                optimizer, save_train_info_dir)
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
             if lr_ladder:
@@ -532,8 +587,12 @@ def classificationCustomTrain(
                     optimizer.learning_rate = new_lr
 
             val_loss.reset_states()
-            train_metric.reset_states()
-            val_metric.reset_states()
+            if metric_type == 'custom':
+                train_metric = 0.0
+                val_metric = 0.0
+            else:
+                train_metric.reset_states()
+                val_metric.reset_states()
 
             # sleep 120 seconds
             if ((epoch + 1) % 10 == 0):
@@ -544,14 +603,26 @@ def classificationCustomTrain(
         else:
 
             template = (
-                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, " "Validation Accuracy: {}")
-            print('\n' + template.format(
-                epoch + 1, train_loss, train_metric.result() * 100,
-                'No validation', 'No validation', flush=True))
+                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, Validation Accuracy: {}")
+            
+            if metric_type == 'custom':
+            
+                print('\n' + template.format(
+                    epoch + 1, train_loss, train_metric * 100,
+                    'No validation', 'No validation', flush=True))
+                
+            else:
+
+                print('\n' + template.format(
+                    epoch + 1, train_loss, train_metric.result() * 100,
+                    'No validation', 'No validation', flush=True))
 
             # callbacks
-            saveTrainInfo(model_name, epoch, fold, train_loss, train_metric,
-                        None, None, optimizer, save_train_info_dir)
+            saveTrainInfo(
+                model_name, epoch, fold, 
+                train_loss, None, 
+                metric_type, train_metric, None, 
+                optimizer, save_train_info_dir)
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
             if lr_ladder:
@@ -562,7 +633,10 @@ def classificationCustomTrain(
 
                     optimizer.learning_rate = new_lr
 
-            train_metric.reset_states()
+            if metric_type == 'custom':
+                train_metric = 0.0
+            else:
+                train_metric.reset_states()
 
             # sleep 120 seconds
             if ((epoch + 1) % 10 == 0):

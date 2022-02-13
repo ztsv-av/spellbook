@@ -71,7 +71,11 @@ def LRLadderDecrease(optimizer, step):
 
 
 
-def saveTrainInfo(model_name, epoch, fold_num, train_loss, train_accuracy, val_loss, val_accuracy, optimizer, save_train_info_dir):
+def saveTrainInfo(
+    model_name, epoch, fold_num, 
+    train_loss, val_loss, 
+    metric_type, train_accuracy, val_accuracy, 
+    optimizer, save_train_info_dir):
     """
     saves current training information in a dataframe
 
@@ -89,11 +93,14 @@ def saveTrainInfo(model_name, epoch, fold_num, train_loss, train_accuracy, val_l
         train_loss : number
             training loss of the model
 
-        train_accuracy : number
-            training accuracy of the model
-
         val_loss : number
             validation loss of the model
+
+        metric_type : string
+            either a custom metric or imported
+
+        train_accuracy : number
+            training accuracy of the model
 
         val_accuracy : number
             validation accuracy of the model
@@ -107,23 +114,47 @@ def saveTrainInfo(model_name, epoch, fold_num, train_loss, train_accuracy, val_l
 
     if val_loss is not None:
 
-        info_df = pd.DataFrame({
-            'epoch': [epoch + 1],
-            'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-            'train_loss': [train_loss.numpy()],
-            'train_accuracy': [(train_accuracy.result() * 100).numpy()],
-            'val_loss': [val_loss.result().numpy()],
-            'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
-    
+        if metric_type == 'custom':
+
+            info_df = pd.DataFrame({
+                'epoch': [epoch + 1],
+                'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
+                'train_loss': [train_loss.numpy()],
+                'train_accuracy': [(train_accuracy * 100).numpy()],
+                'val_loss': [val_loss.result().numpy()],
+                'val_accuracy': [(val_accuracy * 100).numpy()]})
+
+        else:
+
+            info_df = pd.DataFrame({
+                'epoch': [epoch + 1],
+                'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
+                'train_loss': [train_loss.numpy()],
+                'train_accuracy': [(train_accuracy.result() * 100).numpy()],
+                'val_loss': [val_loss.result().numpy()],
+                'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
+        
     else:
 
-        info_df = pd.DataFrame({
-            'epoch': [epoch + 1],
-            'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-            'train_loss': [train_loss.numpy()],
-            'train_accuracy': [(train_accuracy.result() * 100).numpy()],
-            'val_loss': ['No validation'],
-            'val_accuracy': ['No validation']})
+        if metric_type == 'custom':
+
+            info_df = pd.DataFrame({
+                'epoch': [epoch + 1],
+                'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
+                'train_loss': [train_loss.numpy()],
+                'train_accuracy': [(train_accuracy * 100).numpy()],
+                'val_loss': ['No validation'],
+                'val_accuracy': ['No validation']})
+
+        else:
+
+            info_df = pd.DataFrame({
+                'epoch': [epoch + 1],
+                'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
+                'train_loss': [train_loss.numpy()],
+                'train_accuracy': [(train_accuracy.result() * 100).numpy()],
+                'val_loss': ['No validation'],
+                'val_accuracy': ['No validation']})
 
     save_csv_dir = save_train_info_dir + model_name + '/'
 

@@ -18,13 +18,14 @@ from globalVariables import (
     LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS,  
     PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS,
     FROM_LOGITS, LABEL_SMOOTHING, LOSS_REDUCTION, 
-    ACCURACY_THRESHOLD,
+    METRIC_TYPE, ACCURACY_THRESHOLD,
     BUILD_AUTOENCODER, DENSE_NEURONS_DATA_FEATURES, DENSE_NEURONS_ENCODER, DENSE_NEURONS_BOTTLE, DENSE_NEURONS_DECODER)
 
 from models import MODELS_CLASSIFICATION, unfreezeModel, buildClassificationImageNetModel, buildDenoisingAutoencoder
 from train import classificationCustomTrain
 from preprocessFunctions import kerasNormalize
 from losses import categoricalFocalLossWrapper
+from metrics import map5
 from helpers import getFullPaths
 
 import time
@@ -230,7 +231,7 @@ def classificationCustom():
                     model_name, model,
                     loss_object, val_loss, compute_total_loss,
                     LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
-                    train_metric, val_metric,
+                    METRIC_TYPE, train_metric, val_metric,
                     SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
                     strategy)
 
@@ -426,7 +427,7 @@ def classificationCustom():
                 model_name, model,
                 loss_object, val_loss, compute_total_loss,
                 LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
-                train_metric, val_metric,
+                METRIC_TYPE, train_metric, val_metric,
                 SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
                 strategy)
 
