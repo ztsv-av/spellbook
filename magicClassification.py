@@ -1,14 +1,15 @@
 from globalVariables import (
     NUM_EPOCHS, START_EPOCH, BATCH_SIZES, 
     INPUT_SHAPE,
-    LOAD_FEATURES, NUM_ADD_FEATURES, CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
+    LOAD_FEATURES, NUM_ADD_CLASSES, CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
     MODEL_POOLING, DROP_CONNECT_RATE, INITIAL_DROPOUT, DO_BATCH_NORM, FC_LAYERS, DROPOUT_RATES,      
     DO_PREDICTIONS, NUM_CLASSES, OUTPUT_ACTIVATION,
     UNFREEZE, UNFREEZE_FULL, NUM_UNFREEZE_LAYERS,
     LOAD_WEIGHTS, LOAD_MODEL,
     BUILD_AUTOENCODER, 
     DATA_FILEPATHS, TRAIN_FILEPATHS, VAL_FILEPATHS, DO_VALIDATION, MAX_FILES_PER_PART, RANDOM_STATE,
-    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS,
+    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, 
+    FILENAME_UNDERSCORE, CREATE_ONEHOT, ONEHOT_IDX, ONEHOT_IDXS_ADD,     
     DO_KFOLD, NUM_FOLDS, 
     CLASSIFICATION_CHECKPOINT_PATH, TRAINED_MODELS_PATH, 
     SAVE_TRAIN_WEIGHTS_DIR, SAVE_TRAIN_INFO_DIR,
@@ -31,6 +32,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.models import load_model
+import tfimm
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
 
@@ -97,13 +99,13 @@ def classificationCustom():
 
                         if LOAD_FEATURES:
 
-                            for idx, features in enumerate(NUM_ADD_FEATURES):
+                            for idx, features in enumerate(NUM_ADD_CLASSES):
 
-                                input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
+                                input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
 
                                 input_features_layers.append(input_features_layer)
                         
-                        predictions_features = NUM_ADD_FEATURES
+                        predictions_features = NUM_ADD_CLASSES
                         
                         input_den_autoenc_layers = input_layers_classification + input_features_layers
 
@@ -119,7 +121,23 @@ def classificationCustom():
                             DENSE_NEURONS_DATA_FEATURES, DENSE_NEURONS_ENCODER, DENSE_NEURONS_BOTTLE, DENSE_NEURONS_DECODER,
                             predictions_features,
                             input_den_autoenc_layers)
-                    
+                        
+                        normalization_function = kerasNormalize(model_name)
+
+                    elif 'convnext' in model_name:
+
+                        input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
+                        input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_CLASSES[0], ), name=('input_features_layer_1'))
+
+                        backbone = tfimm.create_model(model_name, nb_classes=0, pretrained="timm")
+                        backbone_input = backbone(input_data_layer)
+                        classifier_concat = tf.keras.layers.Concatenate()([input_features_layer, backbone_input])
+                        classifier_dense = tf.keras.layers.Dense(units=NUM_CLASSES, activation=OUTPUT_ACTIVATION)(classifier_concat)
+
+                        model = tf.keras.Model(inputs=[input_data_layer, input_features_layer], outputs=classifier_dense)
+                        
+                        normalization_function = tfimm.create_preprocessing(model_name, dtype="float32")  
+
                     else:
 
                         input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
@@ -128,9 +146,9 @@ def classificationCustom():
 
                         if LOAD_FEATURES:
 
-                            for idx, features in enumerate(NUM_ADD_FEATURES):
+                            for idx, features in enumerate(NUM_ADD_CLASSES):
 
-                                input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
+                                input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
 
                                 input_layers.append(input_features_layer)
 
@@ -169,8 +187,12 @@ def classificationCustom():
 
                             model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
 
-                    loss_object = tf.losses.CategoricalCrossentropy(
-                        from_logits=FROM_LOGITS, label_smoothing=LABEL_SMOOTHING ,reduction=tf.keras.losses.Reduction.NONE)
+                        normalization_function = kerasNormalize(model_name)
+
+                    loss_object = categoricalFocalLossWrapper(reduction=LOSS_REDUCTION)
+
+                    # loss_object = tf.losses.CategoricalCrossentropy(
+                    #     from_logits=FROM_LOGITS, reduction=tf.keras.losses.Reduction.NONE)
 
                     def compute_total_loss(labels, predictions):
                         per_gpu_loss = loss_object(labels, predictions)
@@ -188,9 +210,9 @@ def classificationCustom():
                         optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
 
                     train_metric = tf.keras.metrics.CategoricalAccuracy(
-                        name='train_metric')
+                        name='train_CA')
                     val_metric = tf.keras.metrics.CategoricalAccuracy(
-                        name='val_metric')
+                        name='val_CA')
 
                     # rename optimizer weights to train multiple models
                     with K.name_scope(optimizer.__class__.__name__):
@@ -199,12 +221,11 @@ def classificationCustom():
                             optimizer.weights[i] = tf.Variable(
                                 var, name=name)
 
-                normalization_function = kerasNormalize(model_name)
-
                 classificationCustomTrain(
-                    NUM_EPOCHS, START_EPOCH, batch_size,
+                    NUM_EPOCHS, START_EPOCH, batch_size, NUM_CLASSES, NUM_ADD_CLASSES,  
                     train_paths_list, val_paths_list, DO_VALIDATION, max_fileparts_train, max_fileparts_val, fold,
-                    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS,
+                    METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, 
+                    FILENAME_UNDERSCORE, CREATE_ONEHOT, ONEHOT_IDX, ONEHOT_IDXS_ADD, 
                     PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                     model_name, model,
                     loss_object, val_loss, compute_total_loss,
@@ -270,13 +291,13 @@ def classificationCustom():
 
                     if LOAD_FEATURES:
 
-                        for idx, features in enumerate(NUM_ADD_FEATURES):
+                        for idx, features in enumerate(NUM_ADD_CLASSES):
 
-                            input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
+                            input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
 
                             input_features_layers.append(input_features_layer)
                     
-                    predictions_features = NUM_ADD_FEATURES
+                    predictions_features = NUM_ADD_CLASSES
                     
                     input_den_autoenc_layers = input_layers_classification + input_features_layers
 
@@ -293,6 +314,20 @@ def classificationCustom():
                         predictions_features,
                         input_den_autoenc_layers)
                 
+                elif 'convnext' in model_name:
+
+                    input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
+                    input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_CLASSES[0], ), name=('input_features_layer_1'))
+
+                    backbone = tfimm.create_model(model_name, nb_classes=0, pretrained="timm")
+                    backbone_input = backbone(input_data_layer)
+                    classifier_concat = tf.keras.layers.Concatenate()([input_features_layer, backbone_input])
+                    classifier_dense = tf.keras.layers.Dense(units=NUM_CLASSES, activation=OUTPUT_ACTIVATION)(classifier_concat)
+
+                    model = tf.keras.Model(inputs=[input_data_layer, input_features_layer], outputs=classifier_dense)
+                    
+                    normalization_function = tfimm.create_preprocessing(model_name, dtype="float32")
+
                 else:
 
                     input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
@@ -301,9 +336,9 @@ def classificationCustom():
 
                     if LOAD_FEATURES:
 
-                        for idx, features in enumerate(NUM_ADD_FEATURES):
+                        for idx, features in enumerate(NUM_ADD_CLASSES):
 
-                            input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_FEATURES[features], ), name=('input_features_layer_' + idx))
+                            input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
 
                             input_layers.append(input_features_layer)
 
@@ -342,7 +377,12 @@ def classificationCustom():
 
                         model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
 
+                    normalization_function = kerasNormalize(model_name)
+
                 loss_object = categoricalFocalLossWrapper(reduction=LOSS_REDUCTION)
+
+                # loss_object = tf.losses.CategoricalCrossentropy(
+                #     from_logits=FROM_LOGITS, reduction=tf.keras.losses.Reduction.NONE)
 
                 def compute_total_loss(labels, predictions):
                     per_gpu_loss = loss_object(labels, predictions)
@@ -362,11 +402,11 @@ def classificationCustom():
                 else:
                     optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
 
-                train_metric = tf.keras.metrics.MeanSquaredError(
-                    name='train_MSE')
+                train_metric = tf.keras.metrics.CategoricalAccuracy(
+                    name='train_CA')
                 if DO_VALIDATION:
-                    val_metric = tf.keras.metrics.MeanSquaredError(
-                        name='val_MSE')
+                    val_metric = tf.keras.metrics.CategoricalAccuracy(
+                        name='val_CA')
                 else:
                     val_metric = None
 
@@ -377,12 +417,11 @@ def classificationCustom():
                         optimizer.weights[i] = tf.Variable(
                             var, name=name)
 
-            normalization_function = kerasNormalize(model_name)
-
             classificationCustomTrain(
-                NUM_EPOCHS, START_EPOCH, batch_size,
+                NUM_EPOCHS, START_EPOCH, batch_size, NUM_CLASSES, NUM_ADD_CLASSES, 
                 train_paths_list, val_paths_list, DO_VALIDATION, max_fileparts_train, max_fileparts_val, None,
-                METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS,
+                METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, 
+                FILENAME_UNDERSCORE, CREATE_ONEHOT, ONEHOT_IDX, ONEHOT_IDXS_ADD,  
                 PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                 model_name, model,
                 loss_object, val_loss, compute_total_loss,
