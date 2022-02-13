@@ -121,11 +121,16 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, train_
 
         if len(features) == 0:
 
-            prediction_data = data # + features
+            prediction_data = data
         
         else:
 
-            prediction_data = data + features
+            prediction_data = []
+            prediction_data.append(data)
+
+            for feature in features:
+
+                prediction_data.append(feature)
 
         predictions = model(prediction_data, training=True)
 
@@ -239,11 +244,16 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_metric):
 
     if len(features) == 0:
 
-        prediction_data = data # + features
+        prediction_data = data
     
     else:
 
-        prediction_data = data + features
+        prediction_data = []
+        prediction_data.append(data)
+
+        for feature in features:
+
+            prediction_data.append(feature)
 
     predictions = model(prediction_data, training=False)
     
@@ -257,9 +267,10 @@ def classificationValStep(inputs, model, loss_object, val_loss, val_metric):
 
 
 def classificationCustomTrain(
-        num_epochs, start_epoch, batch_size,
+        num_epochs, start_epoch, batch_size, num_classes, num_add_classes,  
         train_paths_list, val_paths_list, do_validation, max_fileparts_train, max_fileparts_val, fold,
-        metadata, id_column, feature_columns, add_features_columns,
+        metadata, id_column, feature_columns, add_features_columns, 
+        filename_underscore, create_onehot, onehot_idx, onehot_idxs_add,   
         permutations, do_permutations, normalization,
         model_name, model,
         loss_object, val_loss, compute_total_loss,
@@ -285,6 +296,12 @@ def classificationCustomTrain(
 
         batch_size : integer
             number of training examples in one batch of data
+
+        num_classes : integer
+            number of classes
+
+        num_add_classes : list
+            contains integers representing number of classes in additional features
 
         train_paths_list : list
             full paths to train files
@@ -319,6 +336,20 @@ def classificationCustomTrain(
 
         add_features_columns : list
             names of additional feature columns to add as an input when training
+
+        filename_underscore : boolean
+            True if end of a filename has a class after an underscore
+            used to properly extract data from metadata
+
+        create_onehot : boolean
+            whether to use metadata and load one-hot vector from there
+            or create a new one using a name of the file
+
+        onehot_idx : 
+            which idx to use when splitting filename path by underscore to create one-hot vector
+
+        onehot_idxs_add : list
+             contains indicies to use when splitting filename path by underscore to create one-hot vectors for additional features
 
         permutations : list
             list of data permutation functions
@@ -400,8 +431,10 @@ def classificationCustomTrain(
                 print('Fold ' + str(fold + 1) + '. Loading training data...', flush=True)
 
             train_distributed_part = prepareClassificationDataset(
-                batch_size, train_filepaths_part, 
-                metadata, id_column, feature_columns, add_features_columns,
+                batch_size, num_classes, num_add_classes,  
+                train_filepaths_part, 
+                metadata, id_column, feature_columns, add_features_columns, 
+                filename_underscore, create_onehot, onehot_idx, onehot_idxs_add,   
                 permutations, do_permutations, normalization, 
                 strategy, is_val=False)
 
@@ -449,8 +482,10 @@ def classificationCustomTrain(
                     print('\nFold ' + str(fold + 1) + '. Loading validation data...', flush=True)
 
                 val_distributed_part = prepareClassificationDataset(
-                    batch_size, val_filepaths_part, 
-                    metadata, id_column, feature_columns, add_features_columns,
+                    batch_size, num_classes, num_add_classes, 
+                    val_filepaths_part, 
+                    metadata, id_column, feature_columns, add_features_columns, 
+                    filename_underscore, create_onehot, onehot_idx, onehot_idxs_add, 
                     None, do_permutations, normalization, 
                     strategy, is_val=True)
 
