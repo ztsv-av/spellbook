@@ -239,7 +239,7 @@ def getLabelFromPath(path):
     return label
 
 
-def getFeaturesFromPath(path, meta, id_column, feature_column):
+def getFeaturesFromPath(path, meta, id_column, feature_column, filename_underscore):
     """
     returns row or a cell data from the dataframe
 
@@ -257,6 +257,9 @@ def getFeaturesFromPath(path, meta, id_column, feature_column):
         feature_column : string
             name of the column from which to load the data
 
+        filename_underscore : boolean
+            True if end of a filename has a class after an underscore
+
     returns
     -------
         features : string or a number
@@ -265,7 +268,7 @@ def getFeaturesFromPath(path, meta, id_column, feature_column):
 
     file_id = path.split('/')[-1]
 
-    if '_' in file_id:
+    if filename_underscore:
 
         file_id = file_id.split('_')[0]
 
@@ -411,3 +414,29 @@ def deleteFiles(path, to_delete):
 
         file_to_delete = files[random_idx]
         os.remove(path + file_to_delete)
+
+
+def createOneHotVector(path, right_class_idx, num_classes):
+    """
+    creates a one-hot list with 1 at class index
+
+    parameters
+    -----------
+        path : string
+            full path to a file
+
+        right_class_idx : int
+            which idx to use when splitting path my underscore
+
+        to_delete : int
+            number of files to delete
+            cannot exceed total number of files in a directory
+    """
+
+    class_idx = evaluateString(path.split('_')[-right_class_idx].replace('.npy', ''))
+
+    onehot_numpy = np.zeros(num_classes)
+    onehot_numpy[class_idx - 1] = 1
+    onehot_list = onehot_numpy.astype(int).tolist()
+
+    return onehot_list
