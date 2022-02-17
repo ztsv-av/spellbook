@@ -2,7 +2,6 @@ from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDa
 from callbacks import LRLadderDecrease ,saveTrainInfo, saveTrainWeights, saveModel, saveTrainInfoDetection, saveCheckpointDetection
 from helpers import getFullPaths, loadNumpy, getFeaturesFromPath, getLabelFromPath
 
-import os
 import time
 import tensorflow as tf
 from sklearn.utils import shuffle
@@ -61,15 +60,20 @@ def classificationDistributedTrainStepWrapper():
 
         reduced_loss = strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
+        reduced_loss /= strategy.num_replicas_in_sync
 
         reduced_metric = 0.0
         if metric_type == 'custom':
             reduced_metric = strategy.reduce(
                 tf.distribute.ReduceOp.SUM, per_replica_metrics, axis=None)
+        reduced_metric /= strategy.num_replicas_in_sync
+        
 
         # test if per replica training works
         # tf.print(per_replica_losses.values)
         # tf.print(reduced_loss)
+        # tf.print(per_replica_metrics.values)
+        # tf.print(reduced_metric)
 
         return reduced_loss, reduced_metric
 
@@ -155,9 +159,9 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, metric
 
     if metric_type == 'custom':
 
-        train_metric = 0
+        custom_train_metric = train_metric(labels, predictions)
 
-        return loss, train_metric
+        return loss, custom_train_metric
 
     else:
 
@@ -221,6 +225,7 @@ def classificationDistributedValStepWrapper():
         if metric_type == 'custom':
             reduced_metric = strategy.reduce(
                 tf.distribute.ReduceOp.SUM, per_replica_metrics, axis=None)
+        reduced_metric /= strategy.num_replicas_in_sync
 
         return reduced_metric
 
@@ -298,7 +303,9 @@ def classificationValStep(inputs, model, loss_object, val_loss, metric_type, val
 
     if metric_type == 'custom':
 
-        return 0.0
+        custom_val_metric = val_metric(labels_concat, predictions_concat)
+
+        return custom_val_metric
 
     else:
 
@@ -471,9 +478,9 @@ def classificationCustomTrain(
 
             start_load_data_time = time.time()
             if fold == None:
-                print('\nLoading training data...', flush=True)
+                print('\nEpoch ' + str(epoch + 1) + '. Loading training data...', flush=True)
             else:
-                print('Fold ' + str(fold + 1) + '. Loading training data...', flush=True)
+                print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Loading training data...', flush=True)
 
             train_distributed_part = prepareClassificationDataset(
                 batch_size, num_classes, num_add_classes,  
@@ -485,10 +492,10 @@ def classificationCustomTrain(
 
             end_load_data_time = time.time()
             if fold == None:
-                print('Finished loading training data. Time passed: ' 
+                print('\nEpoch ' + str(epoch + 1) + '. Finished loading training data. Time passed: ' 
                     + str(end_load_data_time - start_load_data_time), flush=True)
             else:
-                print('Fold ' + str(fold + 1) + '. Finished loading training data. Time passed: ' 
+                print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Finished loading training data. Time passed: ' 
                     + str(end_load_data_time - start_load_data_time), flush=True)
 
             for batch in train_distributed_part:
@@ -503,14 +510,14 @@ def classificationCustomTrain(
 
             end_part_time = time.time()
             if fold == None:
-                print('\nTraining: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
+                print('\nEpoch ' + str(epoch + 1) + '. Training: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
                     ', passed time: ' + str(end_part_time - start_part_time), flush=True)
             else:
-                print('\nFold ' + str(fold + 1) + '. Training: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
+                print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Training: part ' + str(part + 1) + '/' + str(max_fileparts_train) +
                     ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
         train_loss = total_loss / num_train_batches
-        train_metric = total_train_metric / num_train_batches
+        custom_train_metric = total_train_metric / num_train_batches
 
         del train_distributed_part
 
@@ -529,9 +536,9 @@ def classificationCustomTrain(
 
                 start_load_data_time = time.time()
                 if fold == None:
-                    print('\nLoading validation data...', flush=True)
+                    print('\nEpoch ' + str(epoch + 1) + '. Loading validation data...', flush=True)
                 else:
-                    print('\nFold ' + str(fold + 1) + '. Loading validation data...', flush=True)
+                    print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Loading validation data...', flush=True)
 
                 val_distributed_part = prepareClassificationDataset(
                     batch_size, num_classes, num_add_classes, 
@@ -543,10 +550,10 @@ def classificationCustomTrain(
 
                 end_load_data_time = time.time()
                 if fold == None:
-                    print('Finished validation loading data. Time passed: ' 
+                    print('\nEpoch ' + str(epoch + 1) + '. Finished validation loading data. Time passed: ' 
                         + str(end_load_data_time - start_load_data_time), flush=True)
                 else:
-                    print('Fold ' + str(fold + 1) + '. Finished validation loading data. Time passed: ' 
+                    print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Finished validation loading data. Time passed: ' 
                         + str(end_load_data_time - start_load_data_time), flush=True)
 
                 for batch in val_distributed_part:
@@ -560,13 +567,13 @@ def classificationCustomTrain(
 
                 end_part_time = time.time()
                 if fold == None:
-                    print('\nValidation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
+                    print('\nEpoch ' + str(epoch + 1) + '. Validation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
                         ', passed time: ' + str(end_part_time - start_part_time), flush=True)
                 else:
-                    print('\nFold ' + str(fold + 1) + '. Validation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
+                    print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Validation: part ' + str(part + 1) + '/' + str(max_fileparts_val) +
                         ', passed time: ' + str(end_part_time - start_part_time), flush=True)
 
-            val_metric = total_val_metric / num_val_batches
+            custom_val_metric = total_val_metric / num_val_batches
 
             del val_distributed_part
 
@@ -576,21 +583,27 @@ def classificationCustomTrain(
             if metric_type == 'custom':
             
                 print('\n' + template.format(
-                    epoch + 1, train_loss, train_metric * 100,
-                    val_loss.result(), val_metric * 100, flush=True))
+                    epoch + 1, train_loss, custom_train_metric * 100,
+                    val_loss.result(), custom_val_metric * 100, flush=True))
                 
+                saveTrainInfo(
+                    model_name, epoch, fold, 
+                    train_loss, val_loss, 
+                    metric_type, custom_train_metric, custom_val_metric, 
+                    optimizer, save_train_info_dir)
+
             else:
 
                 print('\n' + template.format(
                     epoch + 1, train_loss, train_metric.result() * 100,
-                    val_loss.result(), val_metric.result() * 100, flush=True)) 
+                    val_loss.result(), val_metric.result() * 100, flush=True))
 
-            # callbacks
-            saveTrainInfo(
+                saveTrainInfo(
                 model_name, epoch, fold, 
                 train_loss, val_loss, 
                 metric_type, train_metric, val_metric, 
                 optimizer, save_train_info_dir)
+
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
             if lr_ladder:
@@ -603,8 +616,8 @@ def classificationCustomTrain(
 
             val_loss.reset_states()
             if metric_type == 'custom':
-                train_metric = 0.0
-                val_metric = 0.0
+                custom_train_metric = 0.0
+                custom_val_metric = 0.0
             else:
                 train_metric.reset_states()
                 val_metric.reset_states()
@@ -625,6 +638,12 @@ def classificationCustomTrain(
                 print('\n' + template.format(
                     epoch + 1, train_loss, train_metric * 100,
                     'No validation', 'No validation', flush=True))
+
+                saveTrainInfo(
+                model_name, epoch, fold, 
+                train_loss, None, 
+                metric_type, custom_train_metric, None, 
+                optimizer, save_train_info_dir)
                 
             else:
 
@@ -632,12 +651,12 @@ def classificationCustomTrain(
                     epoch + 1, train_loss, train_metric.result() * 100,
                     'No validation', 'No validation', flush=True))
 
-            # callbacks
-            saveTrainInfo(
+                saveTrainInfo(
                 model_name, epoch, fold, 
                 train_loss, None, 
                 metric_type, train_metric, None, 
                 optimizer, save_train_info_dir)
+
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
             if lr_ladder:
@@ -649,7 +668,7 @@ def classificationCustomTrain(
                     optimizer.learning_rate = new_lr
 
             if metric_type == 'custom':
-                train_metric = 0.0
+                custom_train_metric = 0.0
             else:
                 train_metric.reset_states()
 
