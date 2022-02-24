@@ -77,6 +77,23 @@ def saveNumpyArray(x, path):
         raise TypeError("input image is not numpy array")
 
 
+def saveImage(image, path):
+    """
+    saves loaded jpg image to specified directory
+
+    parameters
+    ----------
+        image : ndarray
+            numpy array
+
+        path : str
+            full path where to save an image
+    """
+
+    image = Image.fromarray(image)
+    image.save(path)
+
+
 def convertNumpy2png(x, path):
     """
     saves numpy array as .png image to specified directory
