@@ -10,6 +10,9 @@ projects/petfinder/data/*
 projects/petfinder/petfinder-previous/*
 projects/petfinder/training/*
 deprecated/*
-projects/happywhale-2022/*
+projects/happywhale-2022/data/*
+projects/happywhale-2022/detic/*
+projects/happywhale-2022/models/*
+projects/happywhale-2022/training/*
 projects/birdclef-2021/data/*
 projects/birdclef-2021/training/*
