@@ -120,9 +120,9 @@ def saveTrainInfo(
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
                 'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy * 100).numpy()],
+                'train_accuracy': [(train_accuracy).numpy()],
                 'val_loss': [val_loss.result().numpy()],
-                'val_accuracy': [(val_accuracy * 100).numpy()]})
+                'val_accuracy': [(val_accuracy).numpy()]})
 
         else:
 
@@ -130,9 +130,9 @@ def saveTrainInfo(
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
                 'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy.result() * 100).numpy()],
+                'train_accuracy': [(train_accuracy.result()).numpy()],
                 'val_loss': [val_loss.result().numpy()],
-                'val_accuracy': [(val_accuracy.result() * 100).numpy()]})
+                'val_accuracy': [(val_accuracy.result()).numpy()]})
         
     else:
 
@@ -142,7 +142,7 @@ def saveTrainInfo(
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
                 'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy * 100).numpy()],
+                'train_accuracy': [(train_accuracy).numpy()],
                 'val_loss': ['No validation'],
                 'val_accuracy': ['No validation']})
 
@@ -152,7 +152,7 @@ def saveTrainInfo(
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
                 'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy.result() * 100).numpy()],
+                'train_accuracy': [(train_accuracy.result()).numpy()],
                 'val_loss': ['No validation'],
                 'val_accuracy': ['No validation']})
 

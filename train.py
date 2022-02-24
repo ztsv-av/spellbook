@@ -583,8 +583,8 @@ def classificationCustomTrain(
             if metric_type == 'custom':
             
                 print('\n' + template.format(
-                    epoch + 1, train_loss, custom_train_metric * 100,
-                    val_loss.result(), custom_val_metric * 100, flush=True))
+                    epoch + 1, train_loss, custom_train_metric,
+                    val_loss.result(), custom_val_metric, flush=True))
                 
                 saveTrainInfo(
                     model_name, epoch, fold, 
@@ -595,14 +595,14 @@ def classificationCustomTrain(
             else:
 
                 print('\n' + template.format(
-                    epoch + 1, train_loss, train_metric.result() * 100,
-                    val_loss.result(), val_metric.result() * 100, flush=True))
+                    epoch + 1, train_loss, train_metric.result(),
+                    val_loss.result(), val_metric.result(), flush=True))
 
                 saveTrainInfo(
-                model_name, epoch, fold, 
-                train_loss, val_loss, 
-                metric_type, train_metric, val_metric, 
-                optimizer, save_train_info_dir)
+                    model_name, epoch, fold, 
+                    train_loss, val_loss, 
+                    metric_type, train_metric, val_metric, 
+                    optimizer, save_train_info_dir)
 
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
@@ -636,26 +636,26 @@ def classificationCustomTrain(
             if metric_type == 'custom':
             
                 print('\n' + template.format(
-                    epoch + 1, train_loss, train_metric * 100,
+                    epoch + 1, train_loss, custom_train_metric,
                     'No validation', 'No validation', flush=True))
 
                 saveTrainInfo(
-                model_name, epoch, fold, 
-                train_loss, None, 
-                metric_type, custom_train_metric, None, 
-                optimizer, save_train_info_dir)
+                    model_name, epoch, fold, 
+                    train_loss, None, 
+                    metric_type, custom_train_metric, None, 
+                    optimizer, save_train_info_dir)
                 
             else:
 
                 print('\n' + template.format(
-                    epoch + 1, train_loss, train_metric.result() * 100,
+                    epoch + 1, train_loss, train_metric.result(),
                     'No validation', 'No validation', flush=True))
 
                 saveTrainInfo(
-                model_name, epoch, fold, 
-                train_loss, None, 
-                metric_type, train_metric, None, 
-                optimizer, save_train_info_dir)
+                    model_name, epoch, fold, 
+                    train_loss, None, 
+                    metric_type, train_metric, None, 
+                    optimizer, save_train_info_dir)
 
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
 
