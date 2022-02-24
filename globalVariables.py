@@ -4,74 +4,82 @@ import albumentations as A
 
 
 # classification
-NUM_EPOCHS = 60
-START_EPOCH = 0
+NUM_EPOCHS = 50
+START_EPOCH = 15
 BATCH_SIZES = {
     'VGG16': 16,
     'VGG19': 16,
-    'DenseNet121': 16,
-    'DenseNet169': 8,
-    'EfficientNetB0': 12,
-    'EfficientNetB1': 10,
-    'EfficientNetB2': 8,
+    'DenseNet121': 32,
+    'DenseNet169': 32,
+    'EfficientNetB0': 10,
+    'EfficientNetB1': 8,
+    'EfficientNetB2': 6,
     'EfficientNetB3': 6,
     'EfficientNetB4': 4,
     'EfficientNetB5': 4,
-    'InceptionResNetV2': 16,
-    'InceptionV3': 16,
-    'MobileNet': 16,
-    'MobileNetV2': 16,
-    'ResNet50': 16,
-    'ResNet50V2': 16,
-    'ResNet101': 16,
-    'ResNet101V2': 16,
-    'Xception': 16}
+    'InceptionResNetV2': 12,
+    'InceptionV3': 32,
+    'MobileNet': 12,
+    'MobileNetV2': 12,
+    'ResNet50': 12,
+    'ResNet50V2': 12,
+    'ResNet101': 12,
+    'ResNet101V2': 12,
+    'Xception': 32,
+    'convnext_base_384_in22ft1k': 10,
+    'swin_base_patch4_window12_384_in22k': 10,
+    'Swin': 6}
     
-INPUT_SHAPE = (256, 256, 3)
+INPUT_SHAPE = (384, 384, 3)
 
-LOAD_FEATURES = False
-NUM_ADD_FEATURES = [2, 167, 3, 4, 7, 3] # [2, 3, 7, 167, 3, 4]
-CONCAT_FEATURES_BEFORE = True
-CONCAT_FEATURES_AFTER = False
+LOAD_FEATURES = True
+CONCAT_FEATURES_BEFORE = False
+CONCAT_FEATURES_AFTER = True
 
 MODEL_POOLING = 'avg'  # 'max', 'avg', None
 DROP_CONNECT_RATE = 0.2  # 0.2 - default
-INITIAL_DROPOUT = 0.2
+INITIAL_DROPOUT = None
 DO_BATCH_NORM = False
-FC_LAYERS = (512, 64)
-DROPOUT_RATES = (0.2, None)
+FC_LAYERS = (1024, None)
+DROPOUT_RATES = (None, None)
 
 DO_PREDICTIONS = True
-OUTPUT_ACTIVATION = None  # 'sigmoid', 'softmax', 'relu', None
-NUM_CLASSES = 1
+OUTPUT_ACTIVATION = 'softmax' # 'sigmoid', 'softmax', 'relu', None
+NUM_CLASSES = 15587 # 26
+NUM_ADD_CLASSES = [26]
 
 UNFREEZE = True
 UNFREEZE_FULL = False
-NUM_UNFREEZE_LAYERS = 63
+NUM_UNFREEZE_LAYERS = {
+    'InceptionV3': 63}
 
 LOAD_WEIGHTS = False
 LOAD_MODEL = False
 
-DATA_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-preprocessed/'
-TRAIN_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-preprocessed-train/'
-VAL_FILEPATHS = 'projects/petfinder/petfinder-previous/data/petfinder-images-preprocessed-val/'
-DO_VALIDATION = True
-MAX_FILES_PER_PART = 900
+DATA_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' # 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' 'projects/testing_animals/data/all_384_notfull/'
+TRAIN_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' # 'projects/happywhale-2022/data/train_numpy_384_flipped_idxs/' 'projects/testing_animals/data/train_384/'
+VAL_FILEPATHS = 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' # 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' 'projects/testing_animals/data/val_384/'
+DO_VALIDATION = False
+MAX_FILES_PER_PART = 1100
 RANDOM_STATE = 1337
 
-METADATA = pd.read_csv('projects/petfinder/petfinder-previous/data/metadata/age-full-last-predicted-breeds.csv')
+METADATA = None
 ID_COLUMN = 'id'
-TARGET_FEATURE_COLUMNS = ['popularity']
-ADD_FEATURES_COLUMNS = ['type', 'breed', 'age']
+TARGET_FEATURE_COLUMNS = ['individual_id']
+ADD_FEATURES_COLUMNS = ['species']
+FILENAME_UNDERSCORE = False
+CREATE_ONEHOT = True
+ONEHOT_IDX = 2
+ONEHOT_IDXS_ADD = [3]
 
 DO_KFOLD = False
-NUM_FOLDS = 5
+NUM_FOLDS = 4
 
 TRAINED_MODELS_PATH = ''
-CLASSIFICATION_CHECKPOINT_PATH = 'projects/petfinder/petfinder-previous/training/weights/InceptionV3/no-folds/8/savedModel/'
+CLASSIFICATION_CHECKPOINT_PATH = 'projects/happywhale-2022/training/weights/convnext_base_384_in22ft1k/no-folds/15/savedModel/'
 
-SAVE_TRAIN_INFO_DIR = 'projects/petfinder/petfinder-previous/training/info/'
-SAVE_TRAIN_WEIGHTS_DIR = 'projects/petfinder/petfinder-previous/training/weights/'
+SAVE_TRAIN_INFO_DIR = 'projects/happywhale-2022/training/info/'
+SAVE_TRAIN_WEIGHTS_DIR = 'projects/happywhale-2022/training/weights/'
 
 # object detection
 MODEL_NAME_DETECTION = 'effdet0'
@@ -101,7 +109,7 @@ SAVE_CHECKPOINT_DIR = 'projects/testing_detection/training/weights/'
 SAVE_TRAIN_INFO_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
 
 # optimizers
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.000500000023748725
 
 LR_EXP = False
 LR_DECAY_STEPS = 500
@@ -109,14 +117,15 @@ LR_DECAY_RATE = 0.95
 
 LR_LADDER = True
 LR_LADDER_STEP = 0.5
-LR_LADDER_EPOCHS = 15
+LR_LADDER_EPOCHS = 10
 
 # losses
-FROM_LOGITS = True # from_logits=True => no activation function
-LABEL_SMOOTHING = 0.005
+FROM_LOGITS = False # from_logits=True => no activation function
+LABEL_SMOOTHING = None
 LOSS_REDUCTION = None
 
 # metrics
+METRIC_TYPE = 'custom' # 'custom'
 ACCURACY_THRESHOLD = 0.0  # use 0.0 when loss = BinaryCrossentropy(from_logits=True), otherwise 0.5 or any desired value
 F1_SCORE_AVERAGE = 'macro'
 
@@ -171,11 +180,11 @@ SATURATION_LIMIT = [15, 35]
 VALUE_LIMIT = 0
 
 DO_PERMUTATIONS = True
-PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 4
+PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 8
 PERMUTATIONS_CLASSIFICATION = [
     A.RandomGamma(gamma_limit=GAMMA_LIMIT,
                   p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+    # A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     # A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT,
     #             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     A.GlassBlur(max_delta=GLASS_BLUR_MAXDELTA, iterations=GLASS_BLUR_ITERATIONS,
