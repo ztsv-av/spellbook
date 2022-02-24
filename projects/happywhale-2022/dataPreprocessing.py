@@ -17,17 +17,16 @@ from helpers import loadImage, saveNumpyArray, visualizeImageBox, loadNumpy, spl
 
 def preprocessData():
 
-    files_dir = 'projects/happywhale-2022/data/cropped_train_images/cropped_train_images/'
+    files_dir = 'projects/happywhale-2022/data/data_images/'
     files = os.listdir(files_dir)
 
-    save_dir = 'projects/happywhale-2022/data/train_numpy_256/'
+    save_dir = 'projects/happywhale-2022/data/data_numpy_768/'
 
-    reshape_size = (256, 256)
+    reshape_size = (768, 768)
 
-    grascale_images = []
     other_images = []
 
-    for filename in tqdm(files, desc='Images Saved'):
+    for filename in tqdm(files, desc='Images Processed'):
 
         path = files_dir + filename
 
@@ -36,8 +35,6 @@ def preprocessData():
         if len(image.shape) == 2:
 
             image = addColorChannels(image, 3)
-
-            grascale_images.append(filename)
         
         elif len(image.shape) > 3:
 
@@ -129,10 +126,12 @@ def checkPermutations():
 
 def renameWithSpecies():
 
-    files_dir = 'projects/happywhale-2022/data/data_numpy_384_flipped/'
-    new_files_dir = 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/'
+    files_dir = 'projects/happywhale-2022/data/data_numpy_768/'
+    new_files_dir = 'projects/happywhale-2022/data/data_numpy_768_idxs/'
 
     df = pd.read_csv('projects/happywhale-2022/data/metadata/train_preprocessed_metadata.csv')
+
+    flips = False
 
     ids = df['id'].values
     species = df['species'].values
@@ -146,18 +145,31 @@ def renameWithSpecies():
 
     for idx, file in tqdm(enumerate(ids), desc='Files Processed'):
 
-        old_path_no_flip = files_dir + file
+        if flips:
 
-        flips = ['_f', '_nf']
+            old_path_no_flip = files_dir + file
 
-        for flip in flips:
+            flips = ['_f', '_nf']
 
-            old_path = old_path_no_flip + flip + '.npy'
+            for flip in flips:
+
+                old_path = old_path_no_flip + flip + '.npy'
+
+                specie_idx =  np.argmax(onehot_species[idx]) + 1
+                individual_idx = np.argmax(onehot_individual_ids[idx]) + 1
+
+                new_path = new_files_dir + file.replace('.jpg', '') + '_' + str(specie_idx) + '_' + str(individual_idx) + flip + '.npy'
+
+                shutil.copy(old_path, new_path)
+        
+        else:
+
+            old_path = files_dir + file + '.npy'
 
             specie_idx =  np.argmax(onehot_species[idx]) + 1
             individual_idx = np.argmax(onehot_individual_ids[idx]) + 1
 
-            new_path = new_files_dir + file.replace('.jpg', '') + '_' + str(specie_idx) + '_' + str(individual_idx) + flip + '.npy'
+            new_path = new_files_dir + file.replace('.jpg', '') + '_' + str(specie_idx) + '_' + str(individual_idx) + '.npy'
 
             shutil.copy(old_path, new_path)
 
