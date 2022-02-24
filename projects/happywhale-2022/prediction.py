@@ -35,10 +35,10 @@ def prepareImage(path, model_name, image_arr, unprocessed_image):
 
     return image
 
-# 13fc37b7143b
+
 def predictId():
 
-    model_ids_path = 'projects/happywhale-2022/training/weights/convnext_base_384_in22ft1k/no-folds/20/savedModel/'
+    model_ids_path = 'projects/happywhale-2022/models/individuals_fl_nofold/ConvNext/20/savedModel/'
     model_ids = load_model(model_ids_path)
     model_name = 'convnext_base_384_in22ft1k'
 

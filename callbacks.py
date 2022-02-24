@@ -44,6 +44,14 @@ class DetectOverfittingCallback(tf.keras.callbacks.Callback):
             self.model.stop_training = True
 
 
+def reduceLROnPlateau(optimizer, factor, patience, monitor, min_lr):
+
+    current_lr = optimizer.learning_rate
+    new_lr = current_lr * factor
+
+    return
+
+
 def LRLadderDecrease(optimizer, step):
     """
     decreases optimizer's learning rate in a ladder fashion
@@ -68,7 +76,6 @@ def LRLadderDecrease(optimizer, step):
     new_lr = current_lr * step
 
     return new_lr
-
 
 
 def saveTrainInfo(
@@ -211,6 +218,7 @@ def saveTrainWeights(model, model_name, epoch, fold_num, save_train_weights_dir)
         os.makedirs(save_weights_epoch_dir)
 
     model.save_weights(save_weights_epoch_dir + 'weights.h5')
+
 
 def saveModel(model, model_name, epoch, fold_num, save_model_dir):
     """

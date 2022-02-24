@@ -201,3 +201,42 @@ def createIdxSpecieIdMeta():
 
     ids_metadata = pd.DataFrame(ids_list, columns=['individual_id', 'idx'])
     ids_metadata.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/individual_ids_idxs.csv', index=False)
+
+
+def correctSubmission():
+
+    submission = pd.read_csv('projects/happywhale-2022/data/metadata/submissions/submission_convnext.csv')
+    
+    species_meta = pd.read_csv('projects/happywhale-2022/data/metadata/species_idxs.csv')
+    individual_ids_meta = pd.read_csv('projects/happywhale-2022/data/metadata/individual_ids_idxs.csv')
+
+    new_submission_list = []
+
+    for idx, row in tqdm(submission.iterrows(), total=submission.shape[0], desc='Rows Processed'):
+
+        image = row['image']
+        predictions = row['predictions'].split(' ')
+
+        new_predictions = []
+
+        for prediction in predictions:
+
+            if prediction == 'new_individual':
+                new_predictions.append(prediction)
+            
+            else:
+
+                i_idx = individual_ids_meta[individual_ids_meta['individual_id'] == prediction]['idx'].values[0]
+                i_idx += 1
+                correct_prediction = individual_ids_meta[individual_ids_meta['idx'] == i_idx]['individual_id'].values[0]
+                new_predictions.append(correct_prediction)
+        
+
+        new_predictions_string = ' '.join(new_predictions)
+
+        new_submission_list.append([image, new_predictions_string])
+    
+    new_submission_meta = pd.DataFrame(new_submission_list, columns=['image', 'predictions'])
+    new_submission_meta.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/submissions/submission_convnext_corrected.csv', index=False)
+
+

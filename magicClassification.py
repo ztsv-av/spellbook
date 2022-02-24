@@ -37,6 +37,7 @@ import tfimm
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
 
+
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
     tf.config.experimental.set_memory_growth(gpu, True)
@@ -147,32 +148,26 @@ def classificationCustom():
 
                     else:
 
-                        if model_name == 'InceptionV3':
-                            
-                            model = load_model(CLASSIFICATION_CHECKPOINT_PATH)
-                        
-                        else:
+                        input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
 
-                            input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
+                        input_layers = [input_data_layer]
 
-                            input_layers = [input_data_layer]
+                        if LOAD_FEATURES:
 
-                            if LOAD_FEATURES:
+                            for idx, features in enumerate(NUM_ADD_CLASSES):
 
-                                for idx, features in enumerate(NUM_ADD_CLASSES):
+                                input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
 
-                                    input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
+                                input_layers.append(input_features_layer)
 
-                                    input_layers.append(input_features_layer)
-
-                            model = buildClassificationImageNetModel(
-                                input_layers, 
-                                model_name, model_imagenet,
-                                MODEL_POOLING, DROP_CONNECT_RATE, DO_BATCH_NORM, INITIAL_DROPOUT, 
-                                CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
-                                FC_LAYERS, DROPOUT_RATES,
-                                NUM_CLASSES, OUTPUT_ACTIVATION, 
-                                DO_PREDICTIONS)
+                        model = buildClassificationImageNetModel(
+                            input_layers, 
+                            model_name, model_imagenet,
+                            MODEL_POOLING, DROP_CONNECT_RATE, DO_BATCH_NORM, INITIAL_DROPOUT, 
+                            CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
+                            FC_LAYERS, DROPOUT_RATES,
+                            NUM_CLASSES, OUTPUT_ACTIVATION, 
+                            DO_PREDICTIONS)
 
                         if UNFREEZE:
 
@@ -332,7 +327,7 @@ def classificationCustom():
                 
                 elif 'convnext' in model_name:
 
-                    input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
+                    # input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
                     
                     # input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_CLASSES[0], ), name=('input_features_layer_1'))
 
@@ -342,10 +337,12 @@ def classificationCustom():
                     # classifier_dense = tf.keras.layers.Dense(units=NUM_CLASSES, activation=OUTPUT_ACTIVATION)(classifier_concat)
 
                     # model = tf.keras.Model(inputs=[input_data_layer, input_features_layer], outputs=classifier_dense)
+
+                    model = load_model(CLASSIFICATION_CHECKPOINT_PATH)
                     
-                    model_tfimm = tfimm.create_model(model_name, nb_classes=NUM_CLASSES, pretrained="timm")
-                    model_tfimm_input = model_tfimm(input_data_layer)
-                    model = tf.keras.Model(inputs=input_data_layer, outputs=model_tfimm_input)
+                    # model_tfimm = tfimm.create_model(model_name, nb_classes=NUM_CLASSES, pretrained="timm")
+                    # model_tfimm_input = model_tfimm(input_data_layer)
+                    # model = tf.keras.Model(inputs=input_data_layer, outputs=model_tfimm_input)
 
                     normalization_function = tfimm.create_preprocessing(model_name, dtype="float32")
 
@@ -400,10 +397,10 @@ def classificationCustom():
 
                     normalization_function = kerasNormalize(model_name)
 
-                loss_object = categoricalFocalLossWrapper(reduction=LOSS_REDUCTION)
+                # loss_object = categoricalFocalLossWrapper(reduction=LOSS_REDUCTION)
 
-                # loss_object = tf.losses.CategoricalCrossentropy(
-                #     from_logits=FROM_LOGITS, reduction=tf.keras.losses.Reduction.NONE)
+                loss_object = tf.losses.CategoricalCrossentropy(
+                    from_logits=FROM_LOGITS, reduction=tf.keras.losses.Reduction.NONE)
 
                 def compute_total_loss(labels, predictions):
                     per_gpu_loss = loss_object(labels, predictions)

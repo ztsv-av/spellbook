@@ -10,10 +10,12 @@ from globalVariables import DROPOUT_RATES, FC_LAYERS
 
 MODELS_CLASSIFICATION = {
     # 'Swin': None,
-    'convnext_base_384_in22ft1k': None}
+    # 'swin_base_patch4_window12_384_in22k': None}
+    # 'convnext_base_384_in22ft1k': None}
     # 'InceptionV3': InceptionV3}
-    # 'DenseNet121': DenseNet121,
     # 'Xception': Xception,
+    # 'DenseNet121': DenseNet121,
+    # 'DenseNet169': DenseNet169}
     # 'MobileNet': MobileNet,
     # 'MobileNetV2': MobileNetV2,
     # 'ResNet50': ResNet50,
@@ -27,7 +29,9 @@ MODELS_CLASSIFICATION = {
     # 'EfficientNetB2': EfficientNetB2, 
     # 'EfficientNetB3': EfficientNetB3,
     # 'EfficientNetB4': EfficientNetB4,
-    # 'EfficientNetB5': EfficientNetB5}
+    'EfficientNetB5': EfficientNetB5,
+    'EfficientNetB6': EfficientNetB6,
+    'EfficientNetB7': EfficientNetB7}
     # # 'VGG16': VGG16}
 
 

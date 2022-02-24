@@ -4,8 +4,8 @@ import albumentations as A
 
 
 # classification
-NUM_EPOCHS = 50
-START_EPOCH = 15
+NUM_EPOCHS = 35
+START_EPOCH = 0
 BATCH_SIZES = {
     'VGG16': 16,
     'VGG19': 16,
@@ -16,7 +16,9 @@ BATCH_SIZES = {
     'EfficientNetB2': 6,
     'EfficientNetB3': 6,
     'EfficientNetB4': 4,
-    'EfficientNetB5': 4,
+    'EfficientNetB5': 32,
+    'EfficientNetB6': 30,
+    'EfficientNetB7': 22,
     'InceptionResNetV2': 12,
     'InceptionV3': 32,
     'MobileNet': 12,
@@ -30,7 +32,7 @@ BATCH_SIZES = {
     'swin_base_patch4_window12_384_in22k': 10,
     'Swin': 6}
     
-INPUT_SHAPE = (384, 384, 3)
+INPUT_SHAPE = (768, 768, 3)
 
 LOAD_FEATURES = True
 CONCAT_FEATURES_BEFORE = False
@@ -40,7 +42,7 @@ MODEL_POOLING = 'avg'  # 'max', 'avg', None
 DROP_CONNECT_RATE = 0.2  # 0.2 - default
 INITIAL_DROPOUT = None
 DO_BATCH_NORM = False
-FC_LAYERS = (1024, None)
+FC_LAYERS = (512, None)
 DROPOUT_RATES = (None, None)
 
 DO_PREDICTIONS = True
@@ -51,14 +53,37 @@ NUM_ADD_CLASSES = [26]
 UNFREEZE = True
 UNFREEZE_FULL = False
 NUM_UNFREEZE_LAYERS = {
-    'InceptionV3': 63}
+    'VGG16': None,
+    'VGG19': None,
+    'DenseNet121': None,
+    'DenseNet169': None,
+    'EfficientNetB0': None,
+    'EfficientNetB1': None,
+    'EfficientNetB2': None,
+    'EfficientNetB3': None,
+    'EfficientNetB4': None,
+    'EfficientNetB5': 181,
+    'EfficientNetB6': 211,
+    'EfficientNetB7': 256,
+    'InceptionResNetV2': None,
+    'InceptionV3': 63,
+    'MobileNet': None,
+    'MobileNetV2': None,
+    'ResNet50': None,
+    'ResNet50V2': None,
+    'ResNet101': None,
+    'ResNet101V2': None,
+    'Xception': None,
+    'convnext_base_384_in22ft1k': None,
+    'swin_base_patch4_window12_384_in22k': None,
+    'Swin': None}
 
 LOAD_WEIGHTS = False
 LOAD_MODEL = False
 
-DATA_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' # 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' 'projects/testing_animals/data/all_384_notfull/'
-TRAIN_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' # 'projects/happywhale-2022/data/train_numpy_384_flipped_idxs/' 'projects/testing_animals/data/train_384/'
-VAL_FILEPATHS = 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' # 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' 'projects/testing_animals/data/val_384/'
+DATA_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' 'projects/testing_animals/data/all_384_notfull/'
+TRAIN_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/train_numpy_384_flipped_idxs/' 'projects/testing_animals/data/train_384/'
+VAL_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' 'projects/testing_animals/data/val_384/'
 DO_VALIDATION = False
 MAX_FILES_PER_PART = 1100
 RANDOM_STATE = 1337
@@ -69,8 +94,8 @@ TARGET_FEATURE_COLUMNS = ['individual_id']
 ADD_FEATURES_COLUMNS = ['species']
 FILENAME_UNDERSCORE = False
 CREATE_ONEHOT = True
-ONEHOT_IDX = 2
-ONEHOT_IDXS_ADD = [3]
+ONEHOT_IDX = 1
+ONEHOT_IDXS_ADD = [2]
 
 DO_KFOLD = False
 NUM_FOLDS = 4
@@ -109,7 +134,7 @@ SAVE_CHECKPOINT_DIR = 'projects/testing_detection/training/weights/'
 SAVE_TRAIN_INFO_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
 
 # optimizers
-LEARNING_RATE = 0.000500000023748725
+LEARNING_RATE = 0.001
 
 LR_EXP = False
 LR_DECAY_STEPS = 500
@@ -125,7 +150,7 @@ LABEL_SMOOTHING = None
 LOSS_REDUCTION = None
 
 # metrics
-METRIC_TYPE = 'custom' # 'custom'
+METRIC_TYPE = 'tensorflow' # 'custom'
 ACCURACY_THRESHOLD = 0.0  # use 0.0 when loss = BinaryCrossentropy(from_logits=True), otherwise 0.5 or any desired value
 F1_SCORE_AVERAGE = 'macro'
 
@@ -184,7 +209,7 @@ PERMUTATION_PROBABILITY_CLASSIFICATION = 1 / 8
 PERMUTATIONS_CLASSIFICATION = [
     A.RandomGamma(gamma_limit=GAMMA_LIMIT,
                   p=PERMUTATION_PROBABILITY_CLASSIFICATION),
-    # A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
+    A.HorizontalFlip(p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     # A.GaussianBlur(blur_limit=GAUSSIAN_BLUR_LIMIT,
     #             p=PERMUTATION_PROBABILITY_CLASSIFICATION),
     A.GlassBlur(max_delta=GLASS_BLUR_MAXDELTA, iterations=GLASS_BLUR_ITERATIONS,
