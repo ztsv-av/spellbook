@@ -155,8 +155,10 @@ def renameWithSpecies():
 
                 old_path = old_path_no_flip + flip + '.npy'
 
-                specie_idx =  np.argmax(onehot_species[idx]) + 1
-                individual_idx = np.argmax(onehot_individual_ids[idx]) + 1
+                # specie_idx =  np.argmax(onehot_species[idx]) + 1
+                # individual_idx = np.argmax(onehot_individual_ids[idx]) + 1
+                specie_idx =  indicies_species[idx]
+                individual_idx = indicies_individual_ids[idx]
 
                 new_path = new_files_dir + file.replace('.jpg', '') + '_' + str(specie_idx) + '_' + str(individual_idx) + flip + '.npy'
 
@@ -166,8 +168,10 @@ def renameWithSpecies():
 
             old_path = files_dir + file + '.npy'
 
-            specie_idx =  np.argmax(onehot_species[idx]) + 1
-            individual_idx = np.argmax(onehot_individual_ids[idx]) + 1
+            # specie_idx =  np.argmax(onehot_species[idx]) + 1
+            # individual_idx = np.argmax(onehot_individual_ids[idx]) + 1
+            specie_idx =  indicies_species[idx]
+            individual_idx = indicies_individual_ids[idx]
 
             new_path = new_files_dir + file.replace('.jpg', '') + '_' + str(specie_idx) + '_' + str(individual_idx) + '.npy'
 
