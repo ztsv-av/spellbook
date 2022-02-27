@@ -1,5 +1,5 @@
 from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
-from callbacks import LRLadderDecrease ,saveTrainInfo, saveTrainWeights, saveModel, saveTrainInfoDetection, saveCheckpointDetection
+from callbacks import reduceLROnPlateau, LRLadderDecrease, saveTrainInfo, saveModel, saveTrainInfoDetection, saveCheckpointDetection
 from helpers import getFullPaths, loadNumpy, getFeaturesFromPath, getLabelFromPath
 
 import time
@@ -322,7 +322,9 @@ def classificationCustomTrain(
         permutations, do_permutations, normalization,
         model_name, model,
         loss_object, val_loss, compute_total_loss,
-        lr_ladder, lr_ladder_step, lr_ladder_epochs, optimizer,
+        lr_ladder, lr_ladder_step, lr_ladder_epochs, 
+        reduce_lr_plateau, reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric,
+        optimizer,
         metric_type, train_metric, val_metric,
         save_train_info_dir, save_train_weights_dir,
         strategy):
@@ -433,6 +435,23 @@ def classificationCustomTrain(
         lr_ladder_epochs : integer
             number of epochs to pass to perform the ladder learning rate reduction
 
+        reduce_lr_plateau : bool
+            whether to apply plateau learning rate reduction or not
+
+        reduce_lr_patience : integer
+            number of epochs with no improvement after which learning rate will be reduced
+
+        reduce_lr_factor : rational number
+            learning rate multiplier
+
+        reduce_lr_minimal_lr : rational number
+            minimal value of a learning rate
+            if current learning rate is less than or equal to this value,
+            function returns current learning rate
+
+        reduce_lr_metric : string
+            which metric to check if it reached plateau
+
         optimizer : object
             function or an algorithm that modifies weights and learning rate of a model
 
@@ -457,6 +476,12 @@ def classificationCustomTrain(
 
     wrapperTrain = classificationDistributedTrainStepWrapper()
     wrapperVal = classificationDistributedValStepWrapper()
+
+    metrics_dict = {
+        'train_loss': [],
+        'val_loss': [],
+        'train_metric': [],
+        'val_metric': []}
 
     for epoch in range(start_epoch, num_epochs):
 
@@ -577,10 +602,16 @@ def classificationCustomTrain(
 
             del val_distributed_part
 
+            metrics_dict['train_loss'].append(train_loss)
+            metrics_dict['val_loss'].append(val_loss.result())
+
             template = (
                 "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, Validation Accuracy: {}")
             
             if metric_type == 'custom':
+
+                metrics_dict['train_metric'].append(custom_train_metric)
+                metrics_dict['val_metric'].append(custom_val_metric)
             
                 print('\n' + template.format(
                     epoch + 1, train_loss, custom_train_metric,
@@ -593,6 +624,9 @@ def classificationCustomTrain(
                     optimizer, save_train_info_dir)
 
             else:
+                
+                metrics_dict['train_metric'].append(train_metric.result())
+                metrics_dict['val_metric'].append(val_metric.result())
 
                 print('\n' + template.format(
                     epoch + 1, train_loss, train_metric.result(),
@@ -611,13 +645,21 @@ def classificationCustomTrain(
                 if ((epoch + 1) % lr_ladder_epochs == 0):
 
                     new_lr = LRLadderDecrease(optimizer, lr_ladder_step)
-
                     optimizer.learning_rate = new_lr
+                
+            elif reduce_lr_plateau:
+
+                new_lr = reduceLROnPlateau(
+                    optimizer, metrics_dict, 
+                    reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric)
+                optimizer.learning_rate = new_lr
 
             val_loss.reset_states()
+
             if metric_type == 'custom':
                 custom_train_metric = 0.0
                 custom_val_metric = 0.0
+
             else:
                 train_metric.reset_states()
                 val_metric.reset_states()
@@ -630,10 +672,14 @@ def classificationCustomTrain(
         
         else:
 
+            metrics_dict['train_loss'].append(train_loss)
+
             template = (
                 "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, Validation Accuracy: {}")
             
             if metric_type == 'custom':
+
+                metrics_dict['train_metric'].append(custom_train_metric)
             
                 print('\n' + template.format(
                     epoch + 1, train_loss, custom_train_metric,
@@ -646,6 +692,8 @@ def classificationCustomTrain(
                     optimizer, save_train_info_dir)
                 
             else:
+
+                metrics_dict['train_metric'].append(train_metric.result())
 
                 print('\n' + template.format(
                     epoch + 1, train_loss, train_metric.result(),
@@ -662,13 +710,19 @@ def classificationCustomTrain(
             if lr_ladder:
 
                 if ((epoch + 1) % lr_ladder_epochs == 0):
-
                     new_lr = LRLadderDecrease(optimizer, lr_ladder_step)
-
                     optimizer.learning_rate = new_lr
+                
+            elif reduce_lr_plateau:
+
+                new_lr = reduceLROnPlateau(
+                    optimizer, metrics_dict,
+                reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric)
+                optimizer.learning_rate = new_lr
 
             if metric_type == 'custom':
                 custom_train_metric = 0.0
+
             else:
                 train_metric.reset_states()
 

@@ -15,7 +15,8 @@ from globalVariables import (
     SAVE_TRAIN_WEIGHTS_DIR, SAVE_TRAIN_INFO_DIR,
     LEARNING_RATE,
     LR_EXP, LR_DECAY_STEPS, LR_DECAY_RATE,
-    LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS,  
+    LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS,
+    REDUCE_LR_PLATEAU, REDUCE_LR_PATIENCE, REDUCE_LR_FACTOR, REDUCE_LR_MINIMAL_LR, REDUCE_LR_METRIC,   
     PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS,
     FROM_LOGITS, LABEL_SMOOTHING, LOSS_REDUCTION, 
     METRIC_TYPE, ACCURACY_THRESHOLD,
@@ -240,7 +241,9 @@ def classificationCustom():
                     PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                     model_name, model,
                     loss_object, val_loss, compute_total_loss,
-                    LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
+                    LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, 
+                    REDUCE_LR_PLATEAU, REDUCE_LR_PATIENCE, REDUCE_LR_FACTOR, REDUCE_LR_MINIMAL_LR, REDUCE_LR_METRIC,
+                    optimizer,
                     METRIC_TYPE, train_metric, val_metric,
                     SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
                     strategy)
@@ -348,52 +351,64 @@ def classificationCustom():
 
                 else:
 
-                    input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
+                    if model_name == 'EfficientNetB5':
 
-                    input_layers = [input_data_layer]
+                        START_EPOCH = 29
+                        LEARNING_RATE = 0.000250000011874362
 
-                    if LOAD_FEATURES:
+                        model = load_model(CLASSIFICATION_CHECKPOINT_PATH)
+                    
+                    else:
 
-                        for idx, features in enumerate(NUM_ADD_CLASSES):
+                        START_EPOCH = 0
+                        LEARNING_RATE = 0.001
 
-                            input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
+                        input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
 
-                            input_layers.append(input_features_layer)
+                        input_layers = [input_data_layer]
 
-                    model = buildClassificationImageNetModel(
-                        input_layers, 
-                        model_name, model_imagenet,
-                        MODEL_POOLING, DROP_CONNECT_RATE, DO_BATCH_NORM, INITIAL_DROPOUT, 
-                        CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
-                        FC_LAYERS, DROPOUT_RATES,
-                        NUM_CLASSES, OUTPUT_ACTIVATION, 
-                        DO_PREDICTIONS)
+                        if LOAD_FEATURES:
 
-                    if UNFREEZE:
+                            for idx, features in enumerate(NUM_ADD_CLASSES):
 
-                        num_layers = 0
-                        for layer in model.layers:
-                            num_layers += 1
+                                input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
 
-                        if UNFREEZE_FULL:
+                                input_layers.append(input_features_layer)
 
-                            to_unfreeze = num_layers
+                        model = buildClassificationImageNetModel(
+                            input_layers, 
+                            model_name, model_imagenet,
+                            MODEL_POOLING, DROP_CONNECT_RATE, DO_BATCH_NORM, INITIAL_DROPOUT, 
+                            CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
+                            FC_LAYERS, DROPOUT_RATES,
+                            NUM_CLASSES, OUTPUT_ACTIVATION, 
+                            DO_PREDICTIONS)
 
-                        else:
-                            
-                            if ((model_name == 'VGG16') or (model_name == 'VGG19')):
+                        if UNFREEZE:
+
+                            num_layers = 0
+                            for layer in model.layers:
+                                num_layers += 1
+
+                            if UNFREEZE_FULL:
 
                                 to_unfreeze = num_layers
 
                             else:
+                                
+                                if ((model_name == 'VGG16') or (model_name == 'VGG19')):
 
-                                to_unfreeze = NUM_UNFREEZE_LAYERS[model_name]
+                                    to_unfreeze = num_layers
 
-                        model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze)
+                                else:
 
-                    if LOAD_WEIGHTS:
+                                    to_unfreeze = NUM_UNFREEZE_LAYERS[model_name]
 
-                        model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
+                            model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze)
+
+                        if LOAD_WEIGHTS:
+
+                            model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
 
                     normalization_function = kerasNormalize(model_name)
 
@@ -445,7 +460,9 @@ def classificationCustom():
                 PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                 model_name, model,
                 loss_object, val_loss, compute_total_loss,
-                LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, optimizer,
+                LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, 
+                REDUCE_LR_PLATEAU, REDUCE_LR_PATIENCE, REDUCE_LR_FACTOR, REDUCE_LR_MINIMAL_LR, REDUCE_LR_METRIC,
+                optimizer,
                 METRIC_TYPE, train_metric, val_metric,
                 SAVE_TRAIN_INFO_DIR, SAVE_TRAIN_WEIGHTS_DIR,
                 strategy)

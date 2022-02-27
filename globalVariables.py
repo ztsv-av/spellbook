@@ -4,7 +4,7 @@ import albumentations as A
 
 
 # classification
-NUM_EPOCHS = 35
+NUM_EPOCHS = 40
 START_EPOCH = 0
 BATCH_SIZES = {
     'VGG16': 16,
@@ -42,7 +42,7 @@ MODEL_POOLING = 'avg'  # 'max', 'avg', None
 DROP_CONNECT_RATE = 0.2  # 0.2 - default
 INITIAL_DROPOUT = None
 DO_BATCH_NORM = False
-FC_LAYERS = (512, None)
+FC_LAYERS = (1024, None)
 DROPOUT_RATES = (None, None)
 
 DO_PREDICTIONS = True
@@ -83,7 +83,7 @@ LOAD_MODEL = False
 
 DATA_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' 'projects/testing_animals/data/all_384_notfull/'
 TRAIN_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/train_numpy_384_flipped_idxs/' 'projects/testing_animals/data/train_384/'
-VAL_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' 'projects/testing_animals/data/val_384/'
+VAL_FILEPATHS = 'projects/happywhale-2022/data/val_numpy_768_idxs/' # 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' 'projects/testing_animals/data/val_384/'
 DO_VALIDATION = False
 MAX_FILES_PER_PART = 1100
 RANDOM_STATE = 1337
@@ -101,7 +101,7 @@ DO_KFOLD = False
 NUM_FOLDS = 4
 
 TRAINED_MODELS_PATH = ''
-CLASSIFICATION_CHECKPOINT_PATH = 'projects/happywhale-2022/training/weights/convnext_base_384_in22ft1k/no-folds/15/savedModel/'
+CLASSIFICATION_CHECKPOINT_PATH = 'projects/happywhale-2022/training/weights/EfficientNetB5/no-folds/29/savedModel/'
 
 SAVE_TRAIN_INFO_DIR = 'projects/happywhale-2022/training/info/'
 SAVE_TRAIN_WEIGHTS_DIR = 'projects/happywhale-2022/training/weights/'
@@ -140,10 +140,6 @@ LR_EXP = False
 LR_DECAY_STEPS = 500
 LR_DECAY_RATE = 0.95
 
-LR_LADDER = True
-LR_LADDER_STEP = 0.5
-LR_LADDER_EPOCHS = 10
-
 # losses
 FROM_LOGITS = False # from_logits=True => no activation function
 LABEL_SMOOTHING = None
@@ -155,8 +151,16 @@ ACCURACY_THRESHOLD = 0.0  # use 0.0 when loss = BinaryCrossentropy(from_logits=T
 F1_SCORE_AVERAGE = 'macro'
 
 # callbacks
-REDUCE_LR_PATIENCE = 4
+LR_LADDER = True
+LR_LADDER_STEP = 0.5
+LR_LADDER_EPOCHS = 10
+
+REDUCE_LR_PATIENCE = 3
 REDUCE_LR_FACTOR = 0.5
+REDUCE_LR_MINIMAL_LR = 0.00001
+REDUCE_LR_METRIC = 'val_loss'
+REDUCE_LR_PLATEAU = False
+
 EARLY_STOPPING_PATIENCE = 7
 OVERFITTING_THRESHOLD = 1.3
 

@@ -44,25 +44,77 @@ class DetectOverfittingCallback(tf.keras.callbacks.Callback):
             self.model.stop_training = True
 
 
-def reduceLROnPlateau(optimizer, factor, patience, monitor, min_lr):
+def reduceLROnPlateau(optimizer, metrics_dict, patience, factor, min_lr, monitor):
+    """
+    reduces optimizer's learning rate if metric is in stagnation, i.e. reached plateau
+    multiplies current learning rate by the specified fraction (factor)
+reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric
+    parameters
+    ----------
+        optimizer : object
+            model's optimizer
+
+        metrics_dict : dictionary
+            dictionary containing metrics such as
+            training loss, validation loss, training accuracy, validation accuracy
+        
+        patience : integer
+            number of epochs with no improvement after which learning rate will be reduced
+            
+        factor : rational number
+            learning rate multiplier
+        
+        min_lr : rational number
+            minimal value of a learning rate
+            if current learning rate is less than or equal to this value,
+            function returns current learning rate
+        
+        monitor : string
+            which metric to check if it reached plateau
+
+    returns
+    -------
+        current_lr : number
+            current optimizer's learning rate
+        
+        or
+
+        new_lr : number
+            new optimizer's learning rate
+    """
 
     current_lr = optimizer.learning_rate
+
+    if current_lr <= min_lr:
+
+        return min_lr
+    
+    metric_to_monitor = metrics_dict[monitor]
+
+    last_metric_value = metric_to_monitor[-1]
+
+    for metric in metric_to_monitor[::-1][1:1+patience]:
+
+        if last_metric_value < metric:
+
+            return current_lr
+
     new_lr = current_lr * factor
 
-    return
+    return new_lr
 
 
-def LRLadderDecrease(optimizer, step):
+def LRLadderDecrease(optimizer, factor):
     """
     decreases optimizer's learning rate in a ladder fashion
-    multiplies current learning rate by the specified fraction (step)
+    multiplies current learning rate by the specified fraction (factor)
 
     parameters
     ----------
         optimizer : object
             model's optimizer
 
-        step : number (usually a rational)
+        factor : number (usually a rational)
             learning rate multiplier
 
     returns
@@ -73,7 +125,7 @@ def LRLadderDecrease(optimizer, step):
 
     current_lr = optimizer.learning_rate
 
-    new_lr = current_lr * step
+    new_lr = current_lr * factor
 
     return new_lr
 
