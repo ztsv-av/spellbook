@@ -83,25 +83,39 @@ reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric
             new optimizer's learning rate
     """
 
-    current_lr = optimizer.learning_rate
+    current_lr = optimizer.learning_rate * 1
+    new_lr = current_lr * factor
 
     if current_lr <= min_lr:
 
-        return min_lr
+        return current_lr, metrics_dict
     
     metric_to_monitor = metrics_dict[monitor]
 
+    if len(metric_to_monitor) <= 1:
+
+        return current_lr, metrics_dict
+
     last_metric_value = metric_to_monitor[-1]
+    pre_last_metric_value = metric_to_monitor[-2]
 
-    for metric in metric_to_monitor[::-1][1:1+patience]:
+    if last_metric_value >= pre_last_metric_value:
 
-        if last_metric_value < metric:
+        metrics_dict['patience'] += 1
+    
+    else:
 
-            return current_lr
+        metrics_dict['patience'] = 0
 
-    new_lr = current_lr * factor
+        return current_lr, metrics_dict
+    
+    if metrics_dict['patience'] >= patience:
 
-    return new_lr
+        metrics_dict['patience'] = 0
+
+        return new_lr, metrics_dict
+    
+    return current_lr, metrics_dict
 
 
 def LRLadderDecrease(optimizer, factor):

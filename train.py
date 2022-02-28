@@ -481,7 +481,8 @@ def classificationCustomTrain(
         'train_loss': [],
         'val_loss': [],
         'train_metric': [],
-        'val_metric': []}
+        'val_metric': [],
+        'patience': 0}
 
     for epoch in range(start_epoch, num_epochs):
 
@@ -603,7 +604,7 @@ def classificationCustomTrain(
             del val_distributed_part
 
             metrics_dict['train_loss'].append(train_loss)
-            metrics_dict['val_loss'].append(val_loss.result())
+            metrics_dict['val_loss'].append(val_loss.result().numpy())
 
             template = (
                 "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, Validation Accuracy: {}")
@@ -625,8 +626,8 @@ def classificationCustomTrain(
 
             else:
                 
-                metrics_dict['train_metric'].append(train_metric.result())
-                metrics_dict['val_metric'].append(val_metric.result())
+                metrics_dict['train_metric'].append(train_metric.result().numpy())
+                metrics_dict['val_metric'].append(val_metric.result().numpy())
 
                 print('\n' + template.format(
                     epoch + 1, train_loss, train_metric.result(),
@@ -649,7 +650,7 @@ def classificationCustomTrain(
                 
             elif reduce_lr_plateau:
 
-                new_lr = reduceLROnPlateau(
+                new_lr, metrics_dict = reduceLROnPlateau(
                     optimizer, metrics_dict, 
                     reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric)
                 optimizer.learning_rate = new_lr
@@ -693,7 +694,7 @@ def classificationCustomTrain(
                 
             else:
 
-                metrics_dict['train_metric'].append(train_metric.result())
+                metrics_dict['train_metric'].append(train_metric.result().numpy())
 
                 print('\n' + template.format(
                     epoch + 1, train_loss, train_metric.result(),
@@ -715,10 +716,12 @@ def classificationCustomTrain(
                 
             elif reduce_lr_plateau:
 
-                new_lr = reduceLROnPlateau(
+                new_lr, metrics_dict = reduceLROnPlateau(
                     optimizer, metrics_dict,
                 reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric)
-                optimizer.learning_rate = new_lr
+                
+                if new_lr != optimizer.learning_rate:
+                    optimizer.learning_rate = new_lr
 
             if metric_type == 'custom':
                 custom_train_metric = 0.0
