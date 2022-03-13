@@ -57,6 +57,7 @@ reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric
         metrics_dict : dictionary
             dictionary containing metrics such as
             training loss, validation loss, training accuracy, validation accuracy
+            and current patience and minimal metric values
         
         patience : integer
             number of epochs with no improvement after which learning rate will be reduced
@@ -92,22 +93,19 @@ reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric
     
     metric_to_monitor = metrics_dict[monitor]
 
-    if len(metric_to_monitor) <= 1:
+    if len(metric_to_monitor) < 1:
 
         return current_lr, metrics_dict
 
     last_metric_value = metric_to_monitor[-1]
-    pre_last_metric_value = metric_to_monitor[-2]
 
-    if last_metric_value >= pre_last_metric_value:
+    if last_metric_value < metrics_dict['min_metric_value']:
 
-        metrics_dict['patience'] += 1
+        metrics_dict['min_metric_value'] = last_metric_value
     
     else:
 
-        metrics_dict['patience'] = 0
-
-        return current_lr, metrics_dict
+        metrics_dict['patience'] += 1
     
     if metrics_dict['patience'] >= patience:
 
@@ -146,8 +144,8 @@ def LRLadderDecrease(optimizer, factor):
 
 def saveTrainInfo(
     model_name, epoch, fold_num, 
-    train_loss, val_loss, 
-    metric_type, train_accuracy, val_accuracy, 
+    loss_object, train_loss, val_loss, 
+    metric_type, train_metrics, val_metrics, 
     optimizer, save_train_info_dir):
     """
     saves current training information in a dataframe
@@ -163,6 +161,9 @@ def saveTrainInfo(
         fold_num : integer
             training fold number
 
+        loss_object : object
+            loss function of the model
+
         train_loss : number
             training loss of the model
 
@@ -172,11 +173,11 @@ def saveTrainInfo(
         metric_type : string
             either a custom metric or imported
 
-        train_accuracy : number
-            training accuracy of the model
+        train_metrics : list
+            list of training metrics of the model
 
-        val_accuracy : number
-            validation accuracy of the model
+        val_metrics : list
+            list of validation metrics of the model
 
         optimizer : object
             model's optimizer
@@ -192,20 +193,21 @@ def saveTrainInfo(
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy).numpy()],
-                'val_loss': [val_loss.result().numpy()],
-                'val_accuracy': [(val_accuracy).numpy()]})
+                loss_object.name: [train_loss.numpy()],
+                val_loss.name: [val_loss.result().numpy()]})
 
         else:
 
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy.result()).numpy()],
-                'val_loss': [val_loss.result().numpy()],
-                'val_accuracy': [(val_accuracy.result()).numpy()]})
+                loss_object.name: [train_loss.numpy()],
+                val_loss.name: [val_loss.result().numpy()]})
+            
+            for train_metric in train_metrics:
+                info_df[train_metric.name] = [(train_metric.result()).numpy()]
+            for val_metric in val_metrics:
+                info_df[val_metric.name] = [(val_metric.result()).numpy()]            
         
     else:
 
@@ -214,20 +216,24 @@ def saveTrainInfo(
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy).numpy()],
-                'val_loss': ['No validation'],
-                'val_accuracy': ['No validation']})
+                loss_object.name: [train_loss.numpy()],
+                # 'train_metric': [(train_accuracy).numpy()],
+                'val_loss': ['No validation']})
+            for train_metric in train_metrics:
+                info_df[train_metric.name] = [(train_metric.result()).numpy()]
+            info_df['val_metric'] = ['No validation']
 
         else:
 
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                'train_loss': [train_loss.numpy()],
-                'train_accuracy': [(train_accuracy.result()).numpy()],
-                'val_loss': ['No validation'],
-                'val_accuracy': ['No validation']})
+                loss_object.name: [train_loss.numpy()],
+                'val_loss': ['No validation']})
+            
+            for train_metric in train_metrics:
+                info_df[train_metric.name] = [(train_metric.result()).numpy()]
+            info_df['val_metric'] = ['No validation']
 
     save_csv_dir = save_train_info_dir + model_name + '/'
 

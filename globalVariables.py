@@ -4,7 +4,7 @@ import albumentations as A
 
 
 # classification
-NUM_EPOCHS = 40
+NUM_EPOCHS = 25
 START_EPOCH = 0
 BATCH_SIZES = {
     'VGG16': 16,
@@ -18,7 +18,7 @@ BATCH_SIZES = {
     'EfficientNetB4': 4,
     'EfficientNetB5': 32,
     'EfficientNetB6': 30,
-    'EfficientNetB7': 22,
+    'EfficientNetB7': 14,
     'InceptionResNetV2': 12,
     'InceptionV3': 32,
     'MobileNet': 12,
@@ -34,19 +34,23 @@ BATCH_SIZES = {
     
 INPUT_SHAPE = (768, 768, 3)
 
+USE_TFIMM_MODELS = False
+
 LOAD_FEATURES = True
 CONCAT_FEATURES_BEFORE = False
-CONCAT_FEATURES_AFTER = True
+CONCAT_FEATURES_AFTER = False
 
-MODEL_POOLING = 'avg'  # 'max', 'avg', None
+IMAGENET_WEIGHTS = 'imagenet_weights/eff_net/noisystudent/noisy.student.notop-b7.h5'
+
+MODEL_POOLING = None  # 'max', 'avg', None
 DROP_CONNECT_RATE = 0.2  # 0.2 - default
 INITIAL_DROPOUT = None
 DO_BATCH_NORM = False
-FC_LAYERS = (1024, None)
-DROPOUT_RATES = (None, None)
+FC_LAYERS = None
+DROPOUT_RATES = None
 
-DO_PREDICTIONS = True
-OUTPUT_ACTIVATION = 'softmax' # 'sigmoid', 'softmax', 'relu', None
+DO_PREDICTIONS = False
+OUTPUT_ACTIVATION = None # 'sigmoid', 'softmax', 'relu', None
 NUM_CLASSES = 15587 # 26
 NUM_ADD_CLASSES = [26]
 
@@ -81,11 +85,11 @@ NUM_UNFREEZE_LAYERS = {
 LOAD_WEIGHTS = False
 LOAD_MODEL = False
 
-DATA_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/data_numpy_384_flipped_idxs/' 'projects/testing_animals/data/all_384_notfull/'
-TRAIN_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/train_numpy_384_flipped_idxs/' 'projects/testing_animals/data/train_384/'
+DATA_FILEPATHS = 'projects/happywhale-2022/data/data_numpy_768_idxs/' # 'projects/happywhale-2022/data/data_numpy_768_idxs/' 'projects/testing_animals/data/all_384_notfull/'
+TRAIN_FILEPATHS = 'projects/happywhale-2022/data/train_numpy_768_idxs/' # 'projects/happywhale-2022/data/train_numpy_384_flipped_idxs/' 'projects/testing_animals/data/train_384/'
 VAL_FILEPATHS = 'projects/happywhale-2022/data/val_numpy_768_idxs/' # 'projects/happywhale-2022/data/val_numpy_384_flipped_idxs/' 'projects/testing_animals/data/val_384/'
-DO_VALIDATION = False
-MAX_FILES_PER_PART = 1100
+DO_VALIDATION = True
+MAX_FILES_PER_PART = 1000
 RANDOM_STATE = 1337
 
 METADATA = None
@@ -93,15 +97,16 @@ ID_COLUMN = 'id'
 TARGET_FEATURE_COLUMNS = ['individual_id']
 ADD_FEATURES_COLUMNS = ['species']
 FILENAME_UNDERSCORE = False
-CREATE_ONEHOT = True
-ONEHOT_IDX = 1
-ONEHOT_IDXS_ADD = [2]
+CREATE_ONEHOT = False
+CREATE_SPARSE = True
+LABEL_IDX = 1 # 2
+LABEL_IDXS_ADD = [2]
 
-DO_KFOLD = False
+DO_KFOLD = True
 NUM_FOLDS = 4
 
 TRAINED_MODELS_PATH = ''
-CLASSIFICATION_CHECKPOINT_PATH = 'projects/happywhale-2022/training/weights/EfficientNetB5/no-folds/29/savedModel/'
+CLASSIFICATION_CHECKPOINT_PATH = 'projects/happywhale-2022/training/weights/EfficientNetB7/no-folds/11/savedModel/'
 
 SAVE_TRAIN_INFO_DIR = 'projects/happywhale-2022/training/info/'
 SAVE_TRAIN_WEIGHTS_DIR = 'projects/happywhale-2022/training/weights/'
@@ -133,8 +138,16 @@ TEST_META_DETECTION = pd.read_csv(
 SAVE_CHECKPOINT_DIR = 'projects/testing_detection/training/weights/'
 SAVE_TRAIN_INFO_DIR_DETECTION = 'projects/testing_detection/training/csvs/'
 
+# layers
+ARCMARGIN_S = 30
+ARCMARGIN_M = 0.3
+
 # optimizers
+OPTIMIZER = 'Adam'
 LEARNING_RATE = 0.001
+
+MOMENTUM_VALUE = 0.8
+NESTEROV = True
 
 LR_EXP = False
 LR_DECAY_STEPS = 500
@@ -151,15 +164,15 @@ ACCURACY_THRESHOLD = 0.0  # use 0.0 when loss = BinaryCrossentropy(from_logits=T
 F1_SCORE_AVERAGE = 'macro'
 
 # callbacks
-LR_LADDER = True
+LR_LADDER = False
 LR_LADDER_STEP = 0.5
 LR_LADDER_EPOCHS = 10
 
-REDUCE_LR_PATIENCE = 3
+REDUCE_LR_PLATEAU = True
+REDUCE_LR_PATIENCE = 2
 REDUCE_LR_FACTOR = 0.5
 REDUCE_LR_MINIMAL_LR = 0.00001
 REDUCE_LR_METRIC = 'val_loss'
-REDUCE_LR_PLATEAU = False
 
 EARLY_STOPPING_PATIENCE = 7
 OVERFITTING_THRESHOLD = 1.3

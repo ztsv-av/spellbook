@@ -1,4 +1,4 @@
-from helpers import evaluateString, getLabelFromPath, getFeaturesFromPath, loadNumpy, createOneHotVector
+from helpers import evaluateString, getLabelFromPath, getFeaturesFromPath, loadNumpy, createOneHotVector, createSparseValue
 from permutationFunctions import classification_permutations, detection_permutations
 
 import numpy as np
@@ -70,7 +70,7 @@ def prepareClassificationDataset(
     batch_size, num_classes, num_add_classes, 
     filepaths, 
     meta, id_column, feature_columns, add_features_columns, 
-    filename_underscore, create_onehot, onehot_idx, onehot_idxs_add,  
+    filename_underscore, create_onehot, create_sparse, label_idx, label_idxs_add,  
     permutations, do_permutations, normalization, 
     strategy, is_val):
     """
@@ -119,11 +119,14 @@ def prepareClassificationDataset(
         create_onehot : boolean
             whether to use metadata and load one-hot vector from there
             or create a new one using a name of the file
+
+        create_sparse : boolean
+            used to create sparse label
         
-        onehot_idx : int
+        label_idx : int
             which idx to use when splitting filename path by underscore to create one-hot vector
 
-        onehot_idxs_add : list
+        label_idxs_add : list
              contains indicies to use when splitting filename path by underscore to create one-hot vectors for additional features
 
         permutations : list
@@ -168,7 +171,11 @@ def prepareClassificationDataset(
 
             if create_onehot:
 
-                label = createOneHotVector(path, onehot_idx, num_classes)
+                label = createOneHotVector(path, label_idx, num_classes)
+
+            elif create_sparse:
+
+                label = createSparseValue(path, label_idx)
             
             else:
 
@@ -191,7 +198,11 @@ def prepareClassificationDataset(
 
                 if create_onehot:
 
-                    add_feature = createOneHotVector(path, onehot_idxs_add[feature_idx], num_add_classes[feature_idx])
+                    add_feature = createOneHotVector(path, label_idxs_add[feature_idx], num_add_classes[feature_idx])
+                
+                elif create_sparse:
+
+                    add_feature = createSparseValue(path, label_idxs_add[feature_idx])
                 
                 else:
 

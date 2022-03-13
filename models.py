@@ -24,14 +24,14 @@ MODELS_CLASSIFICATION = {
     # 'DenseNet169': DenseNet169,
     # 'ResNet101': ResNet101,
     # 'ResNet101V2': ResNet101V2,
-    # 'EfficientNetB0': EfficientNetB0,
-    # 'EfficientNetB1': EfficientNetB1,
-    # 'EfficientNetB2': EfficientNetB2, 
-    # 'EfficientNetB3': EfficientNetB3,
-    # 'EfficientNetB4': EfficientNetB4,
-    'EfficientNetB5': EfficientNetB5,
-    'EfficientNetB6': EfficientNetB6,
-    'EfficientNetB7': EfficientNetB7}
+    # 'EfficientNetB0': tf.keras.applications.efficientnet.EfficientNetB0,
+    # 'EfficientNetB1': tf.keras.applications.efficientnet.EfficientNetB1,
+    # 'EfficientNetB2': tf.keras.applications.efficientnet.EfficientNetB2, 
+    # 'EfficientNetB3': tf.keras.applications.efficientnet.EfficientNetB3,
+    # 'EfficientNetB4': tf.keras.applications.efficientnet.EfficientNetB4,
+    # 'EfficientNetB5': tf.keras.applications.efficientnet.EfficientNetB5,
+    # 'EfficientNetB6': tf.keras.applications.efficientnet.EfficientNetB6,
+    'EfficientNetB7': tf.keras.applications.efficientnet.EfficientNetB7}
     # # 'VGG16': VGG16}
 
 
@@ -165,7 +165,7 @@ def buildClassificationPretrainedModel(model_path, pretrained_model, custom_obje
 
 def buildClassificationImageNetModel(
     inputs, 
-    model_name, model_imagenet, 
+    model_name, model_imagenet, weights,
     pooling, dropout_connect_rate, do_batch_norm, initial_dropout, 
     concat_features_before, concat_features_after, 
     fc_layers, dropout_rates, 
@@ -195,6 +195,9 @@ def buildClassificationImageNetModel(
 
         model_imagenet : tf.keras.applications object
             ImageNet model to load
+
+        weights : string
+            one of None (random initialization), 'imagenet' (pre-training on ImageNet), or the path to the weights file to be loaded.
 
         pooling : string or None
             either 'avg', 'max', or None
@@ -242,11 +245,11 @@ def buildClassificationImageNetModel(
     if 'EfficientNet' in model_name:
 
         imagenet_model = model_imagenet(
-            include_top=False, weights='imagenet', input_tensor=inputs[0], drop_connect_rate=dropout_connect_rate)
+            include_top=False, weights=weights, input_tensor=inputs[0], drop_connect_rate=dropout_connect_rate)
     else:
 
         imagenet_model = model_imagenet(
-            include_top=False, weights='imagenet', input_tensor=inputs[0])
+            include_top=False, weights=weights, input_tensor=inputs[0])
 
     imagenet_model.trainable = False
 
@@ -260,7 +263,7 @@ def buildClassificationImageNetModel(
 
         feature_extractor = tf.keras.layers.GlobalAveragePooling2D(name='max_global_pool')(feature_extractor)
 
-    else:
+    elif pooling == 'flatten':
 
         feature_extractor = tf.keras.layers.Flatten()(feature_extractor)
     

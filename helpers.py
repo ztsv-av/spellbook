@@ -445,15 +445,33 @@ def createOneHotVector(path, right_class_idx, num_classes):
         right_class_idx : int
             which idx to use when splitting path my underscore
 
-        to_delete : int
-            number of files to delete
-            cannot exceed total number of files in a directory
+        num_classes : int
+            number of classes, lenght of the one-hot array
     """
 
     class_idx = evaluateString(path.split('_')[-right_class_idx].replace('.npy', ''))
 
     onehot_numpy = np.zeros(num_classes)
-    onehot_numpy[class_idx - 1] = 1
+    onehot_numpy[class_idx] = 1
     onehot_list = onehot_numpy.astype(int).tolist()
 
     return onehot_list
+
+
+def createSparseValue(path, right_class_idx):
+    """
+    creates a one-hot list with 1 at class index
+
+    parameters
+    -----------
+        path : string
+            full path to a file
+
+        right_class_idx : int
+            which idx to use when splitting path my underscore
+    """
+
+    class_idx = evaluateString(path.split('_')[-right_class_idx].replace('.npy', ''))
+    class_idx = int(class_idx)
+
+    return class_idx

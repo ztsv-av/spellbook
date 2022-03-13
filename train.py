@@ -19,7 +19,7 @@ def classificationDistributedTrainStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, metric_type, train_metric, strategy):
+    def classificationDistributedTrainStep(inputs, model, compute_total_loss, optimizer, metric_type, train_metrics, strategy):
         """
         computes losses on every GPU and reduces (averages) them
 
@@ -41,8 +41,8 @@ def classificationDistributedTrainStepWrapper():
             metric_type : string
                 either a custom metric or imported
             
-            train_metric : object/function
-                train metric to calculate
+            train_metrics : list
+                list of train metrics to calculate
 
             strategy : tf.distribute object
                 TensorFlow API used in distributed training
@@ -56,7 +56,7 @@ def classificationDistributedTrainStepWrapper():
         """
 
         per_replica_losses, per_replica_metrics = strategy.run(classificationTrainStep, args=(
-            inputs, model, compute_total_loss, optimizer, metric_type, train_metric))
+            inputs, model, compute_total_loss, optimizer, metric_type, train_metrics))
 
         reduced_loss = strategy.reduce(
             tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
@@ -80,7 +80,7 @@ def classificationDistributedTrainStepWrapper():
     return classificationDistributedTrainStep
 
 
-def classificationTrainStep(inputs, model, compute_total_loss, optimizer, metric_type, train_metric):
+def classificationTrainStep(inputs, model, compute_total_loss, optimizer, metric_type, train_metrics):
     """
     computes loss on a batch of data, performs gradient descent to train a model and updates training metrics
 
@@ -102,8 +102,8 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, metric
         metric_type : string
             either a custom metric or imported
         
-        train_metric : object/function
-            train metric to calculate
+        train_metrics : list
+            list of train metrics to calculate
 
     returns
     -------
@@ -159,13 +159,15 @@ def classificationTrainStep(inputs, model, compute_total_loss, optimizer, metric
 
     if metric_type == 'custom':
 
-        custom_train_metric = train_metric(labels, predictions)
+        custom_train_metric = train_metrics(labels, predictions)
 
         return loss, custom_train_metric
 
     else:
 
-        train_metric.update_state(labels_concat, predictions_concat)
+        for metric in train_metrics:
+
+            metric.update_state(labels_concat, predictions_concat)
 
         return loss, 0.0
 
@@ -182,7 +184,7 @@ def classificationDistributedValStepWrapper():
     """
 
     @tf.function
-    def classificationDistributedValStep(inputs, model, loss_object, val_loss, metric_type, val_metric, strategy):
+    def classificationDistributedValStep(inputs, model, loss_object, val_loss, metric_type, val_metrics, strategy):
         """
         calls classificationValStep function to compute validation loss on a batch of data and update validation metrics
         no need to reduce the loss because it is being updated inside classificationValStep function
@@ -206,8 +208,8 @@ def classificationDistributedValStepWrapper():
             metric_type : string
                 either a custom metric or imported
             
-            val_metric : object/function
-                validation metric to calculate
+            val_metrics : list
+                list of validation metric to calculate
 
             strategy : tf.distribute object
                 TensorFlow API used in distributed training
@@ -219,7 +221,7 @@ def classificationDistributedValStepWrapper():
                 calls a function that computes and updates states of validation loss and metrics
         """
 
-        per_replica_metrics = strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, metric_type, val_metric))
+        per_replica_metrics = strategy.run(classificationValStep, args=(inputs, model, loss_object, val_loss, metric_type, val_metrics))
 
         reduced_metric = 0.0
         if metric_type == 'custom':
@@ -232,7 +234,7 @@ def classificationDistributedValStepWrapper():
     return classificationDistributedValStep
 
 
-def classificationValStep(inputs, model, loss_object, val_loss, metric_type, val_metric):
+def classificationValStep(inputs, model, loss_object, val_loss, metric_type, val_metrics):
     """
     computes loss on a batch of data and updates states of validation loss and metrics
 
@@ -255,8 +257,8 @@ def classificationValStep(inputs, model, loss_object, val_loss, metric_type, val
         metric_type : string
             either a custom metric or imported
         
-        val_metric : object/function
-            validation metric to calculate
+        val_metrics : list
+            list of validation metrics to calculate
     """
 
     if type(inputs[0]) is tuple:
@@ -303,13 +305,15 @@ def classificationValStep(inputs, model, loss_object, val_loss, metric_type, val
 
     if metric_type == 'custom':
 
-        custom_val_metric = val_metric(labels_concat, predictions_concat)
+        custom_val_metric = val_metrics(labels_concat, predictions_concat)
 
         return custom_val_metric
 
     else:
 
-        val_metric.update_state(labels_concat, predictions_concat)
+        for metric in val_metrics:
+
+            metric.update_state(labels_concat, predictions_concat)
 
         return 0.0
 
@@ -318,14 +322,14 @@ def classificationCustomTrain(
         num_epochs, start_epoch, batch_size, num_classes, num_add_classes,  
         train_paths_list, val_paths_list, do_validation, max_fileparts_train, max_fileparts_val, fold,
         metadata, id_column, feature_columns, add_features_columns, 
-        filename_underscore, create_onehot, onehot_idx, onehot_idxs_add,   
+        filename_underscore, create_onehot, create_sparse, label_idx, label_idxs_add,   
         permutations, do_permutations, normalization,
         model_name, model,
         loss_object, val_loss, compute_total_loss,
         lr_ladder, lr_ladder_step, lr_ladder_epochs, 
         reduce_lr_plateau, reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric,
         optimizer,
-        metric_type, train_metric, val_metric,
+        metric_type, train_metrics, val_metrics,
         save_train_info_dir, save_train_weights_dir,
         strategy):
     """
@@ -395,10 +399,13 @@ def classificationCustomTrain(
             whether to use metadata and load one-hot vector from there
             or create a new one using a name of the file
 
-        onehot_idx : 
+        create_sparse : boolean
+            used to create sparse label
+
+        label_idx : 
             which idx to use when splitting filename path by underscore to create one-hot vector
 
-        onehot_idxs_add : list
+        label_idxs_add : list
              contains indicies to use when splitting filename path by underscore to create one-hot vectors for additional features
 
         permutations : list
@@ -458,11 +465,11 @@ def classificationCustomTrain(
         metric_type : string
             either a custom metric or imported
 
-        train_metric : object/function
-            train metric to calculate
+        train_metrics : list
+            list of train metrics to calculate
 
-        val_metric : object/function
-            validation metric to calculate
+        val_metric : list
+            list of validation metrics to calculate
 
         save_train_info_dir : string
             full path to directory where to save training information, such as epoch number, training loss, training accuracy, etc.
@@ -480,9 +487,13 @@ def classificationCustomTrain(
     metrics_dict = {
         'train_loss': [],
         'val_loss': [],
-        'train_metric': [],
-        'val_metric': [],
+        'min_metric_value': float('inf'),
         'patience': 0}
+    
+    for metric in train_metrics:
+        metrics_dict[metric.name] = []
+    for metric in val_metrics:
+        metrics_dict[metric.name] = []
 
     for epoch in range(start_epoch, num_epochs):
 
@@ -512,7 +523,7 @@ def classificationCustomTrain(
                 batch_size, num_classes, num_add_classes,  
                 train_filepaths_part, 
                 metadata, id_column, feature_columns, add_features_columns, 
-                filename_underscore, create_onehot, onehot_idx, onehot_idxs_add,   
+                filename_underscore, create_onehot, create_sparse, label_idx, label_idxs_add,   
                 permutations, do_permutations, normalization, 
                 strategy, is_val=False)
 
@@ -527,7 +538,7 @@ def classificationCustomTrain(
             for batch in train_distributed_part:
 
                 batch_loss, batch_train_metric = wrapperTrain(
-                    batch, model, compute_total_loss, optimizer, metric_type, train_metric, strategy)
+                    batch, model, compute_total_loss, optimizer, metric_type, train_metrics, strategy)
 
                 total_loss += batch_loss
                 total_train_metric += batch_train_metric
@@ -570,7 +581,7 @@ def classificationCustomTrain(
                     batch_size, num_classes, num_add_classes, 
                     val_filepaths_part, 
                     metadata, id_column, feature_columns, add_features_columns, 
-                    filename_underscore, create_onehot, onehot_idx, onehot_idxs_add, 
+                    filename_underscore, create_onehot, create_sparse, label_idx, label_idxs_add, 
                     None, do_permutations, normalization, 
                     strategy, is_val=True)
 
@@ -585,7 +596,7 @@ def classificationCustomTrain(
                 for batch in val_distributed_part:
 
                     batch_val_metric = wrapperVal(
-                        batch, model, loss_object, val_loss, metric_type, val_metric, strategy)
+                        batch, model, loss_object, val_loss, metric_type, val_metrics, strategy)
 
                     total_val_metric += batch_val_metric
 
@@ -606,8 +617,7 @@ def classificationCustomTrain(
             metrics_dict['train_loss'].append(train_loss)
             metrics_dict['val_loss'].append(val_loss.result().numpy())
 
-            template = (
-                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, Validation Accuracy: {}")
+            template = ("Epoch {}, {}, {}, {}, {}")
             
             if metric_type == 'custom':
 
@@ -620,23 +630,29 @@ def classificationCustomTrain(
                 
                 saveTrainInfo(
                     model_name, epoch, fold, 
-                    train_loss, val_loss, 
+                    loss_object, train_loss, val_loss, 
                     metric_type, custom_train_metric, custom_val_metric, 
                     optimizer, save_train_info_dir)
 
             else:
-                
-                metrics_dict['train_metric'].append(train_metric.result().numpy())
-                metrics_dict['val_metric'].append(val_metric.result().numpy())
 
-                print('\n' + template.format(
-                    epoch + 1, train_loss, train_metric.result(),
-                    val_loss.result(), val_metric.result(), flush=True))
+                for (train_metric, val_metric) in zip(train_metrics, val_metrics):
+                
+                    metrics_dict[train_metric.name].append(train_metric.result().numpy())
+                    metrics_dict[val_metric.name].append(val_metric.result().numpy())
+
+                    print('\n' + template.format(
+                        epoch + 1, 
+                        loss_object.name + ': ' + str(train_loss.numpy()), 
+                        train_metric.name + ': ' + str(train_metric.result().numpy()),
+                        'val_loss: ' + str(val_loss.result().numpy()), 
+                        val_metric.name + ': ' + str(val_metric.result().numpy()), 
+                        flush=True))
 
                 saveTrainInfo(
                     model_name, epoch, fold, 
-                    train_loss, val_loss, 
-                    metric_type, train_metric, val_metric, 
+                    loss_object, train_loss, val_loss, 
+                    metric_type, train_metrics, val_metrics, 
                     optimizer, save_train_info_dir)
 
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
@@ -662,8 +678,9 @@ def classificationCustomTrain(
                 custom_val_metric = 0.0
 
             else:
-                train_metric.reset_states()
-                val_metric.reset_states()
+                for (train_metric, val_metric) in zip(train_metrics, val_metrics):
+                    train_metric.reset_states()
+                    val_metric.reset_states()
 
             # sleep 120 seconds
             if ((epoch + 1) % 10 == 0):
@@ -675,8 +692,7 @@ def classificationCustomTrain(
 
             metrics_dict['train_loss'].append(train_loss)
 
-            template = (
-                "Epoch {}, Loss: {}, Accuracy: {}, Validation Loss: {}, Validation Accuracy: {}")
+            template = ("Epoch {}, {}, {}, {}, {}")
             
             if metric_type == 'custom':
 
@@ -688,22 +704,27 @@ def classificationCustomTrain(
 
                 saveTrainInfo(
                     model_name, epoch, fold, 
-                    train_loss, None, 
+                    loss_object, train_loss, None, 
                     metric_type, custom_train_metric, None, 
                     optimizer, save_train_info_dir)
                 
             else:
 
-                metrics_dict['train_metric'].append(train_metric.result().numpy())
+                for train_metric in train_metrics:
+                
+                    metrics_dict[train_metric.name].append(train_metric.result().numpy())
 
-                print('\n' + template.format(
-                    epoch + 1, train_loss, train_metric.result(),
-                    'No validation', 'No validation', flush=True))
+                    print('\n' + template.format(
+                        epoch + 1, 
+                        loss_object.name + ': ' + str(train_loss), 
+                        train_metric.name + ': ' + str(train_metric.result()),
+                        'No validation', 'No validation', 
+                        flush=True))
 
                 saveTrainInfo(
                     model_name, epoch, fold, 
-                    train_loss, None, 
-                    metric_type, train_metric, None, 
+                    loss_object, train_loss, None, 
+                    metric_type, train_metrics, None, 
                     optimizer, save_train_info_dir)
 
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
@@ -718,7 +739,7 @@ def classificationCustomTrain(
 
                 new_lr, metrics_dict = reduceLROnPlateau(
                     optimizer, metrics_dict,
-                reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric)
+                    reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric)
                 
                 if new_lr != optimizer.learning_rate:
                     optimizer.learning_rate = new_lr
@@ -727,7 +748,8 @@ def classificationCustomTrain(
                 custom_train_metric = 0.0
 
             else:
-                train_metric.reset_states()
+                for train_metric in train_metrics:
+                    train_metric.reset_states()
 
             # sleep 120 seconds
             if ((epoch + 1) % 10 == 0):
