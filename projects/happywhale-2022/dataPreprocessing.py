@@ -57,7 +57,22 @@ def metaNamesReplacement():
                             "kiler_whale": "killer_whale",
                             "bottlenose_dolpin": "bottlenose_dolphin"}, inplace=True)
     
-    df.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/train_preprocessed_metadata.csv', index=False)
+    new_df_list = []
+
+    for idx, row in df.iterrows():
+
+        image = row['image']
+        species = row['species']
+        i_id = row['individual_id']
+
+        if i_id.isdecimal():
+
+            i_id += '_DECIMAL'
+        
+        new_df_list.append([image, species, i_id])
+
+    new_m = pd.DataFrame(new_df_list, columns=['id', 'species', 'individual_id'])
+    new_m.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/train_preprocessed_metadata.csv', index=False)
 
 
 def oneHotSpeciesIds():
@@ -127,7 +142,7 @@ def checkPermutations():
 def renameWithSpecies():
 
     files_dir = 'projects/happywhale-2022/data/data_numpy_768/'
-    new_files_dir = 'projects/happywhale-2022/data/data_numpy_768_idxs/'
+    new_files_dir = 'projects/happywhale-2022/data/data_numpy_768_idxs_fixed/'
 
     df = pd.read_csv('projects/happywhale-2022/data/metadata/train_preprocessed_metadata.csv')
 
@@ -201,10 +216,10 @@ def createIdxSpecieIdMeta():
         ids_list.append([i_id, idx])
     
     species_metadata = pd.DataFrame(species_list, columns=['specie', 'idx'])
-    species_metadata.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/species_idxs.csv', index=False)
+    species_metadata.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/new_species_idxs.csv', index=False)
 
     ids_metadata = pd.DataFrame(ids_list, columns=['individual_id', 'idx'])
-    ids_metadata.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/individual_ids_idxs.csv', index=False)
+    ids_metadata.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/new_individual_ids_idxs.csv', index=False)
 
 
 def correctSubmission():
@@ -244,3 +259,80 @@ def correctSubmission():
     new_submission_meta.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/submissions/submission_convnext_corrected.csv', index=False)
 
 
+def fixPredictionInts():
+
+    pred_meta = pd.read_csv('projects/happywhale-2022/data/metadata/submissions/submission_EfficientNetB5_EfficientNetB5_35.csv')
+    corr_ids_meta = pd.read_csv('projects/happywhale-2022/data/metadata/individual_ids_idxs.csv')
+    df_inc = pd.read_csv('projects/happywhale-2022/data/metadata/train_inc_preprocessed_metadata.csv')
+    df = pd.read_csv('projects/happywhale-2022/data/metadata/train_preprocessed_metadata.csv')
+
+    i_ids = corr_ids_meta['individual_id'].values
+
+    changed = []
+
+    corr_predictions = []
+
+    for idx, row in pred_meta.iterrows():
+
+        image = row['image']
+        predictions = row['predictions']
+        predictions = predictions.split(' ')
+        
+        new_prediction = []
+
+        for idx, prediction in enumerate(predictions):
+
+            prediction = prediction.replace('_DECIMAL', '')
+            changed.append(prediction)
+
+            if prediction == 'new_individual':
+
+                new_prediction.append(prediction)
+            
+            elif prediction not in i_ids:
+
+                image_r = df_inc[df_inc['individual_id'] == prediction]['id'].values[0]
+                i_id = df[df['id'] == image_r]['individual_id'].values[0]
+
+                new_prediction.append(i_id)
+            
+            else:
+
+                new_prediction.append(prediction)
+
+        prediction_ids_string = ' '.join(new_prediction)
+
+        corr_predictions.append([image, prediction_ids_string])
+    
+    prediction_meta = pd.DataFrame(corr_predictions, columns=['image', 'predictions'])
+    prediction_meta.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/submissions/corrr_submission_EfficientNetB5_EfficientNetB5_35.csv', index=False)
+
+
+def removeDecimal():
+
+    pred_meta = pd.read_csv('projects/happywhale-2022/data/metadata/submissions/submission_EfficientNetB5_EfficientNetB5_35.csv')
+
+    c_meta_list = []
+
+    for idx, row in pred_meta.iterrows():
+
+        image = row['image']
+
+        predictions = row['predictions']
+        predictions = predictions.split(' ')
+
+        new_predictions = []
+        
+        for prediction in predictions:
+
+            prediction = prediction.replace('_DECIMAL', '')
+
+            new_predictions.append(prediction)
+        
+        prediction_ids_string = ' '.join(new_predictions)
+
+        c_meta_list.append([image, prediction_ids_string])
+
+
+    c_meta = pd.DataFrame(c_meta_list, columns=['image', 'predictions'])
+    c_meta.to_csv(path_or_buf='projects/happywhale-2022/data/metadata/submissions/EfficientNetB5_EfficientNetB5_35.csv', index=False)

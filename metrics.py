@@ -1,10 +1,10 @@
 import numpy as np
-from sklearn.metrics import SCORERS
 
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.activations import sigmoid
 
+from globalVariables import FROM_LOGITS
 
 def precision(y_true, y_pred):
     """
@@ -56,7 +56,7 @@ def recall(y_true, y_pred):
     return recall
 
 
-def f1(y_true, y_pred, apply_sigmoid_on_predicted_labels=False):
+def f1Wrapper():
     """
     computes batch-wise average of f1, metric which is a combination of precision and recall
 
@@ -78,15 +78,19 @@ def f1(y_true, y_pred, apply_sigmoid_on_predicted_labels=False):
             value of f1 between true and predicted labels
     """
 
-    if apply_sigmoid_on_predicted_labels:
-        y_pred = sigmoid(y_pred)
+    def f1(y_true, y_pred):
 
-    precisionScore = precision(y_true, y_pred)
-    recallScore = recall(y_true, y_pred)
+        if FROM_LOGITS:
+            y_pred = sigmoid(y_pred)
 
-    f1 = 2 * ((precisionScore * recallScore) /
-              (precisionScore + recallScore + K.epsilon()))
+        precision_score = precision(y_true, y_pred)
+        recall_score = recall(y_true, y_pred)
 
+        f1_score = 2 * ((precision_score * recall_score) /
+                (precision_score + recall_score + K.epsilon()))
+
+        return f1_score
+    
     return f1
 
 

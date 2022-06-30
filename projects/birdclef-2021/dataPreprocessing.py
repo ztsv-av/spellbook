@@ -724,6 +724,7 @@ def trimAudios():
     start_trim = time.time()
 
     for label in LABELS:
+
         repo = 'datasets/train/0garbage/train_short_audio/' + str(label)
         audios = os.listdir(repo)
 

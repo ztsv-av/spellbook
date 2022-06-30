@@ -1,38 +1,65 @@
 import tensorflow as tf
 from object_detection.utils import config_util
 from object_detection.builders import model_builder
-
-from tensorflow.keras.applications import *
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import *
+from keras.applications import *
+from keras import Sequential
+from keras.layers import *
+from keras.models import load_model
 
 from globalVariables import DROPOUT_RATES, FC_LAYERS
 
+
 MODELS_CLASSIFICATION = {
-    # 'Swin': None,
-    # 'swin_base_patch4_window12_384_in22k': None}
+    # 'resnet50_gn': None,
+    # 'resnetv2_50x1_bitm_in21k': None,
+    # 'convmixer_768_32': None}
+    # 'EfficientNetB5': None, # EfficientNetB5,
     # 'convnext_base_384_in22ft1k': None}
-    # 'InceptionV3': InceptionV3}
+    #'swin_base_patch4_window12_384_in22k': None}
+    #'convnext_base_384_in22ft1k': None}
+    # 'EfficientNetB0': EfficientNetB0,
+    # 'EfficientNetB1': None, # EfficientNetB1,
+    # 'InceptionV3': InceptionV3,
+    # 'convnext_tiny': None,
+    # 'convnext_small': None,
+    # 'EfficientNetB2': None, # EfficientNetB2,\
+    # 'DenseNet169': DenseNet169}
+    # 'EfficientNetB3': None, # EfficientNetB3,
+    # 'EfficientNetB4': None, # EfficientNetB4,
     # 'Xception': Xception,
     # 'DenseNet121': DenseNet121,
-    # 'DenseNet169': DenseNet169}
-    # 'MobileNet': MobileNet,
-    # 'MobileNetV2': MobileNetV2,
+    # 'swsl_resnet50': None,
+    # 'EfficientNetB0': None, # EfficientNetB0
+    # 'vit_small_patch16_224_in21k': None,
+    # 'swin_tiny_patch4_window7_224': None,
+    # 'EfficientNetB6': EfficientNetB6,
+    # 'EfficientNetB7': EfficientNetB7,
+    # 'swsl_resnet18': None,
+    # 'vit_tiny_patch16_224_in21k': None}
     # 'ResNet50': ResNet50,
     # 'ResNet50V2': ResNet50V2,
+    # 'MobileNet': MobileNet,
+    'MobileNetV2': MobileNetV2}
     # 'InceptionResNetV2': InceptionResNetV2,
-    # 'DenseNet169': DenseNet169,
-    # 'ResNet101': ResNet101,
-    # 'ResNet101V2': ResNet101V2,
-    # 'EfficientNetB0': tf.keras.applications.efficientnet.EfficientNetB0,
-    # 'EfficientNetB1': tf.keras.applications.efficientnet.EfficientNetB1,
-    # 'EfficientNetB2': tf.keras.applications.efficientnet.EfficientNetB2, 
-    # 'EfficientNetB3': tf.keras.applications.efficientnet.EfficientNetB3,
-    # 'EfficientNetB4': tf.keras.applications.efficientnet.EfficientNetB4,
-    # 'EfficientNetB5': tf.keras.applications.efficientnet.EfficientNetB5,
-    # 'EfficientNetB6': tf.keras.applications.efficientnet.EfficientNetB6,
-    'EfficientNetB7': tf.keras.applications.efficientnet.EfficientNetB7}
+    # # 'ResNet101': ResNet101,
+    # # 'ResNet101V2': ResNet101V2}
     # # 'VGG16': VGG16}
+
+TFIMM_MODELS = [
+    'resnetv2_50x1_bitm_in21k',
+    'resnet50_gn',
+    'convnext_base_384_in22ft1k',
+    'cait_xxs24_384',
+    'convmixer_768_32',
+    'swin_tiny_patch4_window7_224',
+    'convnext_base_in22k', 
+    'convmixer_1024_20_ks9_p14',
+    'swsl_resnet18', 
+    'swsl_resnet50', 
+    'vit_tiny_patch16_224_in21k', 
+    'vit_small_patch16_224_in21k', 
+    'convnext_tiny',
+    'convnext_small']
 
 
 def userDefinedModel():
@@ -58,7 +85,7 @@ def userDefinedModel():
     return model
 
 
-def unfreezeModel(model, num_input_layers, batch_norm, num_layers):
+def unfreezeModel(model, num_input_layers, batch_norm, num_layers, unfreeze_batchnorm):
     """
     unfrezees a number of top layers of a model for training
 
@@ -75,6 +102,9 @@ def unfreezeModel(model, num_input_layers, batch_norm, num_layers):
 
         num_layers : int
             number layers to unfreeze
+        
+        unfreeze_batchnorm : boolean
+            whether to unfreeze all batch normalizations or not in the model
         
 
     returns
@@ -106,7 +136,14 @@ def unfreezeModel(model, num_input_layers, batch_norm, num_layers):
     num_layers_unfreeze = num_layers + num_last_layers
 
     for layer in model.layers[-num_layers_unfreeze + 1: -num_last_layers]:
-        if not isinstance(layer, tf.keras.layers.BatchNormalization):
+
+        if not unfreeze_batchnorm:
+
+            if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                layer.trainable = True
+        
+        else:
+
             layer.trainable = True
 
     return model
@@ -465,3 +502,21 @@ def buildDenoisingAutoencoder(
     denoising_autoencoder = tf.keras.models.Model(inputs=input_den_autoenc_layers, outputs=prediction_layers)
 
     return denoising_autoencoder
+
+
+def saveEmbeddings(model_dir, embed_model_save_dir, folds):
+
+    if folds is not None:
+        for fold in folds:
+            
+            model_path = model_dir + fold + '/savedModel/'
+            model = load_model(model_path)
+
+            model_embed = tf.keras.models.Model(inputs=[model.inputs[0]], outputs=[model.layers[-4].output])
+            model_embed.save(embed_model_save_dir + fold + '/')
+
+    else:
+        model = load_model(model_dir)
+
+        model_embed = tf.keras.models.Model(inputs=[model.inputs[0]], outputs=[model.layers[-4].output])
+        model_embed.save(embed_model_save_dir)

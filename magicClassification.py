@@ -2,14 +2,14 @@ from globalVariables import (
     NUM_EPOCHS, START_EPOCH, BATCH_SIZES, 
     INPUT_SHAPE,
     USE_TFIMM_MODELS,
-    IMAGENET_WEIGHTS,
+    IMAGENET_WEIGHTS, EFFNET_WEIGHTS,
     LOAD_FEATURES, NUM_ADD_CLASSES, CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
     MODEL_POOLING, DROP_CONNECT_RATE, INITIAL_DROPOUT, DO_BATCH_NORM, FC_LAYERS, DROPOUT_RATES,      
     DO_PREDICTIONS, NUM_CLASSES, OUTPUT_ACTIVATION,
-    UNFREEZE, UNFREEZE_FULL, NUM_UNFREEZE_LAYERS,
+    UNFREEZE, UNFREEZE_FULL, UNFREEZE_PERCENT, UNFREEZE_BATCHNORM, NUM_UNFREEZE_LAYERS,
     LOAD_WEIGHTS, LOAD_MODEL,
     BUILD_AUTOENCODER, 
-    DATA_FILEPATHS, TRAIN_FILEPATHS, VAL_FILEPATHS, DO_VALIDATION, MAX_FILES_PER_PART, RANDOM_STATE,
+    DATA_FILEPATHS, TRAIN_FILEPATHS, VAL_FILEPATHS, DO_VALIDATION, VAL_SPLIT, MAX_FILES_PER_PART, RANDOM_STATE,
     METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, 
     FILENAME_UNDERSCORE, CREATE_ONEHOT, CREATE_SPARSE, LABEL_IDX, LABEL_IDXS_ADD,     
     DO_KFOLD, NUM_FOLDS, 
@@ -17,31 +17,39 @@ from globalVariables import (
     SAVE_TRAIN_WEIGHTS_DIR, SAVE_TRAIN_INFO_DIR,
     ARCMARGIN_S, ARCMARGIN_M,
     OPTIMIZER, LEARNING_RATE, MOMENTUM_VALUE, NESTEROV,
+    CUSTOM_LRS_EPOCHS,
     LR_EXP, LR_DECAY_STEPS, LR_DECAY_RATE,
+    LR_CUSTOM_DECAY, LR_START_DECAY, LR_MAX_DECAY, LR_MIN_DECAY, LR_RAMP_EP_DECAY, LR_SUS_EP_DECAY, LR_VALUE_DECAY,
     LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS,
     REDUCE_LR_PLATEAU, REDUCE_LR_PATIENCE, REDUCE_LR_FACTOR, REDUCE_LR_MINIMAL_LR, REDUCE_LR_METRIC,   
     PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS,
     FROM_LOGITS, LABEL_SMOOTHING, LOSS_REDUCTION, 
-    METRIC_TYPE, ACCURACY_THRESHOLD,
+    METRIC_TYPE, ACCURACY_THRESHOLD, F1_SCORE_AVERAGE, F1_SCORE_THRESHOLD,
     BUILD_AUTOENCODER, DENSE_NEURONS_DATA_FEATURES, DENSE_NEURONS_ENCODER, DENSE_NEURONS_BOTTLE, DENSE_NEURONS_DECODER)
 
-from models import MODELS_CLASSIFICATION, unfreezeModel, buildClassificationImageNetModel, buildDenoisingAutoencoder
+from models import MODELS_CLASSIFICATION, TFIMM_MODELS, unfreezeModel, buildClassificationImageNetModel, buildDenoisingAutoencoder
 from layers import ArcMarginProduct
 from train import classificationCustomTrain
 from preprocessFunctions import kerasNormalize
-from losses import categoricalFocalLossWrapper
-from metrics import map5Wrapper
+from losses import categoricalFocalLossWrapper, binaryFocalLossWrapper
+from optimizers import getLRCallback
+from metrics import map5Wrapper, f1Wrapper
 from helpers import getFullPaths
 
 import time
+import os
 import numpy as np
-import tensorflow as tf
-import tensorflow.keras.backend as K
-from tensorflow.keras.models import load_model
-import tfimm
 from sklearn.model_selection import KFold
 from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
 
+import tensorflow_addons as tfa
+import tensorflow as tf
+import tensorflow.keras.backend as K
+import tfimm
+import keras
+import efficientnet.keras as efn 
+from tensorflow.keras.models import load_model
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 for gpu in gpus:
@@ -72,7 +80,7 @@ def classificationCustom():
     """
 
     data_paths_list = np.array(getFullPaths(DATA_FILEPATHS))
-    data_paths_list_shuffled = shuffle(data_paths_list)
+    data_paths_list_shuffled = shuffle(data_paths_list, random_state=RANDOM_STATE)
 
     for model_name, model_imagenet in MODELS_CLASSIFICATION.items():
 
@@ -108,7 +116,7 @@ def classificationCustom():
 
                             for idx, features in enumerate(NUM_ADD_CLASSES):
 
-                                input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
+                                input_features_layer = tf.keras.layers.Input(shape=(), name=('input_features_layer_' + str(idx)))
 
                                 input_features_layers.append(input_features_layer)
                         
@@ -152,6 +160,9 @@ def classificationCustom():
                         normalization_function = tfimm.create_preprocessing(model_name, dtype="float32")  
 
                     else:
+                        
+                        # model_name = 'EfficientNetB5'
+                        # model_imagenet = tf.keras.applications.efficientnet.EfficientNetB5  
 
                         input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
 
@@ -180,6 +191,12 @@ def classificationCustom():
                                 NUM_CLASSES, OUTPUT_ACTIVATION, 
                                 DO_PREDICTIONS)
 
+                        # model = efn.EfficientNetB5(
+                        #     weights='noisy-student', include_top=False, input_shape=[INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2]])
+                        # model.layers[0]._name = 'inp1'
+                        # model.trainable = False
+                        # input_layers = [1]
+
                         if UNFREEZE:
 
                             num_layers = 0
@@ -187,8 +204,11 @@ def classificationCustom():
                                 num_layers += 1
 
                             if UNFREEZE_FULL:
-
                                 to_unfreeze = num_layers
+
+                            if UNFREEZE_PERCENT is not None:
+                                unfreeze_layers = UNFREEZE_PERCENT / 100
+                                to_unfreeze = num_layers[:-unfreeze_layers]
 
                             else:
                                 
@@ -200,28 +220,42 @@ def classificationCustom():
 
                                     to_unfreeze = NUM_UNFREEZE_LAYERS[model_name]
 
-                            model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze)
+                            model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze, UNFREEZE_BATCHNORM)
 
                         if LOAD_WEIGHTS:
 
                             model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
 
-                        gap1=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-1].output)
-                        gap2=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-5].output)
-                        gap3=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-9].output)
-                        gap4=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-14].output)
+                        gap1 = tf.keras.layers.GlobalAveragePooling2D()(model.layers[-1].output)
+                        gap2 = tf.keras.layers.GlobalAveragePooling2D()(model.layers[-5].output)
+                        gap3 = tf.keras.layers.GlobalAveragePooling2D()(model.layers[-9].output)
+                        gap4 = tf.keras.layers.GlobalAveragePooling2D()(model.layers[-14].output)
 
                         embedding =  tf.concat([gap1, gap2, gap3, gap4], axis=1)
+
                         embedding = tf.keras.layers.Dropout(0.3)(embedding)
                         embedding = tf.keras.layers.Dense(2048)(embedding)
 
+                        # def dropoutDense(x, drop, dense):
+                        #     x = tf.keras.layers.Dropout(drop)(x)
+                        #     return tf.keras.layers.Dense(dense)(x)
+
+                        # x1 = dropoutDense(gap1, drop=0.3, dense=2560)
+                        # x2 = dropoutDense(gap2, drop=0.3, dense=640)
+                        # x3 = dropoutDense(gap3, drop=0.3, dense=640)
+                        # x4 = dropoutDense(gap4, drop=0.3, dense=3840)
+
+                        # embedding =  tf.concat([x1,x2,x3,x4], axis=1)
+
+                        input_features_layer = tf.keras.layers.Input(shape=(), name=('input_features_layer_1'))
+
                         arc_margin = ArcMarginProduct(
                             n_classes=NUM_CLASSES, s=ARCMARGIN_S, m=ARCMARGIN_M, name='head/arcmargin', dtype='float32')
-                        arc_margin_layer = arc_margin([embedding, input_layers[1]])
+                        arc_margin_layer = arc_margin([embedding, input_features_layer])
 
                         output = tf.keras.layers.Softmax(dtype='float32')(arc_margin_layer)
 
-                        model_arc = tf.keras.models.Model(inputs=[input_layers[0], input_layers[1]], outputs=[output])
+                        model_arc = tf.keras.models.Model(inputs=[input_data_layer, input_features_layer], outputs=[output])
 
                         normalization_function = kerasNormalize(model_name)
 
@@ -238,9 +272,19 @@ def classificationCustom():
                     val_loss = tf.keras.metrics.Mean(name='val_SCC_mean_loss')
 
                     if LR_EXP:
+
                         exp_learning_rate = tf.keras.optimizers.schedules.ExponentialDecay(
                             initial_learning_rate=LEARNING_RATE, decay_steps=LR_DECAY_STEPS, decay_rate=LR_DECAY_RATE)
                         optimizer = tf.keras.optimizers.Adam(learning_rate=exp_learning_rate)
+
+                    elif LR_CUSTOM_DECAY:
+
+                        RESUME_TRAINING = True if (START_EPOCH != 0) else False
+                        # schedule = getLRCallback(
+                        #     LR_START_DECAY, LR_MAX_DECAY, LR_MIN_DECAY, LR_RAMP_EP_DECAY, LR_SUS_EP_DECAY, LR_VALUE_DECAY,
+                        #     batch_size, epoch)
+                        decay_learning_rate = tf.keras.optimizers.schedules.LearningRateSchedule(getLRCallback)
+                        optimizer = tf.keras.optimizers.Adam(learning_rate=decay_learning_rate)
 
                     else:
 
@@ -279,6 +323,7 @@ def classificationCustom():
                     PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
                     model_name, model_arc,
                     loss_object, val_loss, compute_total_loss,
+                    CUSTOM_LRS_EPOCHS,
                     LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, 
                     REDUCE_LR_PLATEAU, REDUCE_LR_PATIENCE, REDUCE_LR_FACTOR, REDUCE_LR_MINIMAL_LR, REDUCE_LR_METRIC,
                     optimizer,
@@ -325,7 +370,6 @@ def classificationCustom():
                     max_fileparts_val = 1
 
             else:
-                    
                 val_paths_list = None
                 max_fileparts_val = None
 
@@ -337,9 +381,7 @@ def classificationCustom():
                 if BUILD_AUTOENCODER:
 
                     input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
-
                     input_layers_classification = [input_data_layer]
-
                     input_features_layers = []
 
                     if LOAD_FEATURES:
@@ -367,10 +409,9 @@ def classificationCustom():
                         predictions_features,
                         input_den_autoenc_layers)
                 
-                elif USE_TFIMM_MODELS:
+                elif model_name in TFIMM_MODELS and USE_TFIMM_MODELS:
 
                     # input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
-                    
                     # input_features_layer = tf.keras.layers.Input(shape=(NUM_ADD_CLASSES[0], ), name=('input_features_layer_1'))
 
                     # backbone = tfimm.create_model(model_name, nb_classes=0, pretrained="timm")
@@ -380,75 +421,130 @@ def classificationCustom():
 
                     # model = tf.keras.Model(inputs=[input_data_layer, input_features_layer], outputs=classifier_dense)
 
-                    model = load_model(CLASSIFICATION_CHECKPOINT_PATH)
-                    
-                    # model_tfimm = tfimm.create_model(model_name, nb_classes=NUM_CLASSES, pretrained="timm")
-                    # model_tfimm_input = model_tfimm(input_data_layer)
-                    # model = tf.keras.Model(inputs=input_data_layer, outputs=model_tfimm_input)
+                    input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
+
+                    model = tfimm.create_model(model_name, nb_classes=0, pretrained="timm")
+                    backbone = model(input_data_layer)
+
+                    dropout = tf.keras.layers.Dropout(0.2)(backbone)
+                    output = tf.keras.layers.Dense(NUM_CLASSES, activation=OUTPUT_ACTIVATION)(dropout)
+
+                    model_gaps = tf.keras.Model(inputs=[input_data_layer], outputs=[output])
+                    model_gaps.trainable = True
+
+                    # model = 'None'
+                    # model_gaps = load_model(CLASSIFICATION_CHECKPOINT_PATH)
+                    # model_gaps.trainable = True
+                    # LEARNING_RATE = 0.000125
+                    # START_EPOCH = 20
 
                     normalization_function = tfimm.create_preprocessing(model_name, dtype="float32")
 
+                    LEARNING_RATE = 0.001
+                    START_EPOCH = 0
+
                 else:
 
-                    input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2], ), name='input_data_layer')
+                    if model_name == 'EfficientNetB#': # load model
 
-                    input_layers = [input_data_layer]
-
-                    if LOAD_FEATURES:
-
-                        for idx, features in enumerate(NUM_ADD_CLASSES):
-
-                            input_features_layer = tf.keras.layers.Input(shape=(features, ), name=('input_features_layer_' + str(idx)))
-
-                            input_layers.append(input_features_layer)
-
-                    if LOAD_MODEL:
-
-                        model = load_model(CLASSIFICATION_CHECKPOINT_PATH)
+                        model = 'None'
+                        model_gaps = load_model(CLASSIFICATION_CHECKPOINT_PATH)
+                        model_gaps.trainable = True
+                        LEARNING_RATE = 0.0000625
+                        START_EPOCH = 20
                     
                     else:
 
-                        model = buildClassificationImageNetModel(
-                            input_layers, 
-                            model_name, model_imagenet, IMAGENET_WEIGHTS,
-                            MODEL_POOLING, DROP_CONNECT_RATE, DO_BATCH_NORM, INITIAL_DROPOUT, 
-                            CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
-                            FC_LAYERS, DROPOUT_RATES,
-                            NUM_CLASSES, OUTPUT_ACTIVATION, 
-                            DO_PREDICTIONS)
+                        LEARNING_RATE = 0.001
+                        START_EPOCH = 0
 
-                    if UNFREEZE:
+                        # model_name = 'Xception'
+                        # model_imagenet = tf.keras.applications.Xception
 
-                        num_layers = 0
-                        for layer in model.layers:
-                            num_layers += 1
+                        input_data_layer = tf.keras.layers.Input(shape=(INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[ 2], ), name='input_data_layer')
+                        input_layers = [input_data_layer]
 
-                        if UNFREEZE_FULL:
-
-                            to_unfreeze = num_layers
-
+                        if LOAD_FEATURES:
+                            for idx, features in enumerate(NUM_ADD_CLASSES):
+                                input_features_layer = tf.keras.layers.Input(shape=(), name=('input_features_layer_' + str(idx)))
+                                input_layers.append(input_features_layer)
+                        
+                        if LOAD_MODEL:
+                            model = load_model(CLASSIFICATION_CHECKPOINT_PATH)
+                        
                         else:
                             
-                            if ((model_name == 'VGG16') or (model_name == 'VGG19')):
+                            if model_name  == 'EfficientNetB5':
 
-                                to_unfreeze = num_layers
-
+                                model = efn.EfficientNetB5(
+                                    weights=EFFNET_WEIGHTS, include_top=False, input_shape=[INPUT_SHAPE[0], INPUT_SHAPE[1], INPUT_SHAPE[2]])
+                                model.layers[0]._name = 'inp1'
+                                model.trainable = True
+                            
                             else:
 
-                                to_unfreeze = NUM_UNFREEZE_LAYERS[model_name]
+                                model = buildClassificationImageNetModel(
+                                    input_layers, 
+                                    model_name, model_imagenet, IMAGENET_WEIGHTS,
+                                    MODEL_POOLING, DROP_CONNECT_RATE, DO_BATCH_NORM, INITIAL_DROPOUT, 
+                                    CONCAT_FEATURES_BEFORE, CONCAT_FEATURES_AFTER, 
+                                    FC_LAYERS, DROPOUT_RATES,
+                                    NUM_CLASSES, OUTPUT_ACTIVATION, 
+                                    DO_PREDICTIONS)
 
-                        model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze)
+                        if UNFREEZE:
 
-                    if LOAD_WEIGHTS:
+                            num_layers = 0
+                            for layer in model.layers:
+                                num_layers += 1
 
-                        model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
+                            if UNFREEZE_FULL:
+                                to_unfreeze = num_layers
+                            
+                            elif UNFREEZE_PERCENT is not None:
+                                to_unfreeze = int(num_layers * UNFREEZE_PERCENT / 100)
+
+                            else:
+                                
+                                if ((model_name == 'VGG16') or (model_name == 'VGG19')):
+                                    to_unfreeze = num_layers
+
+                                else:
+                                    to_unfreeze = NUM_UNFREEZE_LAYERS[model_name]
+
+                            # model = unfreezeModel(model, len(input_layers), DO_BATCH_NORM, to_unfreeze, UNFREEZE_BATCHNORM)
+                            for idx in range(-to_unfreeze, 0, 1):
+                                layer = model.layers[idx]
+                                # if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                                layer.trainable = True
+
+                        if LOAD_WEIGHTS:
+                            model.load_weights(CLASSIFICATION_CHECKPOINT_PATH)
+
+                        gap1=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-1].output)
+                        # gap2=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-4].output)
+                        # gap3=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-8].output)
+                        # gap4=tf.keras.layers.GlobalAveragePooling2D()(model.layers[-11].output)
+
+                        # embedding =  tf.keras.layers.Concatenate(axis=1)([gap1])
+                        embedding = tf.keras.layers.Dropout(0.2)(gap1)
+                        # embedding = tf.keras.layers.Dense(512)(embedding)
+
+                        output_layer = tf.keras.layers.Dense(NUM_CLASSES, activation=OUTPUT_ACTIVATION)(embedding)
+
+                        model_gaps = tf.keras.models.Model(inputs=model.inputs, outputs=[output_layer])
+
+                        # model_gaps = load_model(CLASSIFICATION_CHECKPOINT_PATH)
+                        # for layer in model_gaps.layers:
+                        #     if not isinstance(layer, tf.keras.layers.BatchNormalization):
+                        #         layer.trainable = True
 
                     normalization_function = kerasNormalize(model_name)
 
-                # loss_object = categoricalFocalLossWrapper(reduction=LOSS_REDUCTION)
+                loss_object = binaryFocalLossWrapper(reduction=None)
 
-                loss_object = tf.losses.CategoricalCrossentropy(
-                    from_logits=FROM_LOGITS, reduction=tf.keras.losses.Reduction.NONE)
+                # loss_object = tf.losses.BinaryCrossentropy(
+                #     from_logits=FROM_LOGITS, name='train_BC_loss', reduction=tf.keras.losses.Reduction.NONE)
 
                 def compute_total_loss(labels, predictions):
                     per_gpu_loss = loss_object(labels, predictions)
@@ -456,7 +552,7 @@ def classificationCustom():
                         per_gpu_loss, global_batch_size=batch_size)
 
                 if DO_VALIDATION:
-                    val_loss = tf.keras.metrics.Mean(name='val_loss')
+                    val_loss = tf.keras.metrics.Mean(name='val_BC_mean_loss')
                 else:
                     val_loss = None
 
@@ -474,19 +570,19 @@ def classificationCustom():
                         optimizer = tf.keras.optimizers.SGD(
                             learning_rate=LEARNING_RATE, momentum=MOMENTUM_VALUE, nesterov=NESTEROV)
 
-                train_metric_1 = tf.keras.metrics.SparseCategoricalAccuracy(name='train_SCA')
-                train_metric_2 = tf.keras.metrics.SparseTopKCategoricalAccuracy(name='train_STOPKCA')
-
+                train_metric_1 = tf.keras.metrics.BinaryAccuracy(threshold=ACCURACY_THRESHOLD, name='train_BA')
+                train_metric_2 = tfa.metrics.F1Score(
+                    num_classes=NUM_CLASSES, average=F1_SCORE_AVERAGE, 
+                    threshold=F1_SCORE_THRESHOLD, name='train_F1')
                 train_metrics = [train_metric_1, train_metric_2]
 
-                # train_metric = map5Wrapper()
-
                 if DO_VALIDATION:
-                    val_metric_1 = tf.keras.metrics.SparseCategoricalAccuracy(name='val_SCA')
-                    val_metric_2 = tf.keras.metrics.SparseTopKCategoricalAccuracy(name='val_STOPKCA')
-
+                    val_metric_1 = tf.keras.metrics.BinaryAccuracy(threshold=ACCURACY_THRESHOLD, name='val_BA')
+                    val_metric_2 = tfa.metrics.F1Score(
+                        num_classes=NUM_CLASSES, average=F1_SCORE_AVERAGE, 
+                        threshold=F1_SCORE_THRESHOLD, name='val_F1')
                     val_metrics = [val_metric_1, val_metric_2]
-                    # val_metric = map5Wrapper()
+
                 else:
                     val_metrics = None
 
@@ -503,8 +599,9 @@ def classificationCustom():
                 METADATA, ID_COLUMN, TARGET_FEATURE_COLUMNS, ADD_FEATURES_COLUMNS, 
                 FILENAME_UNDERSCORE, CREATE_ONEHOT, CREATE_SPARSE, LABEL_IDX, LABEL_IDXS_ADD,  
                 PERMUTATIONS_CLASSIFICATION, DO_PERMUTATIONS, normalization_function,
-                model_name, model,
+                model_name, model_gaps,
                 loss_object, val_loss, compute_total_loss,
+                CUSTOM_LRS_EPOCHS,
                 LR_LADDER, LR_LADDER_STEP, LR_LADDER_EPOCHS, 
                 REDUCE_LR_PLATEAU, REDUCE_LR_PATIENCE, REDUCE_LR_FACTOR, REDUCE_LR_MINIMAL_LR, REDUCE_LR_METRIC,
                 optimizer,
@@ -523,6 +620,7 @@ def classificationCustom():
             del max_fileparts_train
             del max_fileparts_val
             del model
+            del model_gaps
             del loss_object
             del val_loss
             del optimizer

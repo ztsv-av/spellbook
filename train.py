@@ -1,5 +1,5 @@
-from prepareTrainDataset import prepareClassificationDataset, prepareDetectionDataset
-from callbacks import reduceLROnPlateau, LRLadderDecrease, saveTrainInfo, saveModel, saveTrainInfoDetection, saveCheckpointDetection
+from prepareTrainDataset import prepareClassificationDataset, prepareBIRDCLEFDataset, prepareDetectionDataset
+from callbacks import reduceLRCustom,reduceLROnPlateau, LRLadderDecrease, saveTrainInfo, saveModel, saveTrainInfoDetection, saveCheckpointDetection
 from helpers import getFullPaths, loadNumpy, getFeaturesFromPath, getLabelFromPath
 
 import time
@@ -326,6 +326,7 @@ def classificationCustomTrain(
         permutations, do_permutations, normalization,
         model_name, model,
         loss_object, val_loss, compute_total_loss,
+        custom_lrs_epochs,
         lr_ladder, lr_ladder_step, lr_ladder_epochs, 
         reduce_lr_plateau, reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric,
         optimizer,
@@ -433,6 +434,9 @@ def classificationCustomTrain(
         compute_total_loss : function
             returns average loss for each loss calculated on each GPU
 
+        custom_lrs_epochs : list
+            list of epochs when to decrease learning rate
+
         lr_ladder : boolean
             either to perform ladder learning rate reduction or not
 
@@ -490,10 +494,14 @@ def classificationCustomTrain(
         'min_metric_value': float('inf'),
         'patience': 0}
     
-    for metric in train_metrics:
-        metrics_dict[metric.name] = []
-    for metric in val_metrics:
-        metrics_dict[metric.name] = []
+    if metric_type == 'custom':
+        metrics_dict['train_metric'] = []
+        metrics_dict['val_metric'] = [] 
+    else:
+        for metric in train_metrics:
+            metrics_dict[metric.name] = []
+        for metric in val_metrics:
+            metrics_dict[metric.name] = []
 
     for epoch in range(start_epoch, num_epochs):
 
@@ -519,9 +527,9 @@ def classificationCustomTrain(
             else:
                 print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Loading training data...', flush=True)
 
-            train_distributed_part = prepareClassificationDataset(
+            train_distributed_part = prepareBIRDCLEFDataset(
                 batch_size, num_classes, num_add_classes,  
-                train_filepaths_part, 
+                train_paths_list_shuffled, train_filepaths_part, 
                 metadata, id_column, feature_columns, add_features_columns, 
                 filename_underscore, create_onehot, create_sparse, label_idx, label_idxs_add,   
                 permutations, do_permutations, normalization, 
@@ -577,9 +585,9 @@ def classificationCustomTrain(
                 else:
                     print('\nEpoch ' + str(epoch + 1) + '. Fold ' + str(fold + 1) + '. Loading validation data...', flush=True)
 
-                val_distributed_part = prepareClassificationDataset(
+                val_distributed_part = prepareBIRDCLEFDataset(
                     batch_size, num_classes, num_add_classes, 
-                    val_filepaths_part, 
+                    val_paths_list_shuffled, val_filepaths_part, 
                     metadata, id_column, feature_columns, add_features_columns, 
                     filename_underscore, create_onehot, create_sparse, label_idx, label_idxs_add, 
                     None, do_permutations, normalization, 
@@ -643,7 +651,7 @@ def classificationCustomTrain(
 
                     print('\n' + template.format(
                         epoch + 1, 
-                        loss_object.name + ': ' + str(train_loss.numpy()), 
+                        'train_loss' + ': ' + str(train_loss.numpy()), 
                         train_metric.name + ': ' + str(train_metric.result().numpy()),
                         'val_loss: ' + str(val_loss.result().numpy()), 
                         val_metric.name + ': ' + str(val_metric.result().numpy()), 
@@ -656,6 +664,12 @@ def classificationCustomTrain(
                     optimizer, save_train_info_dir)
 
             saveModel(model, model_name, epoch, fold, save_train_weights_dir)
+
+            if (custom_lrs_epochs is not None) and (epoch in custom_lrs_epochs):
+
+                new_lr = reduceLRCustom(optimizer, reduce_lr_factor)
+                optimizer.learning_rate = new_lr
+                metrics_dict['patience'] = 0
 
             if lr_ladder:
 
@@ -716,7 +730,7 @@ def classificationCustomTrain(
 
                     print('\n' + template.format(
                         epoch + 1, 
-                        loss_object.name + ': ' + str(train_loss), 
+                        'train_loss' + ': ' + str(train_loss), 
                         train_metric.name + ': ' + str(train_metric.result()),
                         'No validation', 'No validation', 
                         flush=True))

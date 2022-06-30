@@ -44,6 +44,31 @@ class DetectOverfittingCallback(tf.keras.callbacks.Callback):
             self.model.stop_training = True
 
 
+def reduceLRCustom(optimizer, factor):
+    """
+    decreases optimizer's learning rate in a ladder fashion
+    multiplies current learning rate by the specified fraction (factor)
+
+    parameters
+    ----------
+        optimizer : object
+            model's optimizer
+
+        factor : number (usually a rational)
+            learning rate multiplier
+
+    returns
+    -------
+        new_lr : number
+            new optimizer's learning rate
+    """
+
+    current_lr = optimizer.learning_rate
+    new_lr = current_lr * factor
+
+    return new_lr
+
+
 def reduceLROnPlateau(optimizer, metrics_dict, patience, factor, min_lr, monitor):
     """
     reduces optimizer's learning rate if metric is in stagnation, i.e. reached plateau
@@ -88,27 +113,22 @@ reduce_lr_patience, reduce_lr_factor, reduce_lr_minimal_lr, reduce_lr_metric
     new_lr = current_lr * factor
 
     if current_lr <= min_lr:
-
         return current_lr, metrics_dict
     
     metric_to_monitor = metrics_dict[monitor]
 
     if len(metric_to_monitor) < 1:
-
         return current_lr, metrics_dict
 
     last_metric_value = metric_to_monitor[-1]
 
     if last_metric_value < metrics_dict['min_metric_value']:
-
         metrics_dict['min_metric_value'] = last_metric_value
     
     else:
-
         metrics_dict['patience'] += 1
     
     if metrics_dict['patience'] >= patience:
-
         metrics_dict['patience'] = 0
 
         return new_lr, metrics_dict
@@ -136,7 +156,6 @@ def LRLadderDecrease(optimizer, factor):
     """
 
     current_lr = optimizer.learning_rate
-
     new_lr = current_lr * factor
 
     return new_lr
@@ -193,15 +212,17 @@ def saveTrainInfo(
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                loss_object.name: [train_loss.numpy()],
-                val_loss.name: [val_loss.result().numpy()]})
+                'train_loss': [train_loss.numpy()],
+                'train_metric': [(train_metrics).numpy()],
+                'val_loss': [val_loss.result().numpy()],
+                'val_metric': [(val_metrics).numpy()]})
 
         else:
 
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                loss_object.name: [train_loss.numpy()],
+                'train_loss': [train_loss.numpy()],
                 val_loss.name: [val_loss.result().numpy()]})
             
             for train_metric in train_metrics:
@@ -216,19 +237,17 @@ def saveTrainInfo(
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                loss_object.name: [train_loss.numpy()],
-                # 'train_metric': [(train_accuracy).numpy()],
-                'val_loss': ['No validation']})
-            for train_metric in train_metrics:
-                info_df[train_metric.name] = [(train_metric.result()).numpy()]
-            info_df['val_metric'] = ['No validation']
+                'train_loss': [train_loss.numpy()],
+                'train_metric': [(train_metrics).numpy()],
+                'val_loss': ['No validation'],
+                'val_metric': ['No validation']})
 
         else:
 
             info_df = pd.DataFrame({
                 'epoch': [epoch + 1],
                 'learning_rate': [optimizer._decayed_lr(tf.float32).numpy()],
-                loss_object.name: [train_loss.numpy()],
+                'train_loss': [train_loss.numpy()],
                 'val_loss': ['No validation']})
             
             for train_metric in train_metrics:
@@ -323,6 +342,12 @@ def saveModel(model, model_name, epoch, fold_num, save_model_dir):
 
     if not os.path.exists(save_model_epoch_dir):
         os.makedirs(save_model_epoch_dir)
+    
+    # if 'EfficientNet' in model_name:
+
+    #     tf.keras.models.save_model(model, save_model_epoch_dir + 'savedModel', options=tf.saved_model.SaveOptions(experimental_custom_gradients=True))
+    
+    # else:
 
     model.save(save_model_epoch_dir + 'savedModel')
 

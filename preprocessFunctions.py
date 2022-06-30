@@ -2,9 +2,12 @@ import pydicom
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 import librosa
 import albumentations
-
 import numpy as np
+import random
+
 import tensorflow as tf
+import tensorflow.keras.backend as K
+from torchvision import transforms
 
 
 def minMaxNormalizeNumpy(x):
@@ -139,7 +142,7 @@ def kerasNormalize(model_name):
 
     elif 'EfficientNet' in model_name:
 
-        normalization_function = tf.keras.applications.efficientnet.preprocess_input
+        normalization_function = minMaxNormalizeTensor
 
     return normalization_function
 
@@ -187,7 +190,7 @@ def spectrogramToDecibels(x):
     """
 
     try:
-        x = librosa.power_to_db(x, ref=np.max)
+        x = librosa.power_to_db(x.astype(np.float32), ref=np.max)
 
         return x
 
@@ -404,3 +407,22 @@ def resizeImageBbox(image, bboxes, height, width, bbox_format):
     bboxes = transformed['bboxes']
 
     return image, bboxes
+
+
+def randomMelspecPower(data, power, c):
+
+    data -= data.min()
+    data /= (data.max() + K.epsilon())
+    data **= (random.random() * power + c)
+    
+    return data    
+
+
+def melspecMonoToColor(x:np.ndarray, input_shape, normalization):
+
+    x = addColorChannels(x, input_shape[-1])
+    v = (255 * x)
+    if normalization is not None:
+        v = normalization(v)
+
+    return v

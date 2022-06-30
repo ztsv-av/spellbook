@@ -12,6 +12,8 @@ from sklearn.model_selection import train_test_split
 
 from object_detection.utils import visualization_utils as viz_utils
 
+from globalVariables import VAL_SPLIT
+
 
 def loadNumpy(path):
     """
@@ -57,7 +59,7 @@ def loadImage(path, image_type):
     return image_converted
 
 
-def saveNumpyArray(x, path):
+def saveNumpy(x, path):
     """
     saves numpy array to specified directory
 
@@ -322,7 +324,7 @@ def findNLargest(array, n):
     return n_largest
 
 
-def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=0.2):
+def splitTrainValidation(dir, train_data_folder, val_data_folder, val_data_size=VAL_SPLIT):
     """
     reads files in input directory, splits and copies them into two directories
     using specified ratio
