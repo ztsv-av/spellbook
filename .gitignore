@@ -16,5 +16,7 @@ projects/happywhale-2022/models/*
 projects/happywhale-2022/training/*
 projects/birdclef-2021/data/*
 projects/birdclef-2021/training/*
-projects/birdclef-2022/*
+projects/birdclef-2022/data/*
+projects/birdclef-2022/training/*
+projects/birdclef-2022/models/*
 imagenet_weights/*
