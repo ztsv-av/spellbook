@@ -2,18 +2,20 @@
 
 # Spellbook
 
-This repo aims to optimize usability of DL techniques by implementing a
-standardized code piece suitable to various DL tasks such as classification,
+This repo aims to optimize usability of ML techniques by implementing a
+standardized code piece suitable to various ML tasks such as classification,
 object detection, regression, etc.
 
 By directly importing the code piece the learning canvas may be built rather
 fast and allow engineers to focus on task-specific issues rather than
 cross-task, reusable actions.
 
-The goal is to only change global variables contained in the globalVariables.py file
-and start the whole data engineering and model/s training pipeline in either 
+The goal is to build a machine learning pipeline, where you would only change 
+global variables contained in the globalVariables.py file and start the whole 
+data engineering and model/s training process in either 
 magicClassification.py or magicDetection.py files. Data preprocessing is done
-differently for each project/competition beforehand.
+differently for each project/competition beforehand, that is before it is fed
+to the pipeline.
 
 ## Spellbook Contents
 
