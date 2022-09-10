@@ -8,6 +8,7 @@ from keras.layers import *
 from keras.models import load_model
 
 from globalVariables import DROPOUT_RATES, FC_LAYERS
+from layers import ArcMarginProduct
 
 
 MODELS_CLASSIFICATION = {
@@ -475,7 +476,6 @@ def buildDenoisingAutoencoder(
     c_fc_layers, c_dropout_rates, 
     c_num_classes, c_activation, 
     c_do_predictions,
-    inputs_features,
     dense_neurons_data_features, dense_neurons_encoder, dense_neurons_bottle, dense_neurons_decoder,
     predictions_features):
 
@@ -489,7 +489,7 @@ def buildDenoisingAutoencoder(
 
     dense_data_features_layer = tf.keras.layers.Dense(dense_neurons_data_features, activation='relu', name="dense_data_features_layer", use_bias=False)(classification_model.layers[-1].output)
     concat_features_layers = [dense_data_features_layer]
-    for features_layer in inputs_features:
+    for features_layer in inputs[1:]:
         concat_features_layers.append(features_layer)
 
     concat_layer = tf.keras.layers.Concatenate(name='concat_features')(concat_features_layers)
@@ -554,3 +554,19 @@ def buildTFIMM(
 
     return model, normalization_function
 
+
+def buildArcModel(inputs, model, arc_dropout, arc_dense, num_classes, arc_s, arc_m):
+
+    embedding = tf.keras.layers.Dropout(arc_dropout)(model)
+    embedding = tf.keras.layers.Dense(arc_dense)(embedding)
+
+    arc_margin = ArcMarginProduct(
+        n_classes=num_classes, s=arc_s, m=arc_m, 
+        name='head/arcmargin', dtype='float32')
+    arc_margin_layer = arc_margin([embedding, [inputs[1:]]])
+
+    output = tf.keras.layers.Softmax(dtype='float32')(arc_margin_layer)
+
+    model_arc = tf.keras.models.Model(inputs=inputs, outputs=[output])
+
+    return model_arc
