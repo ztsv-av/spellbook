@@ -208,3 +208,28 @@ def logisticLoss(y_true, y_pred):
     logistic = np.mean(logistic)
 
     return logistic
+
+
+def mseLoss(y_true, y_pred):
+    """
+    mean squared error cost function.
+
+    parameters
+    ----------
+        y_true : array
+            array of true output values.
+
+        y_pred : array
+            array of predicted values for each true value.
+
+    returns
+    -------
+        mse : float
+            value of the mse
+    """
+
+    mse = np.substract(y_true, y_pred)
+    mse = np.power(mse, 2)
+    mse = np.mean(mse)
+
+    return mse
