@@ -73,3 +73,28 @@ class ArcMarginProduct(tf.keras.layers.Layer):
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
         output *= self.s
         return output
+
+
+def unfreezeLayers(
+    num_model_layers, 
+    unfreeze_full, unfreeze_percent, num_unfreeze_layers, 
+    model_name):
+
+    if unfreeze_full:
+        to_unfreeze = num_model_layers
+
+    if unfreeze_percent is not None:
+        unfreeze_layers = unfreeze_percent / 100
+        to_unfreeze = num_model_layers[:-unfreeze_layers]
+
+    else:
+        
+        if ((model_name == 'VGG16') or (model_name == 'VGG19')):
+
+            to_unfreeze = num_model_layers
+
+        else:
+
+            to_unfreeze = num_unfreeze_layers[model_name]
+
+    return to_unfreeze
