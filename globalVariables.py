@@ -43,7 +43,8 @@ BATCH_SIZES = {
     
 INPUT_SHAPE = (224, 448, 3)
 
-USE_TFIMM_MODELS = True
+USE_TFIMM_MODELS = False
+BUILD_ARC = False
 
 LOAD_FEATURES = False
 CONCAT_FEATURES_BEFORE = False
@@ -58,6 +59,9 @@ INITIAL_DROPOUT = None
 DO_BATCH_NORM = False
 FC_LAYERS = None
 DROPOUT_RATES = None
+GAP_IDXS = [-1, -5, -9, -14]
+ARC_DROPOUT = 0.3
+ARC_DENSE = 1024
 
 DO_PREDICTIONS = False
 OUTPUT_ACTIVATION = 'sigmoid' # 'sigmoid', 'softmax', 'relu', None
