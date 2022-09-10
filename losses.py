@@ -184,3 +184,27 @@ def rootMeanSquaredErrorLossWrapper(reduction):
         return rmse_loss
 
     return rootMeanSquaredErrorLoss
+
+
+def logisticLoss(y_true, y_pred):
+    """
+    computes logistic cost function.
+
+    parameters
+    ----------
+        y_true : array
+            array of true output values.
+
+        y_pred : array
+            array of predicted values for each true value.
+
+    returns
+    -------
+        logistic : float
+            value of the logistic cost function
+    """
+
+    logistic = -1 * y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred)
+    logistic = np.mean(logistic)
+
+    return logistic
