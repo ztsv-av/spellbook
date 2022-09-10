@@ -460,7 +460,7 @@ def buildDetectionModel(num_classes, checkpoint_path, config_path, dummy_shape):
 
 
 def buildDenoisingAutoencoder(
-    c_inputs, 
+    inputs, 
     c_model_name, c_model_imagenet, 
     c_pooling, c_dropout_connect_rate, c_do_batch_norm, c_initial_dropout, 
     c_concat_features_before, c_concat_features_after, 
@@ -469,11 +469,10 @@ def buildDenoisingAutoencoder(
     c_do_predictions,
     inputs_features,
     dense_neurons_data_features, dense_neurons_encoder, dense_neurons_bottle, dense_neurons_decoder,
-    predictions_features,
-    input_den_autoenc_layers):
+    predictions_features):
 
     classification_model = buildClassificationImageNetModel(
-        c_inputs, c_model_name, c_model_imagenet,
+        inputs, c_model_name, c_model_imagenet,
         c_pooling, c_dropout_connect_rate, c_do_batch_norm, c_initial_dropout,
         c_concat_features_before, c_concat_features_after, 
         c_fc_layers, c_dropout_rates,
@@ -499,7 +498,7 @@ def buildDenoisingAutoencoder(
 
         prediction_layers.append(prediction_layer)
 
-    denoising_autoencoder = tf.keras.models.Model(inputs=input_den_autoenc_layers, outputs=prediction_layers)
+    denoising_autoencoder = tf.keras.models.Model(inputs=inputs, outputs=prediction_layers)
 
     return denoising_autoencoder
 
@@ -520,3 +519,5 @@ def saveEmbeddings(model_dir, embed_model_save_dir, folds):
 
         model_embed = tf.keras.models.Model(inputs=[model.inputs[0]], outputs=[model.layers[-4].output])
         model_embed.save(embed_model_save_dir)
+
+
