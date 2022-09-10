@@ -206,7 +206,7 @@ def buildClassificationImageNetModel(
     model_name, model_imagenet, weights,
     pooling, dropout_connect_rate, do_batch_norm, initial_dropout, 
     concat_features_before, concat_features_after, 
-    fc_layers, dropout_rates, 
+    fc_layers, dropout_rates, gap_idxs, 
     num_classes, activation, 
     do_predictions):
     """
@@ -295,7 +295,14 @@ def buildClassificationImageNetModel(
 
     if pooling == 'avg':
 
-        feature_extractor = tf.keras.layers.GlobalAveragePooling2D(name='avg_global_pool')(feature_extractor)
+        if gap_idxs is not None:
+
+            gaps = tf.concat([tf.keras.layers.GlobalAveragePooling2D()(feature_extractor.layers[gap_idx].output) for gap_idx in gap_idxs], axis=1)
+            feature_extractor = feature_extractor(gaps)
+
+        else:
+            
+            feature_extractor = tf.keras.layers.GlobalAveragePooling2D(name='avg_global_pool')(feature_extractor)
     
     elif pooling == 'max':
 
@@ -546,5 +553,4 @@ def buildTFIMM(
     normalization_function = tfimm.create_preprocessing(model_name, dtype="float32") 
 
     return model, normalization_function
-
 
