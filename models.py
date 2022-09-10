@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tfimm
 from object_detection.utils import config_util
 from object_detection.builders import model_builder
 from keras.applications import *
@@ -519,5 +520,31 @@ def saveEmbeddings(model_dir, embed_model_save_dir, folds):
 
         model_embed = tf.keras.models.Model(inputs=[model.inputs[0]], outputs=[model.layers[-4].output])
         model_embed.save(embed_model_save_dir)
+
+
+def buildTFIMM(
+    inputs, 
+    model_name, 
+    fc_layers, num_classes, output_activation, 
+    load_model, classification_checkpoint):
+
+    if load_model:
+
+        model = load_model(classification_checkpoint)
+
+    else:
+
+        backbone = tfimm.create_model(model_name, nb_classes=0, pretrained="timm")
+        backbone_input = backbone(inputs[0])
+
+        classifier_concat = tf.keras.layers.Concatenate()([inputs[1], backbone_input])
+        classifier_dense = tf.keras.layers.Dense(units=fc_layers[0], activation='relu')(classifier_concat)
+        classifier_prediction = tf.keras.layers.Dense(units=num_classes, activation=output_activation)(classifier_dense)
+
+        model = tf.keras.Model(inputs=[inputs], outputs=classifier_prediction)
+
+    normalization_function = tfimm.create_preprocessing(model_name, dtype="float32") 
+
+    return model, normalization_function
 
 
